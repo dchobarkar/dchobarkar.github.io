@@ -14,8 +14,8 @@ hr {
 }
 
 .post_navi .post_navi-item {
-  padding: 0 2.2em;
   width: 50%;
+  padding: 0 2.2em;
   position: relative;
   color: inherit !important;
 }
