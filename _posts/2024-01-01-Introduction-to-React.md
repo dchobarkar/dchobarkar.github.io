@@ -1,4 +1,3 @@
-
 # Introduction to React: The Journey Begins
 
 ## Introduction
@@ -33,7 +32,7 @@ React's design embraces one-way data flow, also known as unidirectional data bin
 
 At the heart of React's high performance is a feature known as the Virtual DOM. Instead of manipulating the web browser's Document Object Model (DOM) directly, React creates a virtual representation of it. This abstraction enables React to compute the minimal set of changes required to update the DOM, leading to significant performance gains and a more efficient update process. The inner workings are further explained in the [React internals section](https://reactjs.org/docs/faq-internals.html).
 
-[Insert Image Here Showcasing Foundational Concepts of React]
+![React Blog Image](../images/react_blog_1.png)
 
 ## Conclusion:
 
