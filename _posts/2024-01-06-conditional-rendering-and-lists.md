@@ -74,7 +74,7 @@ function UserDashboard({ user }) {
 }
 ```
 
-## Best Practices
+### Best Practices
 
 - **Maintaining Readability**: Avoid overly complex inline conditional logic.
 
@@ -82,7 +82,7 @@ function UserDashboard({ user }) {
 
 - **Decoupling Conditions**: Extracting complex conditions or lists into separate components or functions for clarity.
 
-![React Concepts](../images/react_blog_6.png "React Conditional Rendering and Lists")
+![React Concepts](images/react_blog_6.png "React Conditional Rendering and Lists")
 
 ## Conclusion
 
