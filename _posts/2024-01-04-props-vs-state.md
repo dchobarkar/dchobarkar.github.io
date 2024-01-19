@@ -41,6 +41,7 @@ State represents data that changes over time. It's local to the component and ca
   - The useState hook in functional components allows you to add React state to them.
 
 - ### Example of State:
+
   - Creating a counter component:
 
 ```jsx
@@ -59,6 +60,7 @@ function Counter() {
 ```
 
 - ### State in Class Components:
+
   - In class components, state is a feature of the component class. It’s initialized in the constructor.
 
 ## Comparing Props and State
@@ -73,8 +75,7 @@ While both props and state hold information that influences the output of render
 - ### State:
 
   - Managed within the component (similar to variables declared within a function).
-
-- Mutable and can be changed over time, often in response to user actions or network responses.
+  - Mutable and can be changed over time, often in response to user actions or network responses.
 
 ## Managing Data Flow
 
@@ -85,6 +86,7 @@ React's data flow is unidirectional, from parent to child components. This archi
   - Parent components pass data down to child components as props. The child components use these props to render their UI but cannot modify them directly.
 
 - ### Local State Management:
+
   - Components manage their own state locally. When the state changes (like in the Counter example), the component re-renders, updating the UI to reflect the new state.
 
 ## Handling Asynchronous State Updates
@@ -92,6 +94,7 @@ React's data flow is unidirectional, from parent to child components. This archi
 State updates may be asynchronous, especially in response to events or when fetching data from an API.
 
 - ### useState and useEffect:
+
   - Combine useState with useEffect for handling asynchronous operations, like API calls.
 
 ```jsx
@@ -111,6 +114,7 @@ function UserProfile({ userId }) {
 ```
 
 - ### Handling State in Class Components:
+
   - In class components, similar functionality is achieved using lifecycle methods like componentDidMount and componentDidUpdate.
 
 ## Best Practices for Props and State
