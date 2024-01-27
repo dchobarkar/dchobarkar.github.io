@@ -1,4 +1,4 @@
-# NestJS - 05: Middleware in NestJS: Enhancing Application Capabilities
+# NestJS - 06: Middleware in NestJS: Enhancing Application Capabilities
 
 ## Introduction to Middleware in NestJS
 
