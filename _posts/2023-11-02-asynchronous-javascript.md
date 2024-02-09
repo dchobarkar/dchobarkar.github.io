@@ -1,4 +1,4 @@
-# JavaScript - 01: Asynchronous JavaScript
+# JavaScript - 02: Asynchronous JavaScript
 
 ## Introduction to Asynchronous JavaScript
 
