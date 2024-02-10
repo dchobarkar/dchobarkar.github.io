@@ -1,4 +1,4 @@
-# JavaScript - 02: Understanding ECMAScript 6 (ES6) and Beyond
+# JavaScript - 03: Understanding ECMAScript 6 (ES6) and Beyond
 
 ---
 
