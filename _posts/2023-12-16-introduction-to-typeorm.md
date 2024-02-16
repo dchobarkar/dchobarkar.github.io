@@ -28,70 +28,74 @@ When evaluating TypeORM against other ORMs like Sequelize, Mongoose, and Knex.js
 
 To integrate TypeORM into a Node.js project, follow these steps to get started:
 
-1. **Prerequisites**:
+1.  **Prerequisites**:
 
-- Ensure Node.js is installed.
+    - Ensure Node.js is installed.
 
-- Basic knowledge of TypeScript is recommended.
+    - Basic knowledge of TypeScript is recommended.
 
-2. **Initialize Your Node.js Project**:
+2.  **Initialize Your Node.js Project**:
 
-Create a new folder for your project and run `npm init -y` to generate a `package.json` file.
+    Create a new folder for your project and run `npm init -y` to generate a `package.json` file.
 
-3. **Install TypeORM and Database Driver**:
+3.  **Install TypeORM and Database Driver**:
 
-Install TypeORM using npm by running `npm install typeorm --save`. Additionally, you'll need to install the database driver for your specific database (e.g., PostgreSQL, MySQL, SQLite). For PostgreSQL, you would use `npm install pg --save`.
+    Install TypeORM using npm by running `npm install typeorm --save`. Additionally, you'll need to install the database driver for your specific database (e.g., PostgreSQL, MySQL, SQLite). For PostgreSQL, you would use `npm install pg --save`.
 
-4. **Configure TypeORM**:
+4.  **Configure TypeORM**:
 
-Create a file named `ormconfig.json` in your project root. This file will contain your database connection settings. Here’s an example configuration for a PostgreSQL database:
+        Create a file named `ormconfig.json` in your project root. This file will contain your database connection settings. Here’s an example configuration for a PostgreSQL database:
 
-```jsx
-{
-  "type": "postgres",
-  "host": "localhost",
-  "port": 5432,
-  "username": "test",
-  "password": "test",
-  "database": "test",
-  "entities": ["src/entity/**/*.ts"],
-  "synchronize": true
-}
-```
+        ```jsx
 
-- `type`: Specifies the database type.
+    {
+    "type": "postgres",
+    "host": "localhost",
+    "port": 5432,
+    "username": "test",
+    "password": "test",
+    "database": "test",
+    "entities": ["src/entity/**/*.ts"],
+    "synchronize": true
+    }
 
-- `host`, `port`, `username`, `password`, `database`: Database connection options.
+    ```
 
-- `entities`: Path to your entity classes.
+    - `type`: Specifies the database type.
 
-- `synchronize`: If set to true, TypeORM will automatically synchronize the database schema with your models. This is useful in development but should be disabled in production.
+    - `host`, `port`, `username`, `password`, `database`: Database connection options.
 
-5. **Write Your First Entity**:
+    - `entities`: Path to your entity classes.
 
-Define a simple entity as a TypeScript class in a file named `User.ts` within the `src/entity` directory:
+    - `synchronize`: If set to true, TypeORM will automatically synchronize the database schema with your models. This is useful in development but should be disabled in production.
 
-```jsx
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+    ```
 
-@Entity()
-export class User {
-  @PrimaryGeneratedColumn()
-  id: number;
+5.  **Write Your First Entity**:
 
-  @Column()
-  name: string;
+    Define a simple entity as a TypeScript class in a file named `User.ts` within the `src/entity` directory:
 
-  @Column()
-  email: string;
-}
-```
+    ```jsx
+    import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
-6. **Compile and Run**:
+    @Entity()
+    export class User {
+      @PrimaryGeneratedColumn()
+      id: number;
 
-Ensure your `tsconfig.json` is correctly set up for your TypeScript project, then compile your TypeScript code using `tsc`. Run your application with `node`, pointing to the compiled JavaScript files.
+      @Column()
+      name: string;
 
-This setup provides a solid foundation for developing a Node.js application with TypeORM, leveraging TypeScript's strong typing and the ORM's powerful data modeling capabilities. As you progress, explore more complex mappings, relationships, and TypeORM's advanced features to fully utilize its potential in your projects.
+      @Column()
+      email: string;
+    }
+    ```
+
+6.  **Compile and Run**:
+
+    Ensure your `tsconfig.json` is correctly set up for your TypeScript project, then compile your TypeScript code using `tsc`. Run your application with `node`, pointing to the compiled JavaScript files.
+
+    This setup provides a solid foundation for developing a Node.js application with TypeORM, leveraging TypeScript's strong typing and the ORM's powerful data modeling capabilities. As you progress, explore more complex mappings, relationships, and TypeORM's advanced features to fully utilize its potential in your projects.
 
 ## Creating Your First Entity
 
@@ -99,45 +103,45 @@ Entities are at the heart of TypeORM, serving as the bridge between your TypeScr
 
 1. **Define an Entity**: An entity represents a table in your database. To create an entity, you'll use the `@Entity()` decorator to decorate a class. This tells TypeORM that the class should be linked with a table of the same name.
 
-```jsx
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+   ```jsx
+   import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
-@Entity()
-class User {
-  @PrimaryGeneratedColumn()
-  id: number;
+   @Entity()
+   class User {
+     @PrimaryGeneratedColumn()
+     id: number;
 
-  @Column()
-  name: string;
+     @Column()
+     name: string;
 
-  @Column()
-  email: string;
-}
-```
+     @Column()
+     email: string;
+   }
+   ```
 
-In this code snippet, we define a `User` entity with three columns: `id`, `name`, and `email`. The `@PrimaryGeneratedColumn()` decorator is used to indicate that the `id` column is an auto-incremented primary key, while the `@Column()` decorator is used for other table columns.
+   In this code snippet, we define a `User` entity with three columns: `id`, `name`, and `email`. The `@PrimaryGeneratedColumn()` decorator is used to indicate that the `id` column is an auto-incremented primary key, while the `@Column()` decorator is used for other table columns.
 
 2. **Working with Repositories**: With an entity in place, you can use a repository to perform CRUD operations. TypeORM repositories provide a rich API to interact with entities.
 
-```jsx
-import { getRepository } from "typeorm";
-import { User } from "./entity/User";
+   ```jsx
+   import { getRepository } from "typeorm";
+   import { User } from "./entity/User";
 
-async function createUser() {
-  const userRepository = getRepository(User);
-  const newUser = userRepository.create({
-    name: "John Doe",
-    email: "john@example.com",
-  });
+   async function createUser() {
+     const userRepository = getRepository(User);
+     const newUser = userRepository.create({
+       name: "John Doe",
+       email: "john@example.com",
+     });
 
-  await userRepository.save(newUser);
-  console.log("User created with id:", newUser.id);
-}
+     await userRepository.save(newUser);
+     console.log("User created with id:", newUser.id);
+   }
 
-createUser();
-```
+   createUser();
+   ```
 
-This example demonstrates how to create a new user and save it to the database using the `User` repository. The `getRepository` function is used to obtain a repository instance for the `User` entity.
+   This example demonstrates how to create a new user and save it to the database using the `User` repository. The `getRepository` function is used to obtain a repository instance for the `User` entity.
 
 ## Conclusion
 
