@@ -44,10 +44,9 @@ To integrate TypeORM into a Node.js project, follow these steps to get started:
 
 4.  **Configure TypeORM**:
 
-        Create a file named `ormconfig.json` in your project root. This file will contain your database connection settings. Here’s an example configuration for a PostgreSQL database:
+    Create a file named `ormconfig.json` in your project root. This file will contain your database connection settings. Here’s an example configuration for a PostgreSQL database:
 
-        ```jsx
-
+    ```jsx
     {
     "type": "postgres",
     "host": "localhost",
@@ -58,7 +57,6 @@ To integrate TypeORM into a Node.js project, follow these steps to get started:
     "entities": ["src/entity/**/*.ts"],
     "synchronize": true
     }
-
     ```
 
     - `type`: Specifies the database type.
@@ -68,8 +66,6 @@ To integrate TypeORM into a Node.js project, follow these steps to get started:
     - `entities`: Path to your entity classes.
 
     - `synchronize`: If set to true, TypeORM will automatically synchronize the database schema with your models. This is useful in development but should be disabled in production.
-
-    ```
 
 5.  **Write Your First Entity**:
 
