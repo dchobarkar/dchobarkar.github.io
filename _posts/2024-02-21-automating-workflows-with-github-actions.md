@@ -316,24 +316,23 @@ GitHub Actions offers a robust platform for not only basic CI/CD but also for in
   on: [push]
 
   jobs:
-  build:
-  runs-on: ubuntu-latest
+    build:
+        runs-on: ubuntu-latest
 
-  steps:
-  - uses: actions/checkout@v2
+        steps:
+        - uses: actions/checkout@v2
 
-  - name: Build project
-    run: echo "Build starts"
-    # Your build commands here
+        - name: Build project
+        run: echo "Build starts"
+        # Your build commands here
 
-  - name: Notify Slack
-    uses: rtCamp/action-slack-notify@v2
-    env:
-      SLACK_CHANNEL: ci-builds
-      SLACK_COLOR: ${{ job.status == 'success' ? 'good' : 'danger' }}
-      SLACK_MESSAGE: 'Build ${{ job.status }}: ${{ github.event.push.repository.full_name }}'
-      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-
+        - name: Notify Slack
+        uses: rtCamp/action-slack-notify@v2
+        env:
+            SLACK_CHANNEL: ci-builds
+            SLACK_COLOR: ${{ job.status == 'success' ? 'good' : 'danger' }}
+            SLACK_MESSAGE: 'Build ${{ job.status }}: ${{ github.event.push.repository.full_name }}'
+            SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
   ```
 
   - This snippet configures a GitHub Action to send a notification to Slack with the result of the build process.
@@ -369,7 +368,6 @@ GitHub Actions offers a robust platform for not only basic CI/CD but also for in
                 -Dsonar.projectKey=my-project-key
                 -Dsonar.host.url=https://sonarqube.example.com
                 -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-
   ```
 
 ### Using Matrix Builds for Testing Across Multiple Environments
@@ -388,23 +386,23 @@ GitHub Actions offers a robust platform for not only basic CI/CD but also for in
   on: [push]
 
   jobs:
-  test:
-  runs-on: ${{ matrix.os }}
-  strategy:
-    matrix:
-      os: [ubuntu-latest, windows-latest, macos-latest]
-      node-version: [12, 14, 16]
+    test:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                os: [ubuntu-latest, windows-latest, macos-latest]
+                node-version: [12, 14, 16]
 
-  steps:
-  - uses: actions/checkout@v2
+        steps:
+        - uses: actions/checkout@v2
 
-  - name: Use Node.js ${{ matrix.node-version }}
-    uses: actions/setup-node@v2
-    with:
-      node-version: ${{ matrix.node-version }}
+        - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+            node-version: ${{ matrix.node-version }}
 
-  - run: npm install
-  - run: npm test
+        - run: npm install
+        - run: npm test
   ```
 
 ### Securing Workflows: Managing Secrets and Environment Variables
@@ -427,8 +425,8 @@ GitHub Actions offers a robust platform for not only basic CI/CD but also for in
   on: [push]
 
   jobs:
-  deploy:
-  runs-on: ubuntu-latest
+    deploy:
+        runs-on: ubuntu-latest
 
   steps:
   - uses: actions/checkout@v2
@@ -498,21 +496,20 @@ jobs:
   on: push
 
   jobs:
-  debug:
-  runs-on: ubuntu-latest
+    debug:
+        runs-on: ubuntu-latest
 
-  steps:
-  - uses: actions/checkout@v2
+    steps:
+    - uses: actions/checkout@v2
 
-  - name: List environment variables
-    run: printenv
+    - name: List environment variables
+      run: printenv
 
-  - name: Check current directory
-    run: pwd
+    - name: Check current directory
+      run: pwd
 
-  - name: List files
-    run: ls -lah
-
+    - name: List files
+      run: ls -lah
   ```
 
 ### Leveraging Community Resources
@@ -535,18 +532,17 @@ jobs:
   on: pull_request
 
   jobs:
-  lint:
-  runs-on: ubuntu-latest
+    lint:
+        runs-on: ubuntu-latest
 
-  steps:
-  - uses: actions/checkout@v2
+        steps:
+        - uses: actions/checkout@v2
 
-  - name: Run Super-Linter
-    uses: github/super-linter@v3
-    env:
-      DEFAULT_BRANCH: main
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+        - name: Run Super-Linter
+        uses: github/super-linter@v3
+        env:
+            DEFAULT_BRANCH: main
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   ```
 
 These best practices and tips are designed to help you maximize the efficiency and reliability of your GitHub Actions workflows. By adhering to these guidelines, developers can ensure their CI/CD pipelines are not only functional but also optimized for performance and maintainability.
