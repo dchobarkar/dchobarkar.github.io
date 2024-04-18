@@ -130,7 +130,8 @@ Automating parts of the code review process can significantly enhance efficiency
 
 - **GitHub Actions for Automated Testing and Linting**: Set up GitHub Actions to run automated tests and linting whenever a new pull request is created. This helps ensure that basic quality checks are passed before human review starts.
 
-```jsx# Example GitHub Action for running tests
+```jsx
+# Example GitHub Action for running tests
 name: Run Tests
 on: [pull_request]
 jobs:
