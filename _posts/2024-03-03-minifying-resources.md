@@ -192,3 +192,66 @@ gulp.task("default", gulp.series("minify-js", "minify-css", "minify-html"));
 This Gulp script sets up tasks for minifying JavaScript, CSS, and HTML files. Each task reads files from a source directory, applies an appropriate minification plugin, and writes the output to a distribution directory.
 
 These automation tools not only streamline the process of minification but also ensure that it is an integral part of the development and deployment workflow, thereby maintaining the efficiency and speed of web applications consistently across all stages of development.
+
+## The Role of Source Maps in Debugging
+
+Source maps are a crucial development tool, especially when dealing with minified JavaScript or CSS. They serve as a bridge between the original source code and the compressed version served to users, enabling developers to maintain an optimized application without sacrificing the ability to debug effectively.
+
+### Understanding Source Maps
+
+**Source maps** provide a way to map the code within a compressed file back to its original source. This allows developers to debug their code in the form it was originally written, even after it has been transformed by processes like minification or compilation.
+
+#### Importance of Source Maps
+
+- **Debugging Efficiency**: Developers can debug directly in the browser's developer tools as if they were working with the original unminified files.
+
+- **Error Tracking**: When errors occur, the browser's console can display errors linked to the original source, rather than the minified file, making it easier to locate and fix issues.
+
+### Generating and Using Source Maps
+
+#### How to Generate Source Maps
+
+Most modern build tools, including Webpack and Gulp, can generate source maps alongside the minified files. This process typically involves adding a simple configuration setting to the build tool being used.
+
+**Code Snippet: Generating Source Maps with Webpack**:
+
+```jsx
+const TerserPlugin = require("terser-webpack-plugin");
+
+module.exports = {
+  entry: "./src/index.js",
+  output: {
+    filename: "bundle.min.js",
+    path: __dirname + "/dist",
+  },
+  devtool: "source-map", // This option controls if and how source maps are generated.
+  optimization: {
+    minimize: true,
+    minimizer: [
+      new TerserPlugin({
+        sourceMap: true, // Enable source mapping
+      }),
+    ],
+  },
+};
+```
+
+In this Webpack configuration, the `devtool` option is set to 'source-map' which instructs Webpack to generate source maps for the JavaScript bundle. The `TerserPlugin` is used for minification, and it's configured to include source map support, ensuring that the source maps accurately reflect the transformations applied during minification.
+
+#### Using Source Maps in Development
+
+To use source maps during development:
+
+1. **Ensure source maps are enabled** in your browser's developer tools.
+
+2. **Load your application** in the browser. The developer tools will automatically retrieve the source map files, allowing you to view and debug the original source code directly in the browser.
+
+3. **Set breakpoints and inspect** as you would with unminified code. The source maps will transparently handle mapping the code back to the original sources.
+
+### Best Practices for Source Maps
+
+- **Do not include source maps in production**: To prevent exposing the original source code and potentially sensitive information to end users, configure your build process to only generate source maps in development environments.
+
+- **Optimize source map generation**: For large projects, consider options that generate source maps only for files that change, reducing build time and improving efficiency.
+
+Source maps are an indispensable tool for modern web development. They reconcile the need for performance through minification with the necessity for robust debugging capabilities, making them essential for any project that uses these optimization techniques.
