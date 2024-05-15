@@ -32,8 +32,7 @@ In the quest for optimal web performance, choosing the right image format plays 
 
 - **Code Snippet**: Implementing Progressive JPEGs can be as simple as adjusting your image processing settings:
 
-``jsx
-
+```jsx
 <!-- Example HTML tag for a Progressive JPEG -->
 <img src="example-progressive.jpg" alt="Descriptive text">
 ```
