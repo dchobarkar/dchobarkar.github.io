@@ -277,3 +277,94 @@ Here's an example of setting up LazySizes in a web project to lazy load images:
 - LazySizes automatically initializes itself and starts working as soon as it loads, observing the `lazyload` class elements and loading them when they are about to enter the viewport.
 
 This setup demonstrates a simple integration that can significantly enhance performance by loading resources only when necessary. Each library and framework offers unique setups and configurations that can be tailored to meet specific project needs, making lazy loading a versatile and effective tool for web performance optimization.
+
+## Advanced Lazy Loading Techniques
+
+Lazy loading is not just limited to images; it encompasses a broad spectrum of content types, including videos, scripts, CSS, and even JavaScript modules. Advanced techniques in lazy loading can significantly optimize web performance by minimizing initial load times and saving bandwidth, enhancing the user experience, especially on devices with slower internet connections.
+
+### Lazy Loading Non-Image Content: Videos, Scripts, and CSS
+
+Videos and heavy script files can dramatically affect the performance of a web page. Here's how to approach their lazy loading:
+
+- **Videos**: For lazy loading videos, you can leverage the `preload="none"` attribute and load the video only when it becomes visible in the viewport. This is particularly useful for pages with multiple embedded videos.
+
+```jsx
+<video id="videoElement" controls preload="none">
+    <source src="path_to_video.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+</video>
+<script>
+  var observer = new IntersectionObserver(function(entries) {
+    if(entries[0].isIntersecting === true)
+      document.querySelector("#videoElement").setAttribute("src", "path_to_video.mp4");
+  }, { threshold: [0.5] });
+
+  observer.observe(document.querySelector("#videoElement"));
+</script>
+```
+
+- **Scripts and CSS**: Scripts and CSS can be loaded lazily through JavaScript. You can dynamically load a script or a stylesheet when a particular condition is met or a specific element is in view.
+
+```jsx
+if (condition) {
+  const script = document.createElement("script");
+  script.src = "path_to_script.js";
+  document.head.appendChild(script);
+}
+```
+
+### Dynamic import() Statements for JavaScript Modules
+
+The `import()` function provides a promising way to asynchronously load JavaScript modules and components:
+
+- **Usage Example**: This method is useful for loading functionalities on demand. For instance, if a page has a complex chart or a map that isn't immediately visible, you can use `import()` to load these components only when needed.
+
+```jsx
+window.addEventListener("scroll", () => {
+  if (nearViewport(".map")) {
+    import("./map-module.js")
+      .then((module) => {
+        module.loadMap();
+      })
+      .catch((err) => {
+        console.error("Error loading the map module", err);
+      });
+  }
+});
+
+function nearViewport(selector) {
+  const element = document.querySelector(selector);
+  const rect = element.getBoundingClientRect();
+  return rect.top < window.innerHeight;
+}
+```
+
+### Using Service Workers to Manage and Cache Lazy-Loaded Resources
+
+Service workers act as a network proxy in the browser, allowing you to manage how resources are handled, cached, and retrieved:
+
+- **Service Worker Caching**: You can configure a service worker to cache certain resources after they are loaded the first time. Future requests for these resources can be served from the cache, significantly reducing load times and network usage.
+
+```jsx
+self.addEventListener("fetch", (event) => {
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      // Return the cached response if present
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+
+      // Otherwise, fetch the resource from the network
+      return fetch(event.request).then((response) => {
+        // Cache the fetched response for future requests
+        return caches.open("v1").then((cache) => {
+          cache.put(event.request, response.clone());
+          return response;
+        });
+      });
+    })
+  );
+});
+```
+
+These advanced lazy loading techniques provide developers with powerful tools to optimize resource loading, enhance page performance, and improve the overall user experience on their websites. By implementing these strategies, developers can ensure that their sites remain efficient, responsive, and capable of handling modern web demands.
