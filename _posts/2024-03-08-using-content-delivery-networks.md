@@ -142,50 +142,49 @@ Optimizing performance using Content Delivery Networks (CDNs) involves more than
 
 1. **Content Differentiation**:
 
-- **Static Assets**: For static resources like images, CSS, and JavaScript files, CDNs can dramatically reduce load times by serving these files from edge servers located closest to the user. Ensuring these assets are cacheable and setting long cache lifetimes can decrease server load and increase responsiveness.
+   - **Static Assets**: For static resources like images, CSS, and JavaScript files, CDNs can dramatically reduce load times by serving these files from edge servers located closest to the user. Ensuring these assets are cacheable and setting long cache lifetimes can decrease server load and increase responsiveness.
 
-- **Dynamic Content**: For dynamic content, which changes frequently and is user-specific (like user profiles or personalized content), use a CDN that supports dynamic content caching with edge computing capabilities. This minimizes the distance data travels, reducing latency and speeding up content delivery.
+   - **Dynamic Content**: For dynamic content, which changes frequently and is user-specific (like user profiles or personalized content), use a CDN that supports dynamic content caching with edge computing capabilities. This minimizes the distance data travels, reducing latency and speeding up content delivery.
 
 2. **Smart Caching Techniques**:
 
-- **Cache Control Headers**: Use HTTP headers to control how and how long the content is cached in the CDN. For example, `Cache-Control: public, max-age=31536000` instructs the CDN to cache the content for one year unless cleared manually.
+   - **Cache Control Headers**: Use HTTP headers to control how and how long the content is cached in the CDN. For example, `Cache-Control: public, max-age=31536000` instructs the CDN to cache the content for one year unless cleared manually.
 
-- **Content Invalidation**: Implement a mechanism to invalidate cached content when it updates. This ensures users receive the most current version without waiting for cache expiration.
+   - **Content Invalidation**: Implement a mechanism to invalidate cached content when it updates. This ensures users receive the most current version without waiting for cache expiration.
 
 3. **Edge Computing**:
 
-- Deploy applications directly on CDN edge nodes to reduce response times and backend load. This is particularly useful for applications requiring real-time data processing.
+   - Deploy applications directly on CDN edge nodes to reduce response times and backend load. This is particularly useful for applications requiring real-time data processing.
 
 ### Examples of CDN Setup for Different Content Types
 
 - **Static Content Setup**:
 
-  ```jsx
-    <!-- Example of including a static image with CDN optimized caching -->
-    <img src="https://cdn.example.com/images/logo.png" alt="Company Logo">
+  ```html
+  <!-- Example of including a static image with CDN optimized caching -->
+  <img src="https://cdn.example.com/images/logo.png" alt="Company Logo" />
   ```
 
-  - **Dynamic Content Handling**:
+- **Dynamic Content Handling**:
 
-    - Implement an edge side includes (ESI) logic that allows parts of a web page to be cached and other parts to remain dynamic. This can be set up directly via the CDN if supported.
+  - Implement an edge side includes (ESI) logic that allows parts of a web page to be cached and other parts to remain dynamic. This can be set up directly via the CDN if supported.
 
 ### Tips for Using CDN Caching Policies
 
-#### Leverage Browser Caching:
+- **Leverage Browser Caching**:
 
-Encourage browsers to store frequently accessed resources locally. Define adequate `max-age` values in your CDN settings to balance between cache hit ratio and content freshness.
+  - Encourage browsers to store frequently accessed resources locally. Define adequate `max-age` values in your CDN settings to balance between cache hit ratio and content freshness.
 
-#### Geographic Considerations:
+- **Geographic Considerations**:
 
-Customize caching strategies based on user location to enhance performance in high-traffic regions.
+  - Customize caching strategies based on user location to enhance performance in high-traffic regions.
 
-#### Use Analytics for Insight:
-
-Regularly analyze CDN and website performance analytics to adjust caching rules and optimize content delivery strategies.
+- **Use Analytics for Insight**:
+  - Regularly analyze CDN and website performance analytics to adjust caching rules and optimize content delivery strategies.
 
 Here's an example of setting cache policies for a CDN:
 
-```jsx
+```apache
 # Apache configuration to set Cache-Control for static assets
 <filesMatch ".(ico|pdf|flv|jpg|jpeg|png|gif|js|css|svg)$">
     Header set Cache-Control "max-age=31536000, public"
