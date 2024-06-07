@@ -215,7 +215,9 @@ Effective use of a Content Delivery Network (CDN) involves not only setup and de
 ### Analyzing CDN Logs and Metrics
 
 - **Log Analysis**:
+
   - Regularly review CDN access logs to understand traffic patterns and detect anomalies. Analyzing logs can reveal insights into the most requested content, geographical distribution of requests, and potential security threats.
+
 - **Performance Metrics**:
 
   - Key metrics to monitor include:
