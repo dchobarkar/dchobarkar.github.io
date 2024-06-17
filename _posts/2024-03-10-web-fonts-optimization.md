@@ -144,3 +144,54 @@ body {
 ```
 
 Subsetting fonts is a potent strategy for optimizing font delivery on the web. By including only the necessary glyphs, you can significantly reduce the size of font files, improving load times and enhancing the overall user experience. However, careful consideration and testing are essential to avoid issues with missing characters and to ensure compatibility across different user environments.
+
+## Font Display Strategies and Performance
+
+Effective font display strategies are crucial for optimizing rendering performance and improving user experience. The `font-display` CSS property provides control over how fonts are displayed as they are loaded, which can significantly affect how quickly text becomes visible on a web page.
+
+### CSS Font Loading Control
+
+The `font-display` property offers several options that dictate how browsers handle font loading:
+
+- **`auto`**: The browser decides the best font display strategy, usually based on the user's connection speed or browser settings.
+
+- **`block`**: Text remains invisible for a short period (the block period). If the font isn't loaded, fallback fonts are used.
+
+- **`swap`**: Fallback fonts are shown immediately until the custom font has loaded, at which point the custom font swaps in.
+
+- **`fallback`**: Similar to `swap`, but with a very short block period, allowing the font to display only if it loads quickly.
+
+- **`optional`**: The font is treated as optional. The browser may decide not to download it under certain conditions, such as slow network speeds.
+
+Each of these strategies offers a trade-off between the visibility of text and the aesthetics of font rendering.
+
+### Performance Implications
+
+Different `font-display` settings can significantly impact key performance metrics such as First Contentful Paint (FCP), which measures how quickly content is visibly painted on the screen.
+
+- **`swap`** tends to improve FCP as it allows text to be visible immediately with fallback fonts, avoiding the problem where text is invisible while fonts load.
+
+- **`block`** might delay FCP because the text remains invisible while waiting for the font to load, potentially leading to a poor user experience if the font takes too long to download.
+
+- **`optional`** can enhance performance on slow networks by not downloading the font at all, which might not be ideal for branding but great for speed.
+
+```css
+/* Example CSS for using font-display */
+@font-face {
+  font-family: "MyWebFont";
+  src: url("/path/to/webfont.woff2") format("woff2");
+  font-display: swap; /* Prioritize text visibility */
+}
+```
+
+### Case Studies
+
+Real-world case studies illustrate the impact of font display strategies on performance:
+
+1. **E-commerce Site**: An e-commerce site switched from `font-display: block` to `font-display: swap`, reducing the time it took for text to become visible. This change was correlated with a decrease in bounce rates and an improvement in conversion rates.
+
+2. **News Portal**: A popular news website implemented `font-display: optional` for users on slow connections, which improved their FCP by 15%. This strategic choice helped maintain a fast user experience, especially for readers in regions with less reliable internet access.
+
+3. **Portfolio Site**: A graphic design portfolio implemented `font-display: fallback`, allowing quick text rendering while still providing a brief opportunity for the custom font to load if available quickly.
+
+These examples underscore how nuanced adjustments to font loading strategies can lead to significant performance improvements. By choosing the right `font-display` setting, developers can optimize rendering times while maintaining a balance between aesthetics and performance.
