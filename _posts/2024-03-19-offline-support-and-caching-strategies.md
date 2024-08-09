@@ -1215,6 +1215,7 @@ In our next article, we'll dive into advanced PWA features and performance optim
 To deepen your understanding of Progressive Web Apps (PWAs) and the importance of offline capabilities and caching strategies, it's essential to consult authoritative sources. Here are some highly recommended official documentation links:
 
 - **[MDN Web Docs - Service Workers](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API):** A comprehensive guide on Service Workers, covering everything from the basics to advanced topics like caching and background sync.
+
 - **[Google Developers - Progressive Web Apps](https://developers.google.com/web/progressive-web-apps):** Google's official documentation on PWAs, offering in-depth tutorials, best practices, and case studies for building effective PWAs.
 
 - **[Web.dev - Caching Best Practices](https://web.dev/offline-caching-strategies/):** Detailed articles and guides on implementing offline caching strategies to optimize web performance.
