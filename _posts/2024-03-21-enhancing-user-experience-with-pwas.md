@@ -393,16 +393,11 @@ Accessibility features should be integrated into your PWA from the beginning, en
 
    ```html
    <nav aria-label="Main Navigation">
-       <ul>
-           <li><a href="/home">Home</a></li>
-           <li><a href="/about">About</a></li>
-           <li><a href="/contact">Contact</
-   ```
-
-a></li>
-
-</ul>
-
+     <ul>
+       <li><a href="/home">Home</a></li>
+       <li><a href="/about">About</a></li>
+       <li><a href="/contact">Contact</a></li>
+     </ul>
    </nav>
    ```
 
@@ -1079,20 +1074,17 @@ The Web Push API allows you to send real-time updates to users, even when they a
            applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
        });
    }).then(subscription
+   => {
+    // Send subscription to server
+   fetch('/subscribe', {
+   method: 'POST',
+   body: JSON.stringify(subscription),
+   headers: {
+   'Content-Type': 'application/json'
+   }
+   });
+   });
    ```
-
-=> {
-// Send subscription to server
-fetch('/subscribe', {
-method: 'POST',
-body: JSON.stringify(subscription),
-headers: {
-'Content-Type': 'application/json'
-}
-});
-});
-
-````
 
 #### Handling Web Push Permissions and Subscriptions
 
@@ -1126,16 +1118,16 @@ Personalization involves tailoring the PWA experience to the individual user, wh
 
 ```javascript
 const userPreferences = getUserPreferences();
-const greeting = document.getElementById('greeting');
+const greeting = document.getElementById("greeting");
 greeting.textContent = `Welcome back, ${userPreferences.name}!`;
 
-const recommendations = document.getElementById('recommendations');
-userPreferences.recommendedProducts.forEach(product => {
-    const productItem = document.createElement('div');
-    productItem.textContent = product.name;
-    recommendations.appendChild(productItem);
+const recommendations = document.getElementById("recommendations");
+userPreferences.recommendedProducts.forEach((product) => {
+  const productItem = document.createElement("div");
+  productItem.textContent = product.name;
+  recommendations.appendChild(productItem);
 });
-````
+```
 
 #### Contextual Content Based on Location, Time, and User Preferences
 
