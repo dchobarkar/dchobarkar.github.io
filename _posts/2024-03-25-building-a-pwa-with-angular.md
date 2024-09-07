@@ -374,3 +374,279 @@ By default, the Service Worker is disabled in development mode to prevent cachin
    - In the **Application** tab, check the **Service Workers** section to ensure the Service Worker is active.
 
    - Turn off your internet connection and refresh the page. If the Service Worker is functioning correctly, the app should still load, even without an internet connection.
+
+## Service Workers and Manifest in Angular
+
+Service Workers and the Web App Manifest are critical components of a Progressive Web App (PWA). Service Workers enable offline functionality, caching strategies, and background sync, while the Web App Manifest provides metadata that allows the PWA to be installable and behave like a native app. In this section, we will explore how Service Workers function in Angular, how to manage them, caching strategies, handling updates, and customizing the Web App Manifest.
+
+### What are Service Workers?
+
+#### Role of Service Workers in PWAs
+
+A **Service Worker** is a JavaScript file that runs in the background, separate from the main application. It allows PWAs to offer features such as:
+
+1. **Caching**: Service Workers intercept network requests and can cache resources like HTML, CSS, JavaScript, and images. This improves load times and enables offline access.
+
+2. **Offline Functionality**: By caching assets, Service Workers ensure that users can continue interacting with the app even when they are offline or on a slow network.
+
+3. **Background Sync**: Service Workers can synchronize data in the background, such as sending updates to a server when the network
+   connection is restored.
+
+4. **Push Notifications**: Service Workers can handle push notifications, allowing apps to engage users even when the app is not open.
+
+#### Life Cycle of a Service Worker in Angular
+
+The Service Worker life cycle includes three key phases:
+
+1. **Install**: The Service Worker is installed and caches the necessary resources. This is where you define which assets should be cached.
+
+   ```javascript
+   self.addEventListener("install", (event) => {
+     event.waitUntil(
+       caches.open("my-cache").then((cache) => {
+         return cache.addAll(["/index.html", "/styles.css", "/script.js"]);
+       })
+     );
+   });
+   ```
+
+2. **Activate**: The Service Worker is activated after installation. This phase is often used to clean up old caches from previous versions of the app.
+
+   ```javascript
+   self.addEventListener("activate", (event) => {
+     const cacheWhitelist = ["my-cache"];
+     event.waitUntil(
+       caches.keys().then((cacheNames) => {
+         return Promise.all(
+           cacheNames.map((cacheName) => {
+             if (!cacheWhitelist.includes(cacheName)) {
+               return caches.delete(cacheName);
+             }
+           })
+         );
+       })
+     );
+   });
+   ```
+
+3. **Fetch**: The Service Worker intercepts network requests and serves cached responses, falling back to the network if necessary.
+
+   ```javascript
+   self.addEventListener("fetch", (event) => {
+     event.respondWith(
+       caches.match(event.request).then((response) => {
+         return response || fetch(event.request);
+       })
+     );
+   });
+   ```
+
+### Managing Service Workers in Angular
+
+#### Angular’s Built-in Service Worker Support
+
+Angular provides built-in support for Service Workers, making it easy to integrate them into your application. The Angular CLI includes PWA capabilities, and the default Service Worker is configured through the `ngsw-config.json` file.
+
+By default, Angular’s Service Worker is configured to:
+
+- Cache the application shell (HTML, CSS, JavaScript).
+- Provide offline access to cached content.
+- Automatically update the cache when new content is available.
+
+#### Customizing the Default Service Worker for Advanced Use Cases
+
+While Angular’s default Service Worker configuration works well for most applications, you may need to customize it to cache additional resources, handle specific network requests, or manage more complex caching strategies.
+
+Here’s how to modify the Service Worker in Angular:
+
+1. **Open the `ngsw-config.json` File**:
+
+   This file is located in the root of your project and defines the caching behavior of the Service Worker.
+
+2. **Add Custom Caching Rules**:
+
+   For example, if you want to cache API responses, you can define a new `dataGroups` section.
+
+   **Code Snippet: Modifying the Service Worker to Cache API Responses**
+
+   ```json
+   {
+     "index": "/index.html",
+     "assetGroups": [
+       {
+         "name": "app",
+         "installMode": "prefetch",
+         "resources": {
+           "files": ["/favicon.ico", "/index.html", "/styles.css", "/main.js"]
+         }
+       }
+     ],
+     "dataGroups": [
+       {
+         "name": "api-calls",
+         "urls": ["https://api.example.com/**"],
+         "cacheConfig": {
+           "strategy": "freshness",
+           "maxSize": 100,
+           "maxAge": "1h"
+         }
+       }
+     ]
+   }
+   ```
+
+In this configuration:
+
+- **`dataGroups`**: Defines how API calls are cached.
+- **`urls`**: Specifies the API endpoints to be cached.
+- **`strategy`**: Sets the caching strategy, in this case, **freshness**, which tries the network first and falls back to the cache if the network is unavailable.
+- **`maxSize`**: Limits the number of cached responses.
+- **`maxAge`**: Specifies how long cached data is valid (in this case, 1 hour).
+
+### Caching Strategies for Angular PWAs
+
+Caching strategies determine how your Service Worker handles network requests. Angular’s Service Worker supports multiple caching strategies, each suited for different use cases.
+
+#### Overview of Caching Strategies
+
+1. **Cache-First**:
+
+   - The Service Worker checks the cache first and serves the cached response if available. If not, it fetches the resource from the network and caches it for future requests. This strategy is best for static assets like images or CSS files.
+
+   **Code Snippet: Cache-First Strategy**
+
+   ```json
+   {
+     "cacheConfig": {
+       "strategy": "performance",
+       "maxSize": 50,
+       "maxAge": "7d"
+     }
+   }
+   ```
+
+2. **Network-First**:
+
+   - The Service Worker fetches the resource from the network first and falls back to the cache if the network is unavailable. This strategy is ideal for dynamic content like API data.
+
+   **Code Snippet: Network-First Strategy**
+
+   ```json
+   {
+     "dataGroups": [
+       {
+         "name": "api-data",
+         "urls": ["https://api.example.com/**"],
+         "cacheConfig": {
+           "strategy": "freshness",
+           "maxSize": 100,
+           "maxAge": "1h"
+         }
+       }
+     ]
+   }
+   ```
+
+3. **Stale-While-Revalidate**:
+
+   - The Service Worker serves the cached response while simultaneously fetching the latest version from the network and updating the cache. This strategy ensures users see the fastest response while keeping the cache updated.
+
+   **Code Snippet: Stale-While-Revalidate Strategy**
+
+   ```json
+   {
+     "dataGroups": [
+       {
+         "name": "dynamic-content",
+         "urls": ["/dynamic/**"],
+         "cacheConfig": {
+           "strategy": "performance",
+           "maxSize": 20,
+           "maxAge": "1d"
+         }
+       }
+     ]
+   }
+   ```
+
+### Handling Updates and Versioning in Angular PWAs
+
+#### How Angular Handles Service Worker Updates
+
+When a new version of your app is deployed, the Service Worker needs to update the cached assets. Angular handles Service Worker updates by installing the new version in the background. However, the new version does not take control immediately; it waits until all tabs of the old version are closed.
+
+#### Prompting Users to Refresh When a New Version is Available
+
+To notify users when a new version of the app is available, you can listen for update events and prompt the user to refresh.
+
+**Code Snippet: Customizing the Update Prompt Logic**
+
+```typescript
+import { SwUpdate } from "@angular/service-worker";
+import { MatSnackBar } from "@angular/material/snack-bar";
+import { Component } from "@angular/core";
+
+@Component({
+  selector: "app-root",
+  templateUrl: "./app.component.html",
+})
+export class AppComponent {
+  constructor(updates: SwUpdate, private snackBar: MatSnackBar) {
+    updates.available.subscribe((event) => {
+      const snackBarRef = this.snackBar.open(
+        "New version available",
+        "Reload",
+        { duration: 6000 }
+      );
+      snackBarRef.onAction().subscribe(() => {
+        updates.activateUpdate().then(() => document.location.reload());
+      });
+    });
+  }
+}
+```
+
+In this example, a snackbar is shown to the user when a new version is available. If the user clicks "Reload", the new version is activated.
+
+### Understanding the Web App Manifest in Angular
+
+#### Role of the Web App Manifest in Making an Angular App Installable
+
+The **Web App Manifest** is a JSON file that provides metadata about your app, such as its name, icons, and theme color. This file allows the app to be installed on a user’s home screen, making it look and feel like a native app.
+
+#### Key Properties of the `manifest.json` File
+
+1. **`name` and `short_name`**: Define how your app’s name appears during installation and on the home screen.
+2. **`icons`**: Specifies the app’s icons for different screen sizes and resolutions.
+3. **`start_url`**: Defines the URL to load when the app is launched from the home screen.
+4. **`display`**: Controls how the app is displayed—`standalone` for full-screen or `browser` for opening in the browser window.
+5. **`background_color` and `theme_color`**: Set the colors for the splash screen and browser interface.
+
+**Code Snippet: Customizing the Web App Manifest**
+
+```json
+{
+  "
+
+name": "Angular PWA",
+  "short_name": "PWA",
+  "theme_color": "#1976d2",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "assets/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+```
+
+Customizing the `manifest.json` file allows you to tailor how the app looks and behaves when installed on a user’s device.
