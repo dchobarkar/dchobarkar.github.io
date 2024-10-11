@@ -216,3 +216,168 @@ The impact of poor web security extends beyond businesses to the individual user
    - Web security is a cornerstone of user loyalty. Businesses that fail to provide adequate security often experience lower **user retention** and engagement. On the other hand, companies that prioritize security build stronger, longer-lasting relationships with their users.
 
 **Example of Trust Erosion**: Following the **Yahoo data breach** in 2013, where the personal information of all **3 billion** of its users was compromised, the company’s reputation suffered immensely. Many users abandoned Yahoo services for more secure alternatives, and the company faced numerous lawsuits.
+
+## Common Web Security Threats
+
+Web applications face a variety of security threats that can expose sensitive data, disrupt services, and cause financial or reputational damage to businesses. Many of these threats are well-documented, with organizations like the **Open Web Application Security Project (OWASP)** providing guidelines for identifying and mitigating common vulnerabilities. In this section, we will explore the **OWASP Top 10**, along with real-world examples and solutions for protecting web applications against these threats.
+
+### Overview of the Most Prevalent Web Threats
+
+The **OWASP Top 10** is a well-known list of the most critical security risks to web applications. It includes the most prevalent vulnerabilities and provides recommendations for mitigating them. Below is a brief overview of the most common threats:
+
+1. **Injection Attacks (SQL Injection)**: Malicious data is sent to an interpreter via forms or URLs to manipulate databases or execute unauthorized commands.
+2. **Broken Authentication**: Weak or improperly implemented authentication methods can lead to unauthorized access to accounts or systems.
+3. **Sensitive Data Exposure**: Insufficient protection of sensitive data such as financial information or passwords.
+4. **XML External Entities (XXE)**: Vulnerability related to outdated or improperly configured XML processors.
+5. **Broken Access Control**: Weak access control allows attackers to gain access to data or functionality they should not be able to reach.
+6. **Security Misconfigurations**: Default or insecure settings in software can leave applications exposed.
+7. **Cross-Site Scripting (XSS)**: Malicious scripts injected into trusted websites to steal user data or manipulate page content.
+8. **Insecure Deserialization**: Deserialization of untrusted data that leads to attacks like remote code execution.
+9. **Using Components with Known Vulnerabilities**: Outdated third-party components or libraries that introduce vulnerabilities.
+10. **Insufficient Logging and Monitoring**: Failure to log critical security events or monitor systems for potential breaches.
+
+These vulnerabilities can be exploited by attackers to compromise web applications, gain unauthorized access to sensitive information, or disrupt operations. Let’s take a closer look at some of the most common threats.
+
+### Detailed Breakdown of Common Threats
+
+#### 1. SQL Injection
+
+**Definition**: **SQL injection** is one of the oldest and most dangerous web application vulnerabilities. It occurs when an attacker manipulates a web application’s query parameters or form inputs to inject malicious SQL code into the backend database. This allows the attacker to **read**, **modify**, or **delete** data from the database without authorization.
+
+- **How it Works**: Attackers manipulate SQL queries by injecting malicious input into fields like search boxes, login forms, or URL parameters.
+
+**Example of Vulnerable Code**:
+
+```javascript
+// Vulnerable to SQL injection
+const userId = req.query.userId;
+const query = `SELECT * FROM users WHERE id = '${userId}'`;
+db.query(query, (err, result) => {
+  if (err) throw err;
+  console.log(result);
+});
+```
+
+In this example, the `userId` is directly injected into the SQL query, allowing an attacker to inject arbitrary SQL code.
+
+**Impact**:
+
+- Data exposure, modification, or deletion.
+- Potential control of the underlying database.
+- Denial of service by dropping critical tables.
+
+**Example of Secure Code Using Prepared Statements**:
+
+```javascript
+// Using parameterized queries to prevent SQL injection
+const userId = req.query.userId;
+const query = `SELECT * FROM users WHERE id = ?`;
+db.query(query, [userId], (err, result) => {
+  if (err) throw err;
+  console.log(result);
+});
+```
+
+**Explanation**: By using **prepared statements** or **parameterized queries**, the user input is treated as data, not executable code, preventing malicious SQL from being injected.
+
+#### 2. Cross-Site Scripting (XSS)
+
+**Definition**: **Cross-Site Scripting (XSS)** allows attackers to inject malicious scripts into webpages viewed by other users. These scripts can steal user cookies, session tokens, or sensitive data, or perform unauthorized actions on behalf of the user.
+
+- **How it Works**: The attacker injects malicious JavaScript or HTML code into web pages through vulnerable input fields (such as comments or search boxes), which are then executed by the browser of an unsuspecting user.
+
+**Example of Vulnerable Code**:
+
+```html
+<!-- Vulnerable to XSS attacks -->
+<div>
+  Search results for: <b><?= $_GET['searchQuery'] ?></b>
+</div>
+```
+
+This code directly outputs user input (`searchQuery`) without validating or escaping it, which makes it vulnerable to XSS attacks.
+
+**Impact**:
+
+- Theft of session cookies, leading to account hijacking.
+- Unauthorized actions performed on behalf of users.
+- Malicious scripts spreading across the application.
+
+**XSS Prevention Techniques**:
+
+1. **Input Validation**: Ensure that all user inputs are properly validated, rejecting malicious characters or scripts.
+2. **Output Encoding**: Encode data before displaying it in the browser to prevent it from being executed as a script.
+
+**Example of Secure Code Using Output Encoding**:
+
+```html
+<!-- Escaping user input to prevent XSS -->
+<div>
+  Search results for:
+  <b><?= htmlspecialchars($_GET['searchQuery'], ENT_QUOTES, 'UTF-8') ?></b>
+</div>
+```
+
+**Explanation**: By using `htmlspecialchars()` in PHP, we encode special characters to prevent them from being interpreted as code by the browser, thus mitigating XSS attacks.
+
+#### 3. Cross-Site Request Forgery (CSRF)
+
+**Definition**: **Cross-Site Request Forgery (CSRF)** is a type of attack in which an attacker tricks the user into submitting an unwanted request to a web application in which the user is authenticated. This can result in unauthorized actions such as changing account settings, transferring funds, or making purchases on the user’s behalf.
+
+- **How it Works**: The attacker tricks a victim into clicking a malicious link or loading a malicious image on a legitimate site. This results in an unintended action being performed in the user’s account.
+
+**Example of Vulnerable Code**:
+
+```html
+<!-- Vulnerable form without CSRF protection -->
+<form action="/change-email" method="POST">
+  <input type="email" name="newEmail" value="victim@example.com" />
+  <input type="submit" value="Change Email" />
+</form>
+```
+
+In this example, without CSRF protection, an attacker could trick the user into submitting this form, changing the user's email address without consent.
+
+**Impact**:
+
+- Unauthorized actions performed on behalf of the user.
+- Compromise of sensitive data and account information.
+- Disruption of application functionality.
+
+**Preventing CSRF Using CSRF Tokens**:
+
+- CSRF tokens are unique, unpredictable values generated for each session and form submission. They ensure that requests are valid and come from the authenticated user.
+
+**Example of Secure Code Using CSRF Tokens**:
+
+```html
+<!-- Form with CSRF protection -->
+<form action="/change-email" method="POST">
+  <input
+    type="hidden"
+    name="csrf_token"
+    value="<?= $_SESSION['csrf_token'] ?>"
+  />
+  <input type="email" name="newEmail" />
+  <input type="submit" value="Change Email" />
+</form>
+```
+
+**Explanation**: The `csrf_token` is stored in the user’s session and must be submitted with the form. If the token doesn’t match the session value, the request is rejected, preventing CSRF attacks.
+
+**Backend CSRF Token Validation (Example in Node.js)**:
+
+```javascript
+// Example of validating CSRF token in Node.js
+app.post("/change-email", (req, res) => {
+  const { csrf_token, newEmail } = req.body;
+
+  // Check if token matches the one stored in the session
+  if (csrf_token !== req.session.csrf_token) {
+    return res.status(403).send("Invalid CSRF token");
+  }
+
+  // Process email change
+  // ...
+});
+```
