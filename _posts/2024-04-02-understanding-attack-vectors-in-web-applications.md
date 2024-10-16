@@ -33,7 +33,6 @@ For developers and security professionals, having a comprehensive understanding 
    - Security professionals can use this knowledge to establish security policies, conduct regular audits, and deploy monitoring tools that detect and respond to suspicious activity associated with these vectors.
 
 3. **Staying Ahead of Attackers**:
-
    - The landscape of web security is constantly evolving, with new attack vectors emerging as technologies and frameworks change. Developers and security professionals need to stay informed about the latest threats and attack methods to protect web applications effectively.
    - An understanding of attack vectors also allows teams to patch and update systems proactively, minimizing the risk of exploitation through known vulnerabilities.
 
@@ -42,7 +41,9 @@ For developers and security professionals, having a comprehensive understanding 
 In this article, we will dive deep into some of the most common and impactful attack vectors that web applications face today. We’ll explore these attack vectors, including **SQL Injection (SQLi)**, **Cross-Site Scripting (XSS)**, and **Cross-Site Request Forgery (CSRF)**, among others. For each attack vector, we will cover:
 
 - **How Attackers Exploit These Vulnerabilities**:
+
   - We will provide examples and code snippets demonstrating how attackers can exploit vulnerabilities in web applications using these vectors. This will help highlight the importance of secure coding practices and thorough validation mechanisms.
+
 - **Mitigation Techniques**:
   - Each attack vector will be accompanied by practical mitigation techniques, showing how developers can secure their applications against these threats. We will provide code snippets and best practices to help implement these measures effectively.
 
