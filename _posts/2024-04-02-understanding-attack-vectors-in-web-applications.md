@@ -69,3 +69,114 @@ db.execute(query, [username], (err, results) => {
 ```
 
 By using prepared statements, the input is treated as a parameter rather than executable code, making it impossible for an attacker to inject malicious SQL commands.
+
+## SQL Injection (SQLi)
+
+### What is SQL Injection?
+
+**SQL Injection (SQLi)** is one of the most common and dangerous attack vectors in web applications. It occurs when an attacker manipulates a SQL query by injecting malicious code into user input fields or API endpoints. This attack exploits the vulnerability in applications where user inputs are not properly validated or sanitized before being used in database queries. When successful, SQL injection can allow attackers to access, modify, or delete sensitive data, bypass authentication, or even gain administrative control over the database.
+
+**How SQL Injection Works:**
+
+- SQL injection attacks target web applications that directly include user-supplied inputs in SQL queries without adequate validation. These inputs could come from various sources such as login forms, search bars, comment sections, or URL parameters.
+- Attackers exploit this by injecting specially crafted SQL code into these input fields. If the application fails to validate or sanitize these inputs, the injected code becomes part of the query executed on the database.
+
+**Common Entry Points for SQL Injection:**
+
+- **User Input Fields**: Forms where users enter information, such as login credentials, search queries, or contact details, are common targets.
+- **API Endpoints**: APIs that accept user input and interact with a database may also be vulnerable if they do not sanitize the inputs before processing.
+- **URL Parameters**: Dynamic URLs that pass parameters to SQL queries can be exploited if they are not properly validated.
+
+### Examples of SQL Injection Attacks
+
+To understand SQL injection better, let’s explore a real-world scenario where attackers manipulate SQL queries to gain unauthorized access.
+
+**Example Scenario**: An application has a login form where users enter their username and password. The application’s code then constructs a SQL query to check if the entered credentials match an existing record in the database:
+
+**Vulnerable Code Example**:
+
+```javascript
+// Vulnerable code: Directly using user input in a SQL query
+const username = req.body.username;
+const password = req.body.password;
+const query = `SELECT * FROM users WHERE username = '${username}' AND password = '${password}'`;
+db.query(query, (err, result) => {
+  if (err) throw err;
+  if (result.length > 0) {
+    // User authenticated
+  } else {
+    // Authentication failed
+  }
+});
+```
+
+In the above code, user inputs are directly embedded in the SQL query without validation or parameterization. This makes it vulnerable to SQL injection.
+
+**Attack Example**:
+
+- An attacker could enter `' OR '1'='1` as both the username and password. The resulting SQL query would look like this:
+  ```sql
+  SELECT * FROM users WHERE username = '' OR '1'='1' AND password = '' OR '1'='1';
+  ```
+- This query would always return `true` because `'1'='1'` is a valid condition. As a result, the attacker gains access without needing valid credentials.
+
+**Consequences**:
+
+- **Data Exposure**: Attackers can view and extract sensitive information from the database, such as user credentials, financial data, or personal information.
+- **Database Modification**: Attackers can modify data by injecting queries that update, delete, or insert records.
+- **Administrative Control**: In severe cases, attackers can execute administrative commands, gaining complete control over the database.
+
+### Mitigation Techniques
+
+To prevent SQL injection attacks, developers must adopt several best practices that ensure user inputs are handled securely. Below are some effective mitigation techniques:
+
+1. **Input Validation and Sanitization**:
+   - Validate and sanitize all user inputs before using them in SQL queries. This includes removing or escaping special characters that could be used to alter the structure of SQL commands.
+   - Implement whitelisting approaches for input validation, allowing only known safe characters. For example, when accepting usernames or IDs, ensure they contain only alphanumeric characters.
+2. **Use of Prepared Statements and Parameterized Queries**:
+   - **Prepared statements** separate SQL code from user inputs, ensuring that the inputs are treated as data rather than executable code. This approach is the most effective way to prevent SQL injection attacks.
+   - Most modern database libraries support prepared statements. Below is an example of how to implement a prepared statement using Node.js and MySQL:
+
+**Code Snippet: Secure Query Using Prepared Statements**
+
+```javascript
+// Secure code: Using prepared statements to prevent SQL injection
+const username = req.body.username;
+const password = req.body.password;
+const query = `SELECT * FROM users WHERE username = ? AND password = ?`;
+
+db.execute(query, [username, password], (err, results) => {
+  if (err) throw err;
+  if (results.length > 0) {
+    // User authenticated
+  } else {
+    // Authentication failed
+  }
+});
+```
+
+In the secure code above:
+
+- The `?` placeholders act as parameters for the query. User inputs are not directly embedded in the SQL command, making it impossible for an attacker to inject malicious code.
+- The inputs are safely passed as parameters through the `db.execute()` method, which ensures they are treated only as data and not as part of the SQL structure.
+
+3. **Stored Procedures**:
+   - Stored procedures are predefined SQL commands stored in the database, which accept parameters and execute as a unit. Using stored procedures can help prevent SQL injection, as they limit how inputs interact with SQL commands.
+   - Example of a stored procedure:
+   ```sql
+   CREATE PROCEDURE GetUser(IN username VARCHAR(50), IN password VARCHAR(50))
+   BEGIN
+       SELECT * FROM users WHERE username = username AND password = password;
+   END;
+   ```
+   - While using stored procedures, ensure they follow security best practices and do not concatenate inputs directly into SQL queries.
+4. **Least Privilege Principle**:
+   - Limit database permissions for the application. Ensure that the application only has access to the commands it needs (e.g., `SELECT`, `INSERT`), and avoid granting administrative privileges. This minimizes the damage an attacker can do if they successfully exploit an SQL injection vulnerability.
+5. **Web Application Firewalls (WAFs)**:
+   - A WAF can help detect and block malicious traffic that attempts to exploit SQL injection vulnerabilities. It monitors and filters incoming traffic based on predefined security rules.
+   - While a WAF is not a substitute for secure coding practices, it adds an extra layer of defense.
+6. **Regular Security Audits and Testing**:
+   - Perform regular penetration testing and code reviews to identify potential SQL injection vulnerabilities. Tools like **SQLMap** can simulate SQL injection attacks and help security teams understand where weaknesses may exist.
+   - Implement automated security testing in the CI/CD pipeline to catch SQL injection vulnerabilities during the development process.
+
+By understanding and implementing these mitigation techniques, developers can significantly reduce the risk of SQL injection attacks in their applications. SQL injection remains a prevalent threat, but with proactive measures like input validation, prepared statements, and regular security audits, web applications can be safeguarded against this critical vulnerability.
