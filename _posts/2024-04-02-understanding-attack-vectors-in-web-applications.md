@@ -458,3 +458,178 @@ On the server side, you can verify this header to ensure that the request origin
 - **Header-Based Protections**: Use security headers such as `X-Requested-With` to help verify the origin of requests.
 
 By implementing the above techniques, developers can significantly reduce the risk of **Cross-Site Request Forgery** attacks. Protecting against CSRF is critical for maintaining the integrity of web applications and ensuring that actions performed by authenticated users are legitimate.
+
+## Other Common Attack Vectors
+
+### Insecure Deserialization
+
+#### What is Insecure Deserialization?
+
+**Insecure deserialization** occurs when an application improperly handles or deserializes data inputs that can be controlled or manipulated by an attacker. Deserialization is the process of converting data from a format (such as JSON, XML, or binary) back into objects that the application can work with. If an attacker can modify the serialized data before it’s deserialized, they can exploit the process to execute arbitrary code, escalate privileges, or manipulate the application’s behavior.
+
+#### Example of an Attack Exploiting Insecure Deserialization
+
+Imagine a scenario where a web application uses deserialization to store user session data. The application stores this data as a serialized object in a cookie:
+
+**Serialized Session Object (Insecure Example)**:
+
+```json
+{
+  "username": "user1",
+  "role": "user"
+}
+```
+
+An attacker could modify the cookie to change their role to "admin":
+
+**Modified Serialized Object**:
+
+```json
+{
+  "username": "user1",
+  "role": "admin"
+}
+```
+
+If the application does not properly validate or restrict the deserialized data, the attacker could elevate their privileges and gain administrative access to the application.
+
+#### Mitigation Techniques
+
+To prevent insecure deserialization, developers should take steps to ensure that deserialized data is properly validated and sanitized before use:
+
+1. **Validate Input**: Ensure that only trusted and expected data types are deserialized.
+2. **Use Safe Serialization Formats**: Avoid using complex serialization formats that allow for executable code within serialized objects. JSON and XML are generally safer compared to binary formats.
+3. **Implement Integrity Checks**: Add integrity checks, such as digital signatures or hashing, to ensure that serialized data has not been tampered with.
+4. **Restrict Classes Available for Deserialization**: Configure the application to only allow deserialization of known, trusted classes.
+
+**Code Snippet: Validating Deserialized Data in Python**:
+
+```python
+import json
+
+def deserialize_data(data):
+    try:
+        deserialized_data = json.loads(data)
+        if isinstance(deserialized_data, dict) and 'username' in deserialized_data:
+            return deserialized_data
+        else:
+            raise ValueError("Invalid data format")
+    except ValueError as e:
+        print(f"Deserialization error: {e}")
+        return None
+```
+
+In this example, the deserialized data is validated to ensure it is in the expected format (a dictionary with a "username" key) before processing.
+
+### Remote Code Execution (RCE)
+
+#### What is Remote Code Execution (RCE)?
+
+**Remote Code Execution (RCE)** is one of the most dangerous attack vectors, where attackers can execute arbitrary commands or code on a remote server. This can happen due to flaws in the application that allow unsanitized inputs to be executed, often through file uploads, deserialization flaws, or misconfigured system commands.
+
+#### Example of an RCE Vulnerability
+
+Consider an application that allows users to upload files for processing. If the application does not validate or restrict the type of files that can be uploaded, an attacker could upload a malicious script disguised as a legitimate file (e.g., an image). The server processes this file and executes the attacker’s code, potentially giving them full control over the server.
+
+**Example of a Vulnerable File Upload**:
+
+```php
+<?php
+// Accepts file upload without validation
+$uploadedFile = $_FILES['file']['tmp_name'];
+move_uploaded_file($uploadedFile, "/uploads/" . $_FILES['file']['name']);
+
+// Malicious file with PHP code is uploaded and executed
+include("/uploads/" . $_FILES['file']['name']);
+```
+
+In this case, the uploaded file is directly executed by the server, allowing the attacker to run arbitrary code.
+
+#### Mitigation Techniques
+
+To mitigate the risk of RCE, developers should implement several security measures:
+
+1. **Input Validation**: Validate all inputs, especially those that can result in system commands or file execution.
+2. **File Type and Content Validation**: Ensure that only files with valid extensions and content types are accepted.
+3. **Use Secure Libraries**: Avoid using libraries or functions that execute user input directly, such as `eval()` or `system()` in PHP, without proper sanitization.
+4. **Isolate Execution Environments**: Use sandboxes or isolated environments to run potentially dangerous code.
+
+**Code Snippet: Secure File Upload Handling in PHP**:
+
+```php
+$allowedTypes = array('image/jpeg', 'image/png');
+$fileType = mime_content_type($_FILES['file']['tmp_name']);
+
+if (in_array($fileType, $allowedTypes)) {
+    move_uploaded_file($_FILES['file']['tmp_name'], "/uploads/" . basename($_FILES['file']['name']));
+} else {
+    echo "Invalid file type!";
+}
+```
+
+This example checks the file’s MIME type before accepting it for upload, ensuring only valid image files are processed.
+
+### Directory Traversal Attacks
+
+#### What is Directory Traversal?
+
+**Directory traversal**, also known as **path traversal**, is an attack where an attacker manipulates file paths to access restricted directories or files on the server. By using relative file paths (e.g., `../`), attackers can bypass security mechanisms and access sensitive files such as configuration files, password files, or application source code.
+
+#### Example of a Directory Traversal Attack
+
+In a vulnerable application, a file path might be passed as a query parameter and used to read a file from the server:
+
+**Vulnerable PHP Code**:
+
+```php
+<?php
+// Takes filename from user input
+$filename = $_GET['file'];
+
+// Loads the file content without validation
+include("/var/www/html/" . $filename);
+?>
+```
+
+An attacker could craft a request to access sensitive files outside the intended directory:
+
+**Malicious Request**:
+
+```
+http://example.com/view.php?file=../../etc/passwd
+```
+
+This would allow the attacker to read the contents of `/etc/passwd`, a sensitive system file that contains information about user accounts.
+
+#### Mitigation Techniques
+
+To prevent directory traversal attacks, developers must properly validate and sanitize file paths:
+
+1. **Validate Input**: Ensure that user-supplied file paths are restricted to allowed directories.
+2. **Use Absolute Paths**: Always use absolute paths and avoid relying on user input to construct file paths.
+3. **Secure Functions**: Use secure functions like `realpath()` in PHP to resolve paths and ensure they point to safe directories.
+
+**Code Snippet: Validating File Paths in PHP**:
+
+```php
+<?php
+$baseDir = "/var/www/html/uploads/";  // Base directory
+$filename = realpath($baseDir . $_GET['file']);
+
+if (strpos($filename, $baseDir) === 0 && file_exists($filename)) {
+    include($filename);
+} else {
+    echo "File not found or invalid!";
+}
+?>
+```
+
+In this example, the `realpath()` function is used to resolve the absolute path of the requested file. The script ensures that the resolved path is within the allowed directory (`/uploads/`) and that the file exists before including it.
+
+### Summary of Mitigation Techniques for Common Attack Vectors
+
+- **Insecure Deserialization**: Validate and sanitize serialized data, implement integrity checks, and restrict allowed classes.
+- **Remote Code Execution (RCE)**: Validate inputs, secure file uploads, and use secure libraries and isolated execution environments.
+- **Directory Traversal**: Use absolute paths, validate input, and rely on secure functions like `realpath()` to ensure safe file access.
+
+By understanding and mitigating these common attack vectors, developers can greatly reduce the risk of exploitation and strengthen the overall security of their web applications.
