@@ -195,3 +195,95 @@ In this setup:
 - The session expires after one hour, enforcing timely logouts.
 
 These core principles—input validation, output encoding, authentication and authorization, and session management—form the foundation of secure coding practices. By consistently implementing these strategies, developers can build resilient applications that protect both users and data from security threats.
+
+## Secure Coding Techniques in Modern Web Frameworks
+
+As modern web frameworks like React, Angular, and Vue become central to application development, understanding their built-in security features and secure coding practices is essential for preventing vulnerabilities like XSS, CSRF, and injection attacks. Here, we explore secure coding techniques in each framework and provide code examples.
+
+### React
+
+React is a popular front-end library that promotes component-based architecture. While React mitigates many common security issues, developers still need to adopt secure practices, especially when handling dynamic content.
+
+- **Using `dangerouslySetInnerHTML` with Caution**: React warns developers about `dangerouslySetInnerHTML` because it can introduce XSS vulnerabilities by directly injecting HTML. Avoid using this method unless absolutely necessary, and sanitize inputs carefully.
+- **Preventing XSS in React Components**: By default, React escapes values embedded in JSX, which prevents XSS. However, developers must sanitize inputs when working with untrusted content and avoid rendering HTML directly without thorough validation.
+
+#### Code Snippet: Input Sanitization and Safe Rendering in React
+
+To safely render user inputs in React, you can use libraries like `DOMPurify` for sanitization:
+
+```javascript
+import DOMPurify from "dompurify";
+
+function SafeContent({ userInput }) {
+  const sanitizedContent = DOMPurify.sanitize(userInput);
+
+  return <div dangerouslySetInnerHTML={{ __html: sanitizedContent }} />;
+}
+```
+
+Here, `DOMPurify.sanitize` ensures that any potentially harmful HTML or scripts in `userInput` are removed before rendering. This approach is useful when rendering dynamic HTML content while maintaining security.
+
+### Angular
+
+Angular is a powerful framework with a strong emphasis on security, offering built-in sanitization and features to help prevent common vulnerabilities like XSS and injection attacks.
+
+- **Built-in Sanitization for Templates**: Angular automatically sanitizes any data bound to the DOM via templates. For example, Angular sanitizes HTML, URL, style, and resource URLs in templates, providing an extra layer of protection.
+- **Using `HttpClient` and `DomSanitizer`**: Angular’s `HttpClient` is the recommended module for handling HTTP requests securely. Additionally, `DomSanitizer` allows you to safely bypass sanitization when absolutely necessary, though it should be used cautiously.
+
+#### Code Snippet: Safe HTTP Request Handling and Sanitization in Angular
+
+```typescript
+import { HttpClient } from "@angular/common/http";
+import { DomSanitizer, SafeHtml } from "@angular/platform-browser";
+
+export class SafeComponent {
+  safeContent: SafeHtml;
+
+  constructor(private http: HttpClient, private sanitizer: DomSanitizer) {}
+
+  fetchData(url: string) {
+    this.http.get(url, { responseType: "text" }).subscribe((data) => {
+      this.safeContent = this.sanitizer.bypassSecurityTrustHtml(data);
+    });
+  }
+}
+```
+
+In this example, `HttpClient` is used to make HTTP requests securely, and `DomSanitizer` is only applied to HTML content when strictly necessary. This approach allows Angular to handle most content safely, while developers should ensure they aren’t bypassing sanitization for untrusted content.
+
+### Vue
+
+Vue.js provides a reactive framework that allows for a modular and data-driven approach to building UIs. With powerful templating and binding features, Vue also requires secure coding practices to prevent issues like XSS.
+
+- **Safe Handling of `v-html`**: The `v-html` directive can be used to bind raw HTML. However, it’s advisable to avoid `v-html` unless absolutely required, as it can introduce XSS vulnerabilities if improperly sanitized.
+- **Using `v-bind` and `v-on` Modifiers**: Vue offers `v-bind` for safe rendering and `v-on` event modifiers to handle user interactions securely. Avoid using untrusted data directly with these directives.
+
+#### Code Snippet: Securing Dynamic Content and Events in Vue
+
+```javascript
+import DOMPurify from "dompurify";
+
+export default {
+  props: ["userInput"],
+  computed: {
+    sanitizedContent() {
+      return DOMPurify.sanitize(this.userInput);
+    },
+  },
+  template: `
+    <div v-html="sanitizedContent"></div>
+  `,
+};
+```
+
+Here, `DOMPurify.sanitize` removes potentially harmful content from `userInput` before rendering it with `v-html`. This prevents XSS attacks while allowing you to safely use raw HTML.
+
+For events, use the `v-on` directive to bind event handlers securely:
+
+```html
+<button v-on:click.prevent="submitForm">Submit</button>
+```
+
+The `.prevent` modifier on `v-on` ensures the default action is prevented, which adds a layer of control over event handling.
+
+Each of these frameworks includes built-in features to enhance security, but it’s essential to understand and implement secure coding practices proactively. By combining these built-in mechanisms with additional security measures, developers can better protect web applications from vulnerabilities.
