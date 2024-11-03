@@ -434,3 +434,229 @@ function deserializeData(serializedData) {
 In this example, the data is serialized with the `serialize-javascript` library, and deserialization involves validating the structure of the deserialized object to ensure its integrity.
 
 Preventing these common pitfalls is essential for secure coding in web development. Each vulnerability requires specific mitigation strategies, but implementing these practices and utilizing secure frameworks greatly reduces the risk of exposure.
+
+## Code Snippets Demonstrating Secure Coding Practices
+
+This section provides practical examples of secure coding practices in common programming languages and frameworks, helping developers to mitigate vulnerabilities in their web applications.
+
+### Input Validation and Sanitization Examples
+
+Input validation and sanitization are essential for preventing injection attacks and ensuring that data entering the application is clean and secure.
+
+1. **JavaScript Example**: Using a validation library to validate and sanitize user input.
+
+   ```javascript
+   const validator = require("validator");
+
+   function validateAndSanitizeInput(input) {
+     if (!validator.isAlphanumeric(input)) {
+       throw new Error("Invalid input: Only alphanumeric characters allowed.");
+     }
+     return validator.escape(input);
+   }
+
+   try {
+     const userInput = "<script>alert('Attack!')</script>";
+     const sanitizedInput = validateAndSanitizeInput(userInput);
+     console.log("Sanitized Input:", sanitizedInput); // Output: &lt;script&gt;alert('Attack!')&lt;/script&gt;
+   } catch (error) {
+     console.error(error.message);
+   }
+   ```
+
+   In this example, the `validator` library checks that the input is alphanumeric, and `escape` converts any special characters to HTML-safe entities to prevent injection attacks.
+
+2. **Python Example**: Basic input validation for an integer input using Python.
+
+   ```python
+   def validate_input(input_data):
+       if not input_data.isdigit():
+           raise ValueError("Invalid input: Only numbers are allowed.")
+       return int(input_data)
+
+   try:
+       user_input = "123"
+       validated_input = validate_input(user_input)
+       print("Validated Input:", validated_input)
+   except ValueError as e:
+       print(e)
+   ```
+
+   Here, `isdigit()` ensures the input contains only digits, preventing injection attacks by verifying input type.
+
+3. **Node.js Example**: Validating and sanitizing input with `express-validator` in a Node.js application.
+
+   ```javascript
+   const { body, validationResult } = require("express-validator");
+
+   app.post(
+     "/submit",
+     [
+       body("username")
+         .isAlphanumeric()
+         .withMessage("Username must be alphanumeric")
+         .escape(),
+       body("email")
+         .isEmail()
+         .withMessage("Invalid email format")
+         .normalizeEmail(),
+     ],
+     (req, res) => {
+       const errors = validationResult(req);
+       if (!errors.isEmpty()) {
+         return res.status(400).json({ errors: errors.array() });
+       }
+       res.send("Input is valid and sanitized!");
+     }
+   );
+   ```
+
+   Here, `express-validator` ensures the `username` is alphanumeric and `email` is in a valid format. Both inputs are sanitized to prevent malicious content from entering the application.
+
+### Encoding and Escaping Examples
+
+Encoding and escaping are critical for safely displaying user input and avoiding injection attacks such as XSS.
+
+1. **HTML Encoding in JavaScript**: Using a library to encode output safely in HTML.
+
+   ```javascript
+   const escapeHtml = (str) => {
+     return str
+       .replace(/&/g, "&amp;")
+       .replace(/</g, "&lt;")
+       .replace(/>/g, "&gt;")
+       .replace(/"/g, "&quot;")
+       .replace(/'/g, "&#039;");
+   };
+
+   const userContent = "<script>alert('Attack!')</script>";
+   console.log("Encoded Output:", escapeHtml(userContent));
+   ```
+
+   This custom `escapeHtml` function replaces potentially dangerous characters with their HTML-safe equivalents, preventing XSS.
+
+2. **URL Encoding in Python**: Using `urllib.parse` for safe URL handling in Python.
+
+   ```python
+   from urllib.parse import quote
+
+   user_input = "Hello World!"
+   encoded_url = quote(user_input)
+   print("Encoded URL:", encoded_url)  # Output: Hello%20World%21
+   ```
+
+   `quote()` ensures that special characters are URL-encoded, preventing URL injection or manipulation.
+
+3. **JavaScript Output Encoding with DOMPurify**: Safe rendering in JavaScript.
+
+   ```javascript
+   const DOMPurify = require("dompurify");
+   const unsafeHtml = "<img src=x onerror=alert('XSS')>";
+   const cleanHtml = DOMPurify.sanitize(unsafeHtml);
+   console.log("Clean HTML:", cleanHtml);
+   ```
+
+   `DOMPurify` removes potentially malicious scripts, ensuring only safe HTML content is rendered.
+
+### Session Management and Secure Authentication
+
+Managing sessions securely is critical for preventing unauthorized access and session hijacking.
+
+1. **Secure Session Management in Express**: Configuring secure cookies with `express-session`.
+
+   ```javascript
+   const session = require("express-session");
+
+   app.use(
+     session({
+       secret: "your_secret_key",
+       resave: false,
+       saveUninitialized: true,
+       cookie: {
+         httpOnly: true,
+         secure: process.env.NODE_ENV === "production", // Ensure secure cookies in production
+         maxAge: 1000 * 60 * 15, // 15 minutes
+       },
+     })
+   );
+   ```
+
+   By setting `httpOnly` and `secure` flags on cookies, this code ensures that session cookies cannot be accessed by JavaScript and are transmitted securely over HTTPS.
+
+2. **Multi-Factor Authentication (MFA) with TOTP**: Example using `speakeasy` for time-based one-time password (TOTP) verification.
+
+   ```javascript
+   const speakeasy = require("speakeasy");
+
+   // Generate a secret for the user
+   const secret = speakeasy.generateSecret({ length: 20 });
+   console.log("User Secret:", secret.base32); // Store this securely
+
+   // Verifying a token provided by the user
+   const tokenValid = speakeasy.totp.verify({
+     secret: secret.base32,
+     encoding: "base32",
+     token: userToken, // This should be provided by the user
+   });
+
+   if (tokenValid) {
+     console.log("Token is valid");
+   } else {
+     console.log("Invalid token");
+   }
+   ```
+
+   Here, `speakeasy` provides TOTP-based MFA, which adds a layer of security by requiring users to provide a time-sensitive token.
+
+### Secure API Development
+
+APIs are commonly targeted by attackers, making it essential to secure them with best practices like token-based authentication and rate limiting.
+
+1. **Token-Based Authentication in Express**: Using JSON Web Tokens (JWT) for authentication.
+
+   ```javascript
+   const jwt = require("jsonwebtoken");
+
+   // Generate a token
+   function generateToken(user) {
+     return jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
+       expiresIn: "1h",
+     });
+   }
+
+   // Middleware to verify token
+   function authenticateToken(req, res, next) {
+     const token = req.headers["authorization"];
+     if (!token) return res.sendStatus(401);
+
+     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+       if (err) return res.sendStatus(403);
+       req.user = user;
+       next();
+     });
+   }
+
+   app.get("/protected", authenticateToken, (req, res) => {
+     res.send("This is a protected route");
+   });
+   ```
+
+   The `authenticateToken` middleware checks the validity of the token, allowing only authenticated users to access the protected route.
+
+2. **API Rate Limiting with Express Rate Limit**: Limiting requests to prevent abuse and brute-force attacks.
+
+   ```javascript
+   const rateLimit = require("express-rate-limit");
+
+   const apiLimiter = rateLimit({
+     windowMs: 15 * 60 * 1000, // 15 minutes
+     max: 100, // limit each IP to 100 requests per window
+     message: "Too many requests from this IP, please try again later.",
+   });
+
+   app.use("/api", apiLimiter);
+   ```
+
+   By applying `apiLimiter` to the `/api` routes, this code restricts the number of requests an IP address can make within a time window, mitigating brute-force and DoS attacks.
+
+These code snippets demonstrate key secure coding practices essential for building secure web applications. By implementing input validation, encoding, secure session management, and API protection measures, developers can significantly reduce vulnerabilities and strengthen their applications against common attacks.
