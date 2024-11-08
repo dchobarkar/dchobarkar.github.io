@@ -284,3 +284,97 @@ In this setup:
 
 - **Session Expiry**: The session expires after 15 minutes of inactivity, enforcing a secure session timeout.
 - **Sliding Session**: The middleware resets the session expiration timer with each request, so active users remain logged in.
+
+## Role-Based Access Control (RBAC) and Least Privilege Enforcement
+
+### Role-Based Access Control (RBAC)
+
+Role-Based Access Control (RBAC) is an authorization mechanism used to control access to resources based on predefined user roles and permissions. RBAC helps ensure that only authorized users can access specific functionalities within an application, reducing the risk of unauthorized actions and data exposure.
+
+#### Importance of RBAC in Secure Authorization
+
+RBAC simplifies access management by assigning users to specific roles, which each have associated permissions. For example:
+
+- **Admin**: Full access to all resources, including user management and configuration.
+- **Editor**: Access to create, edit, and delete content but restricted from administrative functions.
+- **Viewer**: Read-only access to resources.
+
+By assigning roles, RBAC restricts users to only the permissions required to fulfill their responsibilities, limiting potential misuse or accidental changes.
+
+#### Defining Roles and Permissions in a Web Application
+
+To implement RBAC, you need to define:
+
+1. **Roles**: Categories of users (e.g., Admin, Editor, Viewer).
+2. **Permissions**: Specific actions that can be performed within the application (e.g., read, write, delete).
+3. **Role-Permission Mapping**: Assign permissions to each role.
+4. **User-Role Mapping**: Assign users to roles based on their responsibilities.
+
+Let’s look at an example of implementing RBAC using **Express.js** and **Node.js**.
+
+#### Code Snippet: Implementing RBAC in Express.js
+
+In this example, we’ll create a middleware function that checks a user’s role and enforces access control based on predefined permissions.
+
+```javascript
+const express = require("express");
+const app = express();
+
+// Define roles and their permissions
+const roles = {
+  admin: ["read", "write", "delete"],
+  editor: ["read", "write"],
+  viewer: ["read"],
+};
+
+// Middleware to enforce RBAC
+const checkPermission = (role, action) => (req, res, next) => {
+  if (roles[role] && roles[role].includes(action)) {
+    next(); // Permission granted
+  } else {
+    res.status(403).json({ message: "Access denied" }); // Permission denied
+  }
+};
+
+// Sample routes with role-based access control
+app.get("/view", checkPermission("viewer", "read"), (req, res) => {
+  res.send("Viewing content");
+});
+
+app.post("/edit", checkPermission("editor", "write"), (req, res) => {
+  res.send("Editing content");
+});
+
+app.delete("/delete", checkPermission("admin", "delete"), (req, res) => {
+  res.send("Deleting content");
+});
+
+app.listen(3000, () => console.log("Server running on http://localhost:3000"));
+```
+
+In this example:
+
+- The `checkPermission` middleware takes a role and action as arguments, then checks if the role has the necessary permissions.
+- Specific routes are protected based on role and action requirements, ensuring users only access features permitted by their role.
+
+### Least Privilege Principle
+
+The **Least Privilege Principle** is a security concept that limits users' access rights to only what is necessary to complete their tasks. By enforcing least privilege, organizations can reduce the risk of accidental or malicious actions that could compromise the application or data.
+
+#### Overview of the Least Privilege Concept
+
+Implementing the least privilege principle means:
+
+1. **Granting Minimal Access**: Only allow users access to the resources and actions necessary for their role.
+2. **Limiting High-Privilege Accounts**: Restrict access to critical resources to a minimal set of privileged users.
+3. **Restricting Access to Sensitive Data**: Limit who can view or edit sensitive information (e.g., financial data or personal information).
+4. **Regularly Reviewing Permissions**: Periodically review user access levels to ensure they align with users' current roles and responsibilities.
+
+#### Best Practices for Enforcing Least Privilege
+
+- **Minimal Role Assignment**: When assigning roles, start with the lowest level of permissions and gradually increase if necessary.
+- **Periodic Access Reviews**: Conduct regular audits to verify that users have appropriate permissions, adjusting roles if needed.
+- **Use Temporary Privileges**: For critical operations, consider assigning temporary elevated access that expires after the task is completed.
+- **Restrict High-Impact Permissions**: Limit actions like delete, write, or administrative access to specific trusted roles, minimizing the potential for critical changes.
+
+By combining RBAC with the least privilege principle, you create a robust security framework that not only controls who can access resources but also restricts access to only what’s essential.
