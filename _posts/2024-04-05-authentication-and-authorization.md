@@ -20,11 +20,11 @@ As web applications continue to evolve, they become increasingly attractive targ
 
 ## Implementing Secure Authentication Mechanisms
 
-**OAuth**
+### OAuth
 
 OAuth (Open Authorization) is a widely adopted framework for **delegated authorization**. It allows applications to access resources on behalf of a user without needing to directly access their credentials. Rather than sharing passwords, OAuth enables users to authorize third-party applications to access specific resources or perform actions on their behalf. This is commonly used for accessing APIs or allowing login via third-party providers, such as Google or Facebook.
 
-### OAuth Grant Types
+#### OAuth Grant Types
 
 OAuth 2.0 defines several **grant types**, each serving different use cases:
 
@@ -33,7 +33,7 @@ OAuth 2.0 defines several **grant types**, each serving different use cases:
 - **Client Credentials Grant**: Used for server-to-server authentication. In this flow, the application directly requests an access token from the authorization server using its client credentials (ID and secret) without a user context.
 - **Resource Owner Password Credentials Grant**: Suitable for trusted applications, this flow allows the application to obtain an access token by directly exchanging the user’s credentials. Due to security risks, this grant type is less commonly used.
 
-### Code Snippet: Implementing OAuth 2.0 Authorization Code Grant Flow
+#### Code Snippet: Implementing OAuth 2.0 Authorization Code Grant Flow
 
 Here’s a simple example of implementing the Authorization Code Grant Flow in an Express application using `passport` and `passport-oauth2`.
 
@@ -74,17 +74,17 @@ app.get(
 
 In this example, users are redirected to the OAuth provider’s authorization page. After authenticating, they are redirected back to the application’s callback route with an access token.
 
-**OpenID Connect (OIDC)**
+### OpenID Connect (OIDC)
 
 OpenID Connect (OIDC) is an identity layer built on top of OAuth 2.0. While OAuth allows applications to access resources on behalf of users, OIDC focuses on **user authentication** by adding an identity token (ID token). OIDC enables applications to verify a user's identity and obtain their profile information securely.
 
-### Benefits of OIDC for Secure Authentication
+#### Benefits of OIDC for Secure Authentication
 
 - **Identity Verification**: OIDC provides an identity token that contains information about the user, enabling applications to verify the user’s identity securely.
 - **Interoperability**: OIDC is widely supported by major providers (Google, Microsoft, Auth0), making it easy to implement third-party logins.
 - **Access to User Information**: OIDC allows applications to retrieve user profile data, which can be used to personalize the user experience.
 
-### Code Snippet: Implementing OIDC with Google
+#### Code Snippet: Implementing OIDC with Google
 
 Below is an example of using OIDC with Google in an Express application:
 
@@ -122,11 +122,11 @@ app.get(
 
 In this example, users are directed to Google’s OIDC login page. Upon successful login, they are redirected back with an identity token that contains their profile data.
 
-**JWT (JSON Web Token)**
+### JWT (JSON Web Token)
 
 JWT (JSON Web Token) is a compact, URL-safe way to represent **authentication data** between parties. JWTs are commonly used in **stateless authentication**, where the server verifies the token’s authenticity without needing to store session data. A JWT consists of three parts: the header, payload, and signature.
 
-### Structure of a JWT
+#### Structure of a JWT
 
 1. **Header**: Contains metadata about the token, such as the signing algorithm (e.g., HS256).
 2. **Payload**: Contains the token’s claims, including user-specific data (e.g., user ID) and expiration time.
@@ -134,7 +134,7 @@ JWT (JSON Web Token) is a compact, URL-safe way to represent **authentication da
 
 JWT enables secure, stateless authentication as the token itself contains all necessary information. This can reduce server load and improve scalability.
 
-### Code Snippet: Generating and Verifying a JWT in Node.js
+#### Code Snippet: Generating and Verifying a JWT in Node.js
 
 Here’s an example of generating and verifying JWTs using the `jsonwebtoken` library in Node.js:
 
