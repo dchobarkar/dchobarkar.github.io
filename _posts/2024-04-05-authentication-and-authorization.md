@@ -378,3 +378,136 @@ Implementing the least privilege principle means:
 - **Restrict High-Impact Permissions**: Limit actions like delete, write, or administrative access to specific trusted roles, minimizing the potential for critical changes.
 
 By combining RBAC with the least privilege principle, you create a robust security framework that not only controls who can access resources but also restricts access to only what’s essential.
+
+## Securing APIs with Token-Based Authentication
+
+Securing APIs is crucial for protecting data, ensuring privacy, and preventing unauthorized access. Token-based authentication, particularly using JWTs (JSON Web Tokens) and OAuth, is widely used to authenticate users and authorize access to API endpoints. Additionally, implementing rate limiting helps protect APIs from abuse and enhances overall security.
+
+### API Authentication with JWTs
+
+**JWT (JSON Web Token)** is a compact, URL-safe token format that is commonly used to secure RESTful APIs. JWTs are ideal for stateless authentication because they carry the user's claims or permissions as encoded data within the token itself, eliminating the need for server-side session storage.
+
+#### Using JWTs to Secure RESTful APIs
+
+When a user successfully authenticates, the server generates a JWT containing user details or claims, signs it with a secret key, and sends it to the client. The client then includes this token in the Authorization header of subsequent API requests, allowing the server to validate the token and authorize access.
+
+1. **Token Generation**: The server creates a JWT upon successful login, embedding the user's claims within the payload.
+2. **Token Transmission**: The client includes the JWT in each request, usually in the `Authorization: Bearer <token>` header.
+3. **Token Verification**: The server verifies the JWT signature and decodes the token to determine access permissions.
+
+#### Code Snippet: Securing API Endpoints with JWT-Based Authentication in Node.js
+
+Let’s look at an example of implementing JWT-based authentication using Node.js and the `jsonwebtoken` package.
+
+```javascript
+const express = require("express");
+const jwt = require("jsonwebtoken");
+const app = express();
+
+const SECRET_KEY = "your_jwt_secret_key";
+
+// Middleware to verify JWT
+const authenticateJWT = (req, res, next) => {
+  const token = req.header("Authorization")?.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ message: "Access denied, token missing" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, SECRET_KEY);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(403).json({ message: "Invalid token" });
+  }
+};
+
+// Example route with JWT authentication
+app.get("/protected", authenticateJWT, (req, res) => {
+  res.json({ message: "This is a protected API endpoint", user: req.user });
+});
+
+// Generate a JWT for demo purposes
+app.post("/login", (req, res) => {
+  const username = req.body.username;
+  const user = { username }; // Simulate user data
+  const token = jwt.sign(user, SECRET_KEY, { expiresIn: "1h" });
+  res.json({ token });
+});
+
+app.listen(3000, () => console.log("Server running on http://localhost:3000"));
+```
+
+In this example:
+
+- **`authenticateJWT`** middleware checks for the JWT in the Authorization header, verifies it using `jwt.verify`, and decodes it if valid.
+- The `/protected` endpoint is accessible only if the request contains a valid JWT.
+- The `/login` endpoint simulates user login and returns a JWT as a response.
+
+### OAuth for API Security
+
+OAuth 2.0 is a widely adopted authorization framework that allows third-party applications to securely access user data without requiring the user’s credentials. OAuth is commonly used for API authorization, especially for third-party integrations, by issuing access tokens that grant specific permissions.
+
+#### Overview of OAuth 2.0 for API Authorization
+
+OAuth 2.0 introduces several grant types that define how clients obtain access tokens:
+
+1. **Authorization Code**: Used by web applications to exchange a code for an access token.
+2. **Implicit**: Suitable for single-page applications (SPAs), as it directly issues an access token.
+3. **Client Credentials**: Used by server-to-server applications to access APIs on behalf of themselves.
+4. **Resource Owner Password Credentials**: Allows users to provide credentials directly to trusted applications, though less commonly used for security reasons.
+
+Each access token issued by an OAuth provider is limited by scope and expiration, reducing security risks by restricting access to specific resources for a limited time.
+
+#### How to Issue and Validate Access Tokens for APIs with OAuth Providers
+
+1. **Authorization**: The client redirects the user to the authorization server, where the user authenticates.
+2. **Token Retrieval**: The client receives an access token and possibly a refresh token if authorized.
+3. **API Access**: The client includes the access token in the API request headers to access authorized resources.
+
+Using a third-party provider like Google or GitHub simplifies OAuth 2.0 integration and allows users to leverage their existing credentials.
+
+### API Rate Limiting and Throttling
+
+**Rate limiting** is a security mechanism that restricts the number of API requests a client can make within a specified timeframe. Rate limiting helps prevent abuse and ensures fair resource usage by all users, particularly important for APIs that are public or exposed to high traffic.
+
+1. **Preventing Abuse**: Limits excessive requests from malicious actors, reducing the risk of denial-of-service (DoS) attacks.
+2. **Enhancing Performance**: Helps maintain optimal API performance by preventing overload.
+3. **Fair Usage**: Ensures all users have a fair share of API resources.
+
+Common rate limiting strategies include:
+
+- **Fixed Window**: Allows a set number of requests per fixed interval (e.g., 100 requests per hour).
+- **Sliding Window**: Counts requests over a rolling window (e.g., last 60 minutes).
+- **Token Bucket**: Issues tokens at a constant rate, allowing burst traffic up to a specific threshold.
+
+#### Code Snippet: Implementing Rate Limiting with Express and Express-Rate-Limit
+
+Here’s an example of setting up rate limiting in an Express API using the `express-rate-limit` middleware:
+
+```javascript
+const express = require("express");
+const rateLimit = require("express-rate-limit");
+const app = express();
+
+// Set up rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: "Too many requests from this IP, please try again after 15 minutes",
+});
+
+app.use("/api/", limiter); // Apply rate limiting to all API routes
+
+app.get("/api/data", (req, res) => {
+  res.json({ message: "Rate limited API data" });
+});
+
+app.listen(3000, () => console.log("Server running on http://localhost:3000"));
+```
+
+In this example:
+
+- The `limiter` middleware restricts each client to 100 requests per 15-minute window.
+- Any client that exceeds the limit will receive a `429 Too Many Requests` response.
