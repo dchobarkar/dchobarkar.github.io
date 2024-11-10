@@ -511,3 +511,126 @@ In this example:
 
 - The `limiter` middleware restricts each client to 100 requests per 15-minute window.
 - Any client that exceeds the limit will receive a `429 Too Many Requests` response.
+
+## Multi-Factor Authentication (MFA) for Enhanced Security
+
+**Multi-Factor Authentication (MFA)** is a security measure that requires users to verify their identity through multiple factors before granting access to an application. By using MFA, web applications can add an extra layer of security, making it significantly harder for unauthorized users to access accounts even if they have obtained a user’s password.
+
+### Introduction to Multi-Factor Authentication (MFA)
+
+**What is MFA?**
+
+Multi-Factor Authentication is a process that combines two or more verification factors to authenticate a user. MFA is designed to strengthen security by requiring at least two of the following verification methods:
+
+1. **Something the user knows**: A password or PIN.
+2. **Something the user has**: A phone, email, or an authenticator app.
+3. **Something the user is**: A biometric factor, like a fingerprint or facial recognition.
+
+This multi-layered approach makes it more difficult for attackers to compromise accounts, as they would need access to more than just a password.
+
+**How MFA Prevents Unauthorized Access**
+
+MFA can significantly reduce the risk of unauthorized access by:
+
+- Adding an extra layer of verification, especially helpful in preventing attacks like password spraying or brute force.
+- Protecting accounts from unauthorized access, even if a user’s password is compromised.
+- Reducing the impact of phishing attacks, as the attacker would also need access to the additional verification factor.
+
+### Implementing MFA in Web Applications
+
+Implementing MFA involves adding a second verification step during the login process. This additional step could be a temporary code sent to the user’s phone, email, or generated through an authenticator app.
+
+#### Popular MFA Methods
+
+1. **SMS-Based Authentication**:
+
+   - Sends a one-time passcode (OTP) to the user’s phone via SMS.
+   - Common but can be vulnerable to SIM swapping attacks.
+
+2. **Email-Based Authentication**:
+
+   - Sends an OTP or verification link to the user’s registered email address.
+   - Useful when mobile devices are not available but depends on the security of the user’s email account.
+
+3. **Authenticator Apps** (e.g., Google Authenticator, Authy):
+
+   - The app generates a time-based OTP that the user enters as the second factor.
+   - Offers stronger security than SMS or email because it does not rely on external networks.
+
+4. **Biometric Factors**:
+
+   - Utilizes biometric data, like fingerprint or facial recognition, for the second verification factor.
+   - Common on mobile devices, providing a highly secure and convenient method of authentication.
+
+#### Code Snippet: Integrating MFA in a Web Application Using Twilio’s Authy API
+
+Here’s a sample code to demonstrate how you can implement MFA with an OTP sent via SMS using Twilio’s **Authy** API.
+
+**Prerequisites**:
+
+1. Sign up for a Twilio account and get API credentials.
+2. Install the `authy` package for Twilio’s Authy API.
+
+```javascript
+// Install authy
+// npm install authy --save
+
+const express = require("express");
+const bodyParser = require("body-parser");
+const authy = require("authy")("YOUR_TWILIO_AUTHY_API_KEY");
+const app = express();
+
+app.use(bodyParser.json());
+
+/**
+ * Step 1: Register the user with Authy (one-time setup)
+ */
+app.post("/register", (req, res) => {
+  const { email, phone, countryCode } = req.body;
+
+  authy.register_user(email, phone, countryCode, (err, response) => {
+    if (err) {
+      return res.status(500).json({ error: "Error registering user for MFA" });
+    }
+    res.json({ authyId: response.user.id });
+  });
+});
+
+/**
+ * Step 2: Send OTP on login attempt
+ */
+app.post("/send-otp", (req, res) => {
+  const { authyId } = req.body;
+
+  authy.request_sms(authyId, true, (err, response) => {
+    if (err) {
+      return res.status(500).json({ error: "Error sending OTP" });
+    }
+    res.json({ message: "OTP sent successfully" });
+  });
+});
+
+/**
+ * Step 3: Verify OTP entered by the user
+ */
+app.post("/verify-otp", (req, res) => {
+  const { authyId, otp } = req.body;
+
+  authy.verify(authyId, otp, (err, response) => {
+    if (err) {
+      return res.status(400).json({ error: "Invalid OTP" });
+    }
+    res.json({ message: "MFA authentication successful" });
+  });
+});
+
+app.listen(3000, () => console.log("Server running on http://localhost:3000"));
+```
+
+In this example:
+
+1. **Register the User with Authy**: The `/register` endpoint registers the user with Authy using their email and phone number.
+2. **Send OTP on Login**: The `/send-otp` endpoint sends an OTP to the user’s registered phone number via SMS when they attempt to log in.
+3. **Verify OTP**: The `/verify-otp` endpoint verifies the OTP entered by the user, completing the authentication if valid.
+
+**Note**: For a complete authentication flow, you would incorporate this MFA verification into the login process, ensuring that users cannot access their accounts until they have successfully verified the OTP.
