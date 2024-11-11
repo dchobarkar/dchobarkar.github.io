@@ -647,8 +647,8 @@ Even with authentication mechanisms in place, certain pitfalls can leave systems
 
 - **Pitfall**: Weak passwords make it easy for attackers to perform brute force attacks. Commonly used passwords or simple phrases without complexity make accounts susceptible to unauthorized access.
 - **Solution**: Implement strong password policies. Require users to use a mix of uppercase and lowercase letters, numbers, and special characters, with a minimum length (e.g., 12 characters). Enforce password complexity and regular password rotation policies.
-
 - **Code Example**:
+
   ```javascript
   // Example password validation in JavaScript
   function isValidPassword(password) {
@@ -662,38 +662,36 @@ Even with authentication mechanisms in place, certain pitfalls can leave systems
 
 - **Pitfall**: Storing credentials, such as passwords, in plain text or transmitting them over an insecure channel (e.g., HTTP instead of HTTPS) can lead to interception and misuse.
 - **Solution**: Use encryption for both data at rest and in transit. For instance, passwords should always be hashed and salted before storage, and SSL/TLS should be used for data transmission.
-
 - **Code Example**:
 
-  ```javascript
-  const bcrypt = require("bcrypt");
-  const saltRounds = 10;
+```javascript
+const bcrypt = require("bcrypt");
+const saltRounds = 10;
 
-  // Hashing a password before storing it
-  bcrypt.hash("UserPassword", saltRounds, function (err, hash) {
-    if (err) throw err;
-    console.log("Hashed password:", hash);
-  });
-  ```
+// Hashing a password before storing it
+bcrypt.hash("UserPassword", saltRounds, function (err, hash) {
+  if (err) throw err;
+  console.log("Hashed password:", hash);
+});
+```
 
 **3. Misconfigured Tokens and Sessions**
 
 - **Pitfall**: Tokens (e.g., JWTs) that are incorrectly configured, such as tokens without expiration or lack of secure storage, can lead to session hijacking and unauthorized access.
 - **Solution**: Configure tokens with expiration times and ensure they are stored securely. For web applications, store tokens in secure, HTTP-only cookies instead of local storage, which is accessible by JavaScript.
-
 - **Best Practice Example**:
 
-  ```javascript
-  // Configure JWT with expiration and store in HTTP-only cookie
-  const jwt = require("jsonwebtoken");
+```javascript
+// Configure JWT with expiration and store in HTTP-only cookie
+const jwt = require("jsonwebtoken");
 
-  function generateToken(userId) {
-    return jwt.sign({ id: userId }, "secretKey", { expiresIn: "1h" });
-  }
+function generateToken(userId) {
+  return jwt.sign({ id: userId }, "secretKey", { expiresIn: "1h" });
+}
 
-  // Sending token as a secure HTTP-only cookie
-  res.cookie("authToken", token, { httpOnly: true, secure: true });
-  ```
+// Sending token as a secure HTTP-only cookie
+res.cookie("authToken", token, { httpOnly: true, secure: true });
+```
 
 ### Best Practices for Secure Authorization
 
@@ -703,9 +701,7 @@ Authorization is just as critical as authentication in securing access to applic
 
 - **Challenge**: Many developers mistakenly combine authentication (verifying identity) with authorization (granting access). This can lead to confusing code and improper access control, where users may gain unintended access to resources.
 - **Best Practice**: Separate authentication and authorization logic within the application. Authentication should confirm the user’s identity, while authorization verifies what resources the authenticated user can access.
-
 - **Example**:
-
   - Authentication: Verifying the user’s identity by validating credentials and issuing a token.
   - Authorization: Checking the user’s role and permissions based on the token’s payload to determine if they are allowed to access a specific resource.
 
@@ -713,7 +709,6 @@ Authorization is just as critical as authentication in securing access to applic
 
 - **Challenge**: If all users have unrestricted access or broad permissions, they may access sensitive resources unnecessarily, increasing security risks.
 - **Best Practice**: Implement RBAC to assign specific roles to users, each with limited permissions. Adhere to the principle of least privilege by granting only the permissions necessary for users to complete their tasks.
-
 - **Code Example**:
 
   ```javascript
@@ -745,9 +740,7 @@ Authorization is just as critical as authentication in securing access to applic
 
 - **Challenge**: Over time, roles and permissions may become outdated as teams change and the application evolves. If permissions are not regularly audited, users may retain access to resources they no longer need, posing security risks.
 - **Best Practice**: Regularly review roles and permissions to ensure they align with current business requirements. Implement logging to monitor access to sensitive data and audit logs for suspicious activity.
-
 - **Implementation Example**:
-
   - **Log Access Requests**: Track access to sensitive resources and keep logs of who accessed what resources, when, and with what permissions.
   - **Audit Logs for Anomalies**: Periodically review logs to identify unauthorized access or unusual access patterns that may indicate a breach.
 
@@ -755,7 +748,6 @@ Authorization is just as critical as authentication in securing access to applic
 
 - **Challenge**: If user sessions do not expire or there is no mechanism for revoking access, users (e.g., former employees) may retain access to sensitive resources.
 - **Best Practice**: Implement token expiry for session management, ensuring tokens automatically expire after a certain period. Provide an access revocation mechanism for immediate termination of access when necessary.
-
 - **Code Snippet for Token Expiry and Revocation**:
 
   ```javascript
@@ -779,7 +771,5 @@ Authorization is just as critical as authentication in securing access to applic
 
 - **Challenge**: In large applications, relying on broad role-based controls can lead to inadequate resource protection.
 - **Best Practice**: Use fine-grained access controls, especially for sensitive actions or resources, by defining granular permissions that go beyond standard roles.
-
 - **Example**:
-
   - Instead of just defining roles like `admin` and `user`, create specific permissions such as `canDeleteComments`, `canEditProfile`, and `canAccessReports`. Assign these permissions based on specific user requirements rather than generic roles.
