@@ -109,3 +109,110 @@ Migrating to HTTPS provides multiple benefits:
 - **Increased User Trust**: HTTPS reassures users, improving their perception of your site’s credibility.
 
 Implementing HTTPS with SSL/TLS is a vital step toward building a secure web application. Not only does it protect data in transit, but it also signals to users and search engines alike that your site values security and privacy. In the next section, we’ll dive deeper into specific encryption standards and explore best practices for securing data at rest using protocols such as AES and RSA.
+
+## Encrypting Data in Transit
+
+When data travels over the internet, it is exposed to a range of potential threats. Without encryption, sensitive information like personal details, passwords, and financial transactions are vulnerable to interception and tampering by malicious actors. Encrypting data in transit is, therefore, a crucial security measure, and SSL/TLS protocols are at the heart of this protection.
+
+### Overview of Encryption in Transit
+
+Encryption in transit refers to securing data as it moves from one system to another, such as from a user’s browser to a web server. SSL (Secure Sockets Layer) and its successor TLS (Transport Layer Security) provide the protocols needed to secure this data exchange. By establishing a secure, encrypted connection, SSL/TLS ensures that any intercepted data remains unreadable to attackers.
+
+SSL/TLS achieves this by combining symmetric and asymmetric encryption. Symmetric encryption uses the same key for both encryption and decryption, making it fast but requiring a secure way to exchange the key. Asymmetric encryption, on the other hand, uses a public-private key pair, where the public key encrypts the data and the private key decrypts it. This combination ensures both speed and security.
+
+### SSL/TLS Handshake Process
+
+The SSL/TLS handshake is a sequence of steps that occurs when a client (usually a browser) and a server establish a secure connection. During this process, the client and server exchange encryption keys and agree on encryption algorithms to use, creating a secure communication channel. Here’s a breakdown of the handshake process:
+
+1. **Client Hello**: The client initiates the handshake by sending a “Client Hello” message to the server. This message contains information about the client’s supported SSL/TLS versions, cipher suites, and a randomly generated number to ensure freshness.
+
+2. **Server Hello**: The server responds with a “Server Hello” message, selecting the SSL/TLS version and cipher suite to use. It also includes a randomly generated number.
+
+3. **Server Certificate**: The server sends its SSL/TLS certificate, which contains its public key. The client uses this public key to verify the server’s identity.
+
+4. **Key Exchange**: The client generates a session key (symmetric) and encrypts it with the server’s public key, sending it back to the server. The server decrypts the session key using its private key, enabling both parties to use the session key for encryption.
+
+5. **Finished**: Both the client and server confirm the connection’s security by sending a “Finished” message, encrypted with the session key. Once these messages are exchanged, the secure communication begins.
+
+The following code snippet demonstrates setting up an HTTPS server in Node.js using SSL/TLS encryption:
+
+```javascript
+const https = require("https");
+const fs = require("fs");
+const express = require("express");
+
+const app = express();
+
+// Load SSL/TLS certificate and private key
+const options = {
+  key: fs.readFileSync("path/to/private-key.pem"),
+  cert: fs.readFileSync("path/to/certificate.pem"),
+};
+
+// Create HTTPS server
+https.createServer(options, app).listen(443, () => {
+  console.log("HTTPS server running on port 443");
+});
+
+app.get("/", (req, res) => {
+  res.send("Secure connection established with SSL/TLS");
+});
+```
+
+This setup involves specifying the private key and certificate for SSL/TLS encryption, allowing the server to securely handle requests over HTTPS.
+
+### Choosing SSL/TLS Cipher Suites
+
+A cipher suite is a set of algorithms that define the specific encryption, hashing, and authentication mechanisms used during an SSL/TLS session. Choosing secure cipher suites is critical for protecting against attacks, as certain algorithms can be vulnerable to exploitation.
+
+#### Recommended Cipher Suites
+
+Strong cipher suites typically use algorithms like AES (Advanced Encryption Standard) for symmetric encryption and RSA or ECDHE (Elliptic Curve Diffie-Hellman Ephemeral) for key exchange. Some commonly recommended cipher suites include:
+
+- `ECDHE-RSA-AES256-GCM-SHA384`
+- `ECDHE-ECDSA-AES256-GCM-SHA384`
+- `ECDHE-RSA-AES128-GCM-SHA256`
+- `ECDHE-ECDSA-AES128-GCM-SHA256`
+
+#### Disabling Weak Ciphers and Protocols
+
+Older protocols and weak ciphers, such as SSLv3 and the RC4 algorithm, are vulnerable to various attacks and should be disabled. Using only TLS 1.2 or higher with strong ciphers is recommended for enhanced security.
+
+To configure strong ciphers and disable weak protocols in an Nginx server, you can update the configuration file as shown below:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name yourdomain.com;
+
+    ssl_certificate /path/to/certificate.pem;
+    ssl_certificate_key /path/to/private-key.pem;
+
+    # Only allow TLS 1.2 and TLS 1.3
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    # Enable strong cipher suites
+    ssl_ciphers 'ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256';
+
+    # Enable SSL/TLS optimizations
+    ssl_prefer_server_ciphers on;
+}
+```
+
+In this configuration:
+
+- **`ssl_protocols`**: Specifies only TLS 1.2 and TLS 1.3, excluding SSLv3 and TLS 1.0/1.1 due to known vulnerabilities.
+- **`ssl_ciphers`**: Lists strong cipher suites, prioritizing AES and ECDHE.
+- **`ssl_prefer_server_ciphers`**: Ensures that the server’s choice of ciphers takes precedence over the client’s.
+
+### Benefits of Strong Encryption in Transit
+
+Encrypting data in transit with SSL/TLS provides several benefits:
+
+- **Confidentiality**: Ensures that only authorized parties can read the data, protecting it from interception.
+- **Integrity**: Prevents data tampering by verifying that data has not been modified during transmission.
+- **Authentication**: Validates the identity of the server to the client, building trust.
+
+By configuring SSL/TLS with strong encryption algorithms and protocols, web applications can secure data transmission, ensuring users’ sensitive information remains protected from common threats like eavesdropping and man-in-the-middle attacks.
+
+In the following section, we will explore techniques for encrypting data at rest, highlighting the best practices for securing sensitive data stored on servers.
