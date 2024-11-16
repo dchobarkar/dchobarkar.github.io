@@ -567,3 +567,194 @@ Add the generated certificate to your local web server configuration for testing
 In production environments, always use certificates from a trusted CA. For staging, it’s recommended to use the same setup as production to ensure consistency and reliability. Tools like Let’s Encrypt simplify the process by providing certificates for both staging and production, allowing developers to test their configurations thoroughly before deployment.
 
 SSL certificates are fundamental to modern web security, providing encrypted communication, building trust with users, and ensuring compliance with security standards. By understanding the types of certificates, the process of obtaining and installing them, and the best practices for configuring SSL in different environments, developers can secure their web applications effectively and build confidence among their users. Whether you’re running a personal blog or a complex e-commerce platform, implementing SSL/TLS is a non-negotiable step in today’s security-conscious web landscape.
+
+## Code Examples
+
+Configuring **SSL/TLS** and implementing **security headers** is fundamental to ensuring the security and integrity of web applications. In this section, we'll explore practical code examples for setting up SSL/TLS and adding security headers across various platforms and frameworks, including Node.js, Nginx, Apache, Express.js, and Django. We'll also demonstrate the configuration of critical headers like Content Security Policy (CSP) and HTTP Strict Transport Security (HSTS).
+
+### Configuring SSL/TLS in Node.js, Nginx, and Apache
+
+#### Node.js
+
+In a Node.js application, configuring SSL/TLS is straightforward using the `https` module. Here’s an example:
+
+```javascript
+const https = require("https");
+const fs = require("fs");
+const express = require("express");
+
+const app = express();
+
+// Load SSL/TLS certificate and key
+const options = {
+  key: fs.readFileSync("/path/to/yourdomain.key"),
+  cert: fs.readFileSync("/path/to/yourdomain.crt"),
+};
+
+// Define routes
+app.get("/", (req, res) => {
+  res.send("Secure connection established!");
+});
+
+// Create HTTPS server
+https.createServer(options, app).listen(443, () => {
+  console.log("Server is running on https://localhost:443");
+});
+```
+
+This example demonstrates loading SSL certificates, setting up an HTTPS server, and defining secure routes.
+
+#### Nginx
+
+Configuring SSL/TLS in Nginx involves editing the server block in the configuration file:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name yourdomain.com;
+
+    ssl_certificate /etc/ssl/certs/yourdomain.crt;
+    ssl_certificate_key /etc/ssl/private/yourdomain.key;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    location / {
+        root /var/www/html;
+        index index.html;
+    }
+}
+```
+
+This setup includes secure SSL protocols, strong cipher suites, and links to the certificate and key files.
+
+#### Apache
+
+For Apache, SSL/TLS configuration resides in the `ssl.conf` file or the virtual host configuration:
+
+```apache
+<VirtualHost *:443>
+    ServerName yourdomain.com
+
+    SSLEngine on
+    SSLCertificateFile /etc/ssl/certs/yourdomain.crt
+    SSLCertificateKeyFile /etc/ssl/private/yourdomain.key
+
+    SSLProtocol all -SSLv3 -TLSv1 -TLSv1.1
+    SSLCipherSuite HIGH:!aNULL:!MD5
+
+    DocumentRoot /var/www/html
+</VirtualHost>
+```
+
+This configuration ensures HTTPS connections while disabling older, less secure protocols.
+
+### Adding Security Headers in Express.js and Django
+
+#### Express.js
+
+In Express.js, the `helmet` middleware simplifies adding security headers:
+
+```javascript
+const express = require("express");
+const helmet = require("helmet");
+
+const app = express();
+
+// Use helmet to add security headers
+app.use(helmet());
+
+// Define routes
+app.get("/", (req, res) => {
+  res.send("Security headers are configured!");
+});
+
+app.listen(3000, () => {
+  console.log("Server is running on http://localhost:3000");
+});
+```
+
+This code automatically configures headers like CSP, HSTS, X-Content-Type-Options, and X-Frame-Options.
+
+#### Django
+
+In Django, security headers can be added through the settings file:
+
+```python
+# settings.py
+
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_SSL_REDIRECT = True
+X_FRAME_OPTIONS = 'DENY'
+```
+
+These settings enforce HSTS, prevent MIME type sniffing, and disable framing to mitigate clickjacking attacks.
+
+### Configuring CSP, HSTS, and Other Headers
+
+#### Content Security Policy (CSP)
+
+A robust CSP policy restricts the sources of content that can be loaded:
+
+```javascript
+const express = require("express");
+const helmet = require("helmet");
+
+const app = express();
+
+// Define CSP directives
+const cspConfig = {
+  directives: {
+    defaultSrc: ["'self'"],
+    scriptSrc: ["'self'", "https://trusted.cdn.com"],
+    styleSrc: ["'self'", "https://trusted.styles.com"],
+  },
+};
+
+// Add CSP header
+app.use(helmet.contentSecurityPolicy(cspConfig));
+
+app.get("/", (req, res) => {
+  res.send("CSP headers are configured!");
+});
+
+app.listen(3000, () => {
+  console.log("Server is running on http://localhost:3000");
+});
+```
+
+This configuration allows scripts and styles only from trusted sources.
+
+#### HTTP Strict Transport Security (HSTS)
+
+HSTS enforces HTTPS connections:
+
+```javascript
+app.use(
+  helmet.hsts({
+    maxAge: 31536000, // 1 year in seconds
+    includeSubDomains: true,
+    preload: true,
+  })
+);
+```
+
+This code ensures that browsers only communicate with the server over HTTPS.
+
+#### Other Security Headers
+
+- **X-Content-Type-Options**: Prevents MIME type sniffing.
+- **X-Frame-Options**: Prevents the site from being framed to protect against clickjacking.
+
+Example for adding these headers:
+
+```javascript
+app.use(helmet.frameguard({ action: "deny" }));
+app.use(helmet.noSniff());
+```
+
+Implementing these configurations ensures your web application is safeguarded against common threats. These examples demonstrate how to secure communication and enforce protection mechanisms, contributing to a robust security posture.
