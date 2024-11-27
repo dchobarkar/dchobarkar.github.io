@@ -249,8 +249,6 @@ Effective monitoring isn’t complete without a robust alerting system. Alerts e
 
    This configuration sends an email alert if any log entry contains the term `ERROR`.
 
----
-
 ### Implementing Dashboards
 
 Dashboards offer a centralized view of system metrics, enabling quick insights and proactive responses. They are essential for real-time monitoring in complex environments.
