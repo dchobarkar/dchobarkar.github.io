@@ -605,3 +605,170 @@ Post-recovery actions should extend beyond the immediate aftermath of an inciden
 - **Simulating Future Incidents**: Conduct mock incident response exercises based on past events to test the readiness of your team and tools.
 
 By conducting thorough post-incident analysis and implementing robust recovery practices, organizations not only address immediate vulnerabilities but also fortify their defenses for the future. The key to effective recovery lies in learning from every incident and continuously adapting to the ever-changing threat landscape.
+
+## Code Examples for Monitoring, Logging, and Incident Response
+
+Effective **monitoring, logging, and incident response** rely on correctly configured tools and systems. This section provides practical examples to implement robust logging practices, real-time monitoring, and automated incident response.
+
+### Configuring Log Levels in Applications
+
+Log levels help developers and system administrators control the verbosity of logs, ensuring that critical events are captured without overwhelming the logging system.
+
+#### **Node.js Example**
+
+In a Node.js application, popular logging libraries like `Winston` allow fine-grained control over log levels.
+
+**Code Snippet: Configuring Log Levels in Node.js**
+
+```javascript
+const winston = require("winston");
+
+const logger = winston.createLogger({
+  level: "info",
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({ filename: "app.log" }),
+  ],
+});
+
+// Example Usage
+logger.info("This is an info log");
+logger.error("This is an error log");
+logger.debug("This is a debug log (not shown unless level is debug)");
+```
+
+#### **Django Example**
+
+In Django, the logging configuration can be added to the `settings.py` file.
+
+**Code Snippet: Configuring Log Levels in Django**
+
+```python
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'django_app.log',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
+
+# Usage in views.py
+import logging
+
+logger = logging.getLogger('django')
+logger.info("User login successful.")
+```
+
+### Setting Up Real-Time Monitoring
+
+Centralized monitoring tools like the **ELK Stack** (Elasticsearch, Logstash, Kibana) or **Splunk** provide a comprehensive solution for collecting, visualizing, and analyzing logs in real time.
+
+#### **ELK Stack Example**
+
+Setting up a basic ELK Stack for real-time monitoring involves configuring Logstash to parse logs, Elasticsearch to store them, and Kibana for visualization.
+
+**Code Snippet: Logstash Configuration**
+
+```bash
+input {
+  file {
+    path => "/var/log/app/*.log"
+    start_position => "beginning"
+  }
+}
+
+filter {
+  grok {
+    match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:loglevel} %{GREEDYDATA:message}" }
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["http://localhost:9200"]
+    index => "app-logs"
+  }
+  stdout { codec => rubydebug }
+}
+```
+
+Once Logstash is configured, you can visualize data in Kibana by creating dashboards for metrics like error rates, login attempts, and API performance.
+
+#### **Splunk Example**
+
+Splunk simplifies log collection and real-time monitoring with its easy-to-use interface and pre-built dashboards.
+
+**Code Snippet: Forwarding Logs to Splunk**
+
+```bash
+# Install Splunk Universal Forwarder
+wget -O splunkforwarder.rpm https://www.splunk.com/page/download_track?file=...rpm
+sudo rpm -i splunkforwarder.rpm
+
+# Configure inputs.conf to monitor a specific directory
+echo "[monitor:///var/log/app/]" >> /opt/splunkforwarder/etc/system/local/inputs.conf
+echo "index = app_logs" >> /opt/splunkforwarder/etc/system/local/inputs.conf
+
+# Restart the forwarder
+/opt/splunkforwarder/bin/splunk restart
+```
+
+### Automating Incident Notifications
+
+Automating notifications ensures that the relevant stakeholders are immediately informed about critical incidents. Tools like **PagerDuty** or custom scripts integrated with monitoring systems enable real-time alerts.
+
+#### **Using PagerDuty**
+
+PagerDuty integrates with monitoring tools like ELK and Splunk to send incident notifications via SMS, email, or phone calls.
+
+**Code Snippet: Configuring PagerDuty with ELK**
+
+```yaml
+output {
+pagerduty {
+integration_key => "your-integration-key"
+description => "Critical Error in Application Logs"
+}
+}
+```
+
+#### **Custom Notification Script**
+
+If you prefer a custom notification setup, you can use Python to send alerts via email or SMS.
+
+**Code Snippet: Sending Alerts via Email in Python**
+
+```python
+import smtplib
+from email.mime.text import MIMEText
+
+def send_alert(subject, message):
+    sender_email = "your_email@example.com"
+    receiver_email = "admin@example.com"
+    msg = MIMEText(message)
+    msg['Subject'] = subject
+    msg['From'] = sender_email
+    msg['To'] = receiver_email
+
+    with smtplib.SMTP('smtp.example.com', 587) as server:
+        server.starttls()
+        server.login("your_email@example.com", "your_password")
+        server.sendmail(sender_email, receiver_email, msg.as_string())
+
+# Example usage
+send_alert("Critical Alert", "Anomalous activity detected in API logs.")
+```
+
+By leveraging these practical examples for configuring logging, setting up real-time monitoring, and automating incident notifications, you can establish a robust system to detect and respond to security incidents efficiently. These implementations are foundational for maintaining the security and reliability of modern web applications.
