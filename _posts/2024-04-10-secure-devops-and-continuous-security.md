@@ -113,3 +113,139 @@ DevSecOps blurs the traditional lines of responsibility, encouraging all stakeho
 
 - **Training and Awareness:** Conduct regular training to equip teams with the skills to identify and mitigate security risks.
 - **Metrics and KPIs:** Establish shared performance indicators, such as the number of vulnerabilities detected and resolved within development cycles.
+
+## Automating Security Checks in the CI/CD Pipeline
+
+Automation is the cornerstone of modern DevOps practices, and in the context of DevSecOps, it ensures that security becomes an integral part of the CI/CD pipeline. By embedding security checks directly into the development and deployment workflows, teams can identify and mitigate vulnerabilities early without compromising on speed or efficiency.
+
+### Static and Dynamic Security Testing
+
+Security testing in the CI/CD pipeline is often categorized into two primary methods: Static Application Security Testing (SAST) and Dynamic Application Security Testing (DAST). Both play critical roles in identifying vulnerabilities at different stages of the development lifecycle.
+
+#### Static Application Security Testing (SAST)
+
+SAST analyzes the source code, bytecode, or binary for potential vulnerabilities without executing the application. By integrating SAST tools like SonarQube into the CI/CD pipeline, developers can detect security issues such as hardcoded secrets, SQL injections, and improper input validations early in the development cycle.
+
+**Example: Integrating SonarQube into Jenkins**
+
+```groovy
+pipeline {
+    agent any
+    stages {
+        stage('Checkout Code') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn clean install'
+            }
+        }
+        stage('Static Analysis') {
+            steps {
+                script {
+                    sh 'sonar-scanner \
+                        -Dsonar.projectKey=MyProject \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=http://localhost:9000 \
+                        -Dsonar.login=your-sonar-token'
+                }
+            }
+        }
+    }
+}
+```
+
+This pipeline integrates SonarQube to analyze the codebase during the build stage, providing insights into vulnerabilities before the application is deployed.
+
+#### Dynamic Application Security Testing (DAST)
+
+DAST examines running applications to identify vulnerabilities that might not be detectable in the codebase alone, such as misconfigurations and runtime issues. Tools like OWASP ZAP and Burp Suite can be automated to simulate real-world attacks during the CI/CD process.
+
+**Example: Automating OWASP ZAP in GitHub Actions**
+
+```yaml
+name: DAST Workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  dast-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start Application
+        run: docker-compose up -d
+
+      - name: OWASP ZAP Scan
+        uses: zaproxy/action-full-scan@v0.3.0
+        with:
+          target: "http://localhost:8080"
+          rules_file_name: ".zap/rules.json"
+          docker_name: "zap"
+```
+
+This workflow launches the application in a Docker container and uses OWASP ZAP to perform a security scan.
+
+### Dependency Scanning
+
+Third-party libraries and dependencies are critical components of modern applications, but they also introduce potential vulnerabilities. Automated dependency scanning tools like Dependabot or Snyk can detect and report known vulnerabilities in dependencies as part of the CI/CD process.
+
+**Example: Configuring Dependabot in GitHub Actions**
+
+```yaml
+name: Dependency Scanning
+
+on:
+  schedule:
+    - cron: "0 0 * * 1" # Weekly scan on Monday
+
+jobs:
+  dependency-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Run Dependabot
+        uses: dependabot/fetch-metadata@v1
+```
+
+This configuration schedules a weekly scan of dependencies, ensuring that vulnerabilities in third-party libraries are promptly identified and addressed.
+
+### Container Security
+
+Containerized applications bring efficiency to deployments, but they also require robust security measures. Tools like Trivy, Aqua, and Clair automate the scanning of container images to detect vulnerabilities in base images, libraries, and configurations.
+
+**Example: Implementing Container Scanning with Trivy**
+
+```yaml
+name: Container Security Scan
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  scan-container:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Build Docker Image
+        run: docker build -t my-app:latest .
+
+      - name: Scan Docker Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "my-app:latest"
+```
+
+This workflow builds a Docker image and scans it for vulnerabilities using Trivy, ensuring secure containerized deployments.
+
+By automating security checks like SAST, DAST, dependency scanning, and container image analysis, teams can proactively secure their applications and infrastructure without disrupting the development flow. The integration of these practices into CI/CD pipelines establishes a strong foundation for continuous security, empowering teams to stay ahead of evolving threats.
