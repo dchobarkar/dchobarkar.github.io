@@ -652,3 +652,192 @@ Etsy, a global marketplace for handmade goods, implemented DevSecOps to enhance 
 Etsy achieved **secure and seamless deployments**, handling thousands of code changes weekly without compromising on security.
 
 These real-world examples showcase how companies across industries leverage DevSecOps to align security with development agility. Each case emphasizes the importance of automation, collaboration, and continuous monitoring in building resilient systems that can withstand evolving threats.
+
+## Code Examples for Secure DevOps
+
+Integrating security into DevOps workflows is incomplete without practical automation to enforce secure practices. Here are code examples showcasing how to incorporate Static Application Security Testing (SAST), Dynamic Application Security Testing (DAST), and container security tools into CI/CD pipelines using platforms like GitHub Actions and Jenkins.
+
+### Automating SAST and DAST Scans in CI/CD Pipelines
+
+**Static Application Security Testing (SAST) with SonarQube in Jenkins**
+
+SonarQube is a popular tool for SAST, capable of identifying vulnerabilities in code during the build process.
+
+```groovy
+pipeline {
+    agent any
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git url: 'https://github.com/example/repo.git'
+            }
+        }
+        stage('Build and Test') {
+            steps {
+                sh './gradlew build'
+            }
+        }
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    withSonarQubeEnv('SonarQube') {
+                        sh './gradlew sonarqube'
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: '**/build/reports/**'
+        }
+    }
+}
+```
+
+**Dynamic Application Security Testing (DAST) with OWASP ZAP in GitHub Actions**
+
+OWASP ZAP automates vulnerability scans for running applications, identifying issues like cross-site scripting (XSS) and SQL injection.
+
+```yaml
+name: OWASP ZAP DAST Scan
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  zap_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v2
+
+      - name: Start the application
+        run: |
+          docker-compose up -d
+
+      - name: Run OWASP ZAP
+        uses: zaproxy/action-full-scan@v0.5.0
+        with:
+          target: "http://localhost:8080"
+          rules_file: ".zap/rules.txt"
+
+      - name: Stop the application
+        run: |
+          docker-compose down
+```
+
+### Configuring Container Security Tools like Trivy in Kubernetes Workflows
+
+Trivy is a lightweight vulnerability scanner for container images, ensuring that no insecure dependencies are deployed in Kubernetes environments.
+
+**Example: Trivy Integration in Kubernetes Workflow**
+
+```yaml
+name: Trivy Container Security Scan
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build Docker Image
+        run: |
+          docker build -t my-app:latest .
+
+      - name: Scan Docker Image with Trivy
+        uses: aquasecurity/trivy-action@v0.1.1
+        with:
+          image-ref: "my-app:latest"
+          format: "table"
+```
+
+### YAML Configuration Examples for GitHub Actions and Jenkins Pipelines
+
+**GitHub Actions for Security Workflows**
+
+This example demonstrates automating dependency scans and security tests for a Node.js application.
+
+```yaml
+name: Security Workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  dependency_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Dependency Audit
+        run: npm audit
+
+  sast_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Install Sonar Scanner
+        run: npm install -g sonar-scanner
+
+      - name: Run SonarQube Scan
+        run: sonar-scanner
+```
+
+**Jenkins Pipeline with Security Integration**
+
+Here’s an example of a multi-stage Jenkins pipeline integrating both SAST and container security.
+
+```groovy
+pipeline {
+    agent any
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git url: 'https://github.com/example/repo.git'
+            }
+        }
+        stage('Build Application') {
+            steps {
+                sh 'docker build -t my-app:latest .'
+            }
+        }
+        stage('Run SAST with SonarQube') {
+            steps {
+                script {
+                    withSonarQubeEnv('SonarQube') {
+                        sh 'sonar-scanner'
+                    }
+                }
+            }
+        }
+        stage('Run Container Security Scan') {
+            steps {
+                sh 'trivy image --severity HIGH,CRITICAL my-app:latest'
+            }
+        }
+    }
+}
+```
+
+By leveraging tools like SonarQube, OWASP ZAP, Trivy, and GitHub Actions, you can create a robust DevSecOps pipeline. These examples demonstrate how automation can integrate seamlessly into CI/CD workflows, enabling continuous security enforcement while maintaining development velocity.
