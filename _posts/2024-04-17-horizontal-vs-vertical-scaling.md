@@ -121,7 +121,8 @@ Horizontal scaling, also known as scaling out, is a powerful approach to handle 
 
 ### Advantages of Horizontal Scaling
 
-1. **Unlimited Scaling Potential**  
+1. **Unlimited Scaling Potential**
+
    Horizontal scaling theoretically allows unlimited growth by adding more machines to a system. As user demand grows, additional servers can be deployed to manage the increased load.
 
    - **Example:** Global companies like Netflix and Amazon use horizontal scaling to serve millions of users concurrently. By distributing the workload across multiple regions, they ensure consistent performance globally.
@@ -142,19 +143,22 @@ Horizontal scaling, also known as scaling out, is a powerful approach to handle 
            - "us-west-1b"
    ```
 
-2. **High Availability and Fault Tolerance**  
+2. **High Availability and Fault Tolerance**
+
    With horizontal scaling, systems become highly resilient because the workload is spread across multiple nodes. Even if one node fails, others continue to operate, minimizing downtime.
 
    - **Example:** Content delivery networks (CDNs) like Cloudflare and Akamai leverage horizontal scaling to maintain availability even during server outages.
 
-3. **Better Suited for Distributed Applications**  
+3. **Better Suited for Distributed Applications**
+
    Horizontal scaling aligns well with distributed architectures like microservices and serverless applications, where independent components run across multiple nodes.
 
    - **Example:** A microservices architecture where services such as user authentication, payment processing, and order management run on separate nodes, scaling independently based on demand.
 
 ### Disadvantages of Horizontal Scaling
 
-1. **Complexity in Setup and Maintenance**  
+1. **Complexity in Setup and Maintenance**
+
    Deploying and managing multiple machines introduces complexity in system architecture. Ensuring seamless communication between nodes and maintaining consistent configurations can be challenging.
 
    - **Challenge Example:** Load balancing requires sophisticated algorithms to distribute traffic effectively, and misconfigurations can lead to uneven loads.
@@ -174,12 +178,14 @@ Horizontal scaling, also known as scaling out, is a powerful approach to handle 
    }
    ```
 
-2. **Increased Networking Overhead**  
+2. **Increased Networking Overhead**
+
    As the number of nodes increases, the system generates more network traffic to synchronize data and manage requests, potentially leading to latency issues.
 
    - **Challenge Example:** Applications requiring frequent database updates may experience slower performance as database shards or replicas communicate across nodes.
 
-3. **Data Consistency Challenges**  
+3. **Data Consistency Challenges**
+
    Distributed systems often face challenges maintaining data consistency, especially in systems requiring real-time updates. Techniques like eventual consistency can introduce delays in reflecting changes across nodes.
 
    - **Example:** Social media platforms often use eventual consistency for showing likes or comments, leading to slight delays in updates visible to all users.
