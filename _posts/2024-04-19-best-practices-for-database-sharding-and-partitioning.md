@@ -545,3 +545,174 @@ In addition to Vitess and Citus, other tools and databases come with built-in sh
 - Opt for **third-party frameworks** (e.g., Vitess, Citus) when existing databases need additional scalability without migrating to a different system.
 
 By leveraging these tools and frameworks, teams can manage the complexity of sharded databases efficiently. Whether you’re scaling MySQL with Vitess, PostgreSQL with Citus, or exploring NoSQL solutions like Cassandra, choosing the right tool ensures a seamless balance between performance, reliability, and scalability.
+
+## Code Examples for Database Sharding and Partitioning
+
+Implementing database sharding and partitioning effectively requires not only understanding the concepts but also practical application through code. Here, we provide real-world examples and step-by-step guides for setting up sharding and partitioning using popular tools and databases.
+
+### Setting Up Sharding with Vitess for MySQL
+
+Vitess simplifies MySQL sharding by managing data distribution and query routing seamlessly. Below is a basic setup for sharding MySQL using Vitess in a Kubernetes environment.
+
+**Step 1: Install Vitess**
+First, deploy Vitess in a Kubernetes cluster using the provided Helm chart or manually configuring StatefulSets and Services.
+
+**Step 2: Create a Keyspace and Define Shards**
+Keyspaces represent databases, and shards are logical partitions of the keyspace.
+
+```sh
+# Create a keyspace with 2 shards
+vtctlclient --server vtctld:<port> CreateKeyspace --sharding_column_name=user_id test_keyspace
+vtctlclient --server vtctld:<port> ApplyVSchema --vschema="$(cat vschema.json)" test_keyspace
+```
+
+**Example `vschema.json`:**
+
+```json
+{
+  "sharded": true,
+  "vindexes": {
+    "hash": {
+      "type": "hash"
+    }
+  },
+  "tables": {
+    "users": {
+      "column_vindexes": [
+        {
+          "column": "user_id",
+          "name": "hash"
+        }
+      ]
+    }
+  }
+}
+```
+
+**Step 3: Query Routing**
+Once set up, Vitess automatically routes queries to the correct shard based on the `user_id`.
+
+```sql
+-- Insert data
+INSERT INTO users (user_id, name) VALUES (1, 'Alice'), (2, 'Bob');
+
+-- Retrieve data
+SELECT * FROM users WHERE user_id = 1;
+```
+
+### Horizontal Partitioning with PostgreSQL
+
+Horizontal partitioning divides rows of a table across multiple partitions based on a specific column, such as a region or user ID.
+
+**Step 1: Create a Partitioned Table**
+In PostgreSQL, define a partitioned table using the `PARTITION BY` clause.
+
+```sql
+CREATE TABLE orders (
+    order_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    order_date DATE NOT NULL
+) PARTITION BY RANGE (order_date);
+```
+
+**Step 2: Define Partitions**
+Create individual partitions for specific date ranges.
+
+```sql
+CREATE TABLE orders_2023 PARTITION OF orders FOR VALUES FROM ('2023-01-01') TO ('2023-12-31');
+CREATE TABLE orders_2024 PARTITION OF orders FOR VALUES FROM ('2024-01-01') TO ('2024-12-31');
+```
+
+**Step 3: Insert and Query Data**
+PostgreSQL automatically directs inserts and queries to the appropriate partition.
+
+```sql
+-- Insert data
+INSERT INTO orders (user_id, order_date) VALUES (101, '2023-05-01'), (102, '2024-03-15');
+
+-- Query data
+SELECT * FROM orders WHERE order_date BETWEEN '2023-01-01' AND '2023-12-31';
+```
+
+### Configuring Functional Partitioning in MongoDB
+
+Functional partitioning in MongoDB organizes data into collections based on functionality or use case. For instance, an e-commerce platform may partition its database by functionality, such as orders, customers, and products.
+
+**Step 1: Define Collections**
+Create separate collections for each function.
+
+```javascript
+db.createCollection("orders");
+db.createCollection("customers");
+db.createCollection("products");
+```
+
+**Step 2: Insert Data into Collections**
+Insert data specific to each function.
+
+```javascript
+// Insert order data
+db.orders.insertMany([
+  { orderId: 1, customerId: 101, total: 250 },
+  { orderId: 2, customerId: 102, total: 450 },
+]);
+
+// Insert customer data
+db.customers.insertMany([
+  { customerId: 101, name: "Alice" },
+  { customerId: 102, name: "Bob" },
+]);
+```
+
+**Step 3: Query Partitioned Data**
+Query collections independently to improve efficiency.
+
+```javascript
+// Fetch all orders
+db.orders.find({});
+
+// Fetch customer details
+db.customers.find({ customerId: 101 });
+```
+
+### Real-World Implementation: Query Routing and Shard Rebalancing
+
+Efficient query routing and shard rebalancing are critical in sharded systems. Below are examples of handling these challenges.
+
+**Example: Query Routing in Apache Cassandra**
+Cassandra uses partition keys to route queries to the appropriate node.
+
+```cql
+CREATE KEYSPACE ecommerce WITH replication = {
+  'class': 'SimpleStrategy',
+  'replication_factor': 3
+};
+
+CREATE TABLE orders (
+    order_id UUID PRIMARY KEY,
+    customer_id UUID,
+    total_amount DECIMAL
+);
+
+-- Insert data
+INSERT INTO orders (order_id, customer_id, total_amount) VALUES (uuid(), uuid(), 500.00);
+
+-- Query by partition key
+SELECT * FROM orders WHERE order_id = <specific-order-id>;
+```
+
+**Example: Shard Rebalancing in MongoDB**
+MongoDB supports dynamic shard rebalancing through its `balancer`.
+
+```javascript
+// Check shard status
+sh.status();
+
+// Enable balancer
+sh.setBalancerState(true);
+
+// Monitor balancer operations
+sh.getBalancerState();
+```
+
+By implementing these examples, developers can better understand the practical aspects of sharding and partitioning in databases, ensuring optimal performance and scalability for their systems.
