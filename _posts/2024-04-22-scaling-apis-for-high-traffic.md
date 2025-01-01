@@ -636,3 +636,155 @@ app.get("/v2/users", (req, res) => {
 ```
 
 By addressing these challenges and trade-offs, developers can build APIs that are not only scalable but also cost-effective, user-friendly, and future-proof. Balancing performance with operational constraints ensures that your APIs remain robust and reliable even as they evolve to meet changing demands.
+
+## Code Examples for Scaling APIs
+
+To design and scale APIs for high traffic, it's crucial to implement efficient mechanisms like rate limiting, robust configurations in API gateways, and performance monitoring. Let’s explore practical code implementations for these techniques.
+
+### 1. Implementing Rate Limiting with Redis in Node.js
+
+Rate limiting ensures that an API can handle high traffic without overloading the system or being exploited by malicious users. Redis, as an in-memory data store, is ideal for maintaining a count of API requests in real-time.
+
+**Code Example:**
+
+```javascript
+const express = require("express");
+const Redis = require("ioredis");
+const app = express();
+const redis = new Redis();
+
+const RATE_LIMIT_WINDOW = 60; // Time window in seconds
+const MAX_REQUESTS = 100; // Maximum requests allowed per IP
+
+app.use(async (req, res, next) => {
+  const ip = req.ip;
+  const key = `rate_limit:${ip}`;
+
+  const requests = await redis.incr(key);
+
+  if (requests === 1) {
+    await redis.expire(key, RATE_LIMIT_WINDOW);
+  }
+
+  if (requests > MAX_REQUESTS) {
+    return res.status(429).send("Too many requests. Please try again later.");
+  }
+
+  next();
+});
+
+app.get("/", (req, res) => {
+  res.send("Welcome to the scalable API!");
+});
+
+app.listen(3000, () => console.log("Server running on port 3000"));
+```
+
+**Explanation:**
+
+- Each IP address gets a unique key in Redis.
+- Increment the request count on each call and set an expiration time for the key.
+- Block requests exceeding the defined limit with an HTTP `429 Too Many Requests` response.
+
+### 2. Configuring AWS API Gateway for Scalable APIs
+
+AWS API Gateway simplifies the process of deploying scalable APIs. With rate limiting, caching, and integration with Lambda, it’s an excellent choice for high-traffic APIs.
+
+**Steps to Set Up Throttling in API Gateway:**
+
+1. Navigate to the API Gateway in the AWS Management Console.
+2. Choose the API you want to configure.
+3. Under **Stages**, select a stage (e.g., `prod`).
+4. In the **Stage Editor**, enable **Throttle Settings** and set the rate and burst limits.
+
+**Terraform Configuration Example:**
+
+```hcl
+resource "aws_api_gateway_method_settings" "example" {
+    rest_api_id   = aws_api_gateway_rest_api.example.id
+    stage_name    = "prod"
+    method_path   = "GET /users"
+    settings {
+        throttling_rate_limit = 100
+        throttling_burst_limit = 200
+    }
+}
+```
+
+**Explanation:**
+
+- `throttling_rate_limit`: Number of requests allowed per second.
+- `throttling_burst_limit`: Maximum number of requests allowed in a short burst.
+
+### 3. Logging and Monitoring API Performance Metrics
+
+Monitoring APIs is vital for ensuring they scale effectively under high traffic. Tools like Prometheus can collect and visualize API metrics, while logging frameworks provide detailed traces for debugging.
+
+**Code Example for Logging in Express.js:**
+
+```javascript
+const express = require("express");
+const morgan = require("morgan");
+const fs = require("fs");
+const path = require("path");
+
+const app = express();
+
+// Create a write stream for logs
+const accessLogStream = fs.createWriteStream(
+  path.join(__dirname, "access.log"),
+  { flags: "a" }
+);
+
+// Use Morgan for request logging
+app.use(morgan("combined", { stream: accessLogStream }));
+
+app.get("/", (req, res) => {
+  res.send("API is running smoothly!");
+});
+
+app.listen(3000, () => console.log("Server running on port 3000"));
+```
+
+**Prometheus Integration for API Monitoring:**
+
+```javascript
+const express = require("express");
+const client = require("prom-client");
+
+const app = express();
+const register = client.register;
+
+// Create metrics
+const httpRequestDuration = new client.Histogram({
+  name: "http_request_duration_seconds",
+  help: "Duration of HTTP requests in seconds",
+  labelNames: ["method", "route", "status_code"],
+});
+
+app.use((req, res, next) => {
+  const end = httpRequestDuration.startTimer();
+  res.on("finish", () => {
+    end({ method: req.method, route: req.path, status_code: res.statusCode });
+  });
+  next();
+});
+
+app.get("/", (req, res) => {
+  res.send("Prometheus metrics enabled!");
+});
+
+app.get("/metrics", async (req, res) => {
+  res.set("Content-Type", register.contentType);
+  res.end(await register.metrics());
+});
+
+app.listen(3000, () => console.log("Server running on port 3000"));
+```
+
+**Explanation:**
+
+- Use Prometheus to record request durations and expose metrics at the `/metrics` endpoint.
+- Integrate these metrics into visualization tools like Grafana for real-time monitoring.
+
+By implementing rate limiting, configuring API gateways, and monitoring performance, you can design APIs that scale seamlessly under high traffic while maintaining reliability and security.
