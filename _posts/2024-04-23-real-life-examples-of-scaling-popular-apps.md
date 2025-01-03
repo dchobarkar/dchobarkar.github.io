@@ -103,3 +103,96 @@ Netflix’s shift to microservices and cloud infrastructure was not without chal
 - **Performance**: The system handled global traffic with ease, even during high-demand events.
 
 Netflix’s journey demonstrates how a strategic approach to microservices, combined with robust cloud infrastructure and innovative practices like Chaos Engineering, can create a system capable of serving millions—if not billions—of users.
+
+## Case Study: Facebook – Scaling Database Infrastructure
+
+### Background: Facebook's Growth and Database Challenges
+
+In the early 2000s, Facebook began as a social network for college students, but its rapid growth soon turned it into a global phenomenon. By 2010, Facebook had hundreds of millions of users, each generating posts, likes, comments, and connections. This exponential growth exposed significant challenges in the scalability of their database infrastructure.
+
+Initially, Facebook relied on **MySQL**, a relational database system that was reliable and well-suited for early-stage use. However, as traffic surged:
+
+- **Bottlenecks emerged** in handling the vast amounts of social graph data (the relationships between users and their activities).
+- **Scalability issues** with MySQL’s single-node architecture began to hinder performance.
+- **Downtime risks** increased, as a centralized database became a single point of failure.
+
+Recognizing these limitations, Facebook invested heavily in rethinking their database infrastructure.
+
+### Innovative Solutions
+
+**1. TAO: The Associations and Objects**
+
+To efficiently manage their social graph (the intricate network of relationships between users and content), Facebook developed **TAO (The Associations and Objects)**, a data store specifically designed for the unique demands of their platform.
+
+- **How TAO Works**:
+
+  - It simplifies the retrieval of association data, such as "who liked this post" or "which friends attended this event."
+  - TAO acts as a caching layer on top of MySQL, reducing the load on the primary database while maintaining low latency.
+
+- **Benefits**:
+
+  - Significant performance improvements for fetching relationship data.
+  - Reduced the number of queries hitting the MySQL database.
+
+**2. RocksDB: Optimizing Storage and Query Performance**
+
+As Facebook's data needs grew, they required a solution to optimize their storage and query performance. Enter **RocksDB**, a high-performance, key-value store optimized for flash storage.
+
+- RocksDB is a **log-structured merge-tree (LSM)** database designed to handle massive write and read operations efficiently.
+- It enabled Facebook to power features like Messenger, where low-latency and high-throughput data operations are critical.
+
+### Scaling Techniques
+
+**1. Sharding Strategies for User Data**
+
+To distribute the growing dataset across multiple servers, Facebook employed **sharding**, where data is partitioned based on user IDs.
+
+- **How It Works**:
+
+  - Each shard contains a subset of the user data, ensuring that no single database instance is overwhelmed.
+  - Queries are routed to the appropriate shard based on the user ID, ensuring efficiency.
+
+- **Code Example: Configuring Sharding in MySQL**
+
+  Here's a simple example of configuring a sharded database setup:
+
+  ```sql
+  -- Shard 1
+  CREATE DATABASE user_data_shard_1;
+  USE user_data_shard_1;
+  CREATE TABLE users (
+      user_id INT PRIMARY KEY,
+      name VARCHAR(100),
+      email VARCHAR(100)
+  );
+
+  -- Shard 2
+  CREATE DATABASE user_data_shard_2;
+  USE user_data_shard_2;
+  CREATE TABLE users (
+      user_id INT PRIMARY KEY,
+      name VARCHAR(100),
+      email VARCHAR(100)
+  );
+  ```
+
+  Application logic is then used to direct queries to the correct shard based on the user ID.
+
+**2. Asynchronous Replication for High Availability**
+
+To ensure data availability and fault tolerance, Facebook adopted **asynchronous replication**, where writes are first committed to a primary database and then propagated to replicas.
+
+- **Advantages**:
+
+  - Reduced latency for write operations, as they are not delayed by synchronous replication.
+  - Increased reliability, as replicas can serve read operations and act as failovers in case the primary database goes down.
+
+### Lessons from Facebook's Database Scaling Journey
+
+Facebook's approach to database scaling is a testament to innovation at scale:
+
+- Custom-built solutions like **TAO** and **RocksDB** showcase the importance of tailoring systems to meet specific business needs.
+- Scaling techniques like **sharding** and **asynchronous replication** demonstrate the effectiveness of distributing data and operations to manage explosive growth.
+- By continuously optimizing their database infrastructure, Facebook has maintained seamless user experiences, even under immense traffic.
+
+This case study underscores the critical role of database architecture in supporting a platform's scalability and reliability.
