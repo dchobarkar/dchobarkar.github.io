@@ -816,3 +816,150 @@ Large-scale environments with hundreds or thousands of microservices introduce c
 ### Key Takeaways
 
 Addressing the challenges of monitoring and observability in scalable systems requires a strategic approach. By focusing on efficient data collection, managing instrumentation impacts, balancing granularity, and adopting scalable tools, organizations can ensure their systems are resilient, reliable, and cost-effective.
+
+## Code Examples for Monitoring and Observability in Scalable Systems
+
+Implementing robust monitoring and observability is essential for ensuring the performance and reliability of scalable systems. Below, we provide detailed examples for setting up Prometheus and Grafana, configuring distributed tracing with Jaeger, and defining alerting rules for high CPU usage in Kubernetes.
+
+### Setting Up Prometheus and Grafana for Application Monitoring
+
+Prometheus and Grafana are widely used tools for monitoring metrics and visualizing system performance.
+
+1. **Setting Up Prometheus**:
+
+   - Prometheus collects metrics from monitored targets by scraping HTTP endpoints.
+   - Let’s configure Prometheus to monitor a simple Node.js application.
+
+   **Prometheus Configuration** (`prometheus.yml`):
+
+   ```yaml
+   global:
+     scrape_interval: 15s
+
+   scrape_configs:
+     - job_name: "nodejs-app"
+       static_configs:
+         - targets: ["localhost:9090"]
+   ```
+
+   **Run Prometheus**:
+
+   ```bash
+   prometheus --config.file=prometheus.yml
+   ```
+
+2. **Integrating Grafana**:
+
+   - Grafana is used to visualize Prometheus metrics via dashboards.
+   - Start Grafana and add Prometheus as a data source:
+     1. Open Grafana at `http://localhost:3000`.
+     2. Navigate to **Configuration > Data Sources** and add Prometheus (`http://localhost:9090`).
+
+   **Creating Dashboards**:
+
+   - Use PromQL (Prometheus Query Language) to create visualizations. For example:
+     ```promql
+     rate(http_requests_total[5m])
+     ```
+   - Visualize this metric in a time-series graph to monitor incoming requests.
+
+### Implementing Distributed Tracing with Jaeger
+
+Distributed tracing is crucial for tracking requests across multiple microservices. Jaeger is a powerful tool for this purpose.
+
+1. **Setting Up Jaeger**:
+
+   - Use Docker to run Jaeger components quickly.
+
+   ```bash
+   docker run -d --name jaeger \
+     -e COLLECTOR_ZIPKIN_HTTP_PORT=9411 \
+     -p 5775:5775/udp \
+     -p 6831:6831/udp \
+     -p 6832:6832/udp \
+     -p 5778:5778 \
+     -p 16686:16686 \
+     -p 14268:14268 \
+     -p 14250:14250 \
+     -p 9411:9411 \
+     jaegertracing/all-in-one:1.37
+   ```
+
+2. **Instrumenting a Node.js Application**:
+
+   - Add tracing middleware to your application.
+     **Code Example**:
+
+   ```javascript
+   const { initTracer } = require("jaeger-client");
+
+   const config = {
+     serviceName: "my-service",
+     reporter: { logSpans: true },
+     sampler: { type: "const", param: 1 },
+   };
+   const options = {};
+   const tracer = initTracer(config, options);
+
+   app.use((req, res, next) => {
+     const span = tracer.startSpan("http_request");
+     span.log({ event: "request_received", url: req.url });
+     res.on("finish", () => span.finish());
+     next();
+   });
+   ```
+
+   - View traces in Jaeger’s UI at `http://localhost:16686`.
+
+### Alerting Configurations for High CPU Usage in Kubernetes
+
+Setting up alerting rules ensures you can proactively address resource constraints.
+
+1. **Prometheus Alerting Rule**:
+
+   - Define a rule to alert when CPU usage exceeds a threshold.
+
+   **Prometheus Rule Configuration** (`alerting-rules.yml`):
+
+   ```yaml
+   groups:
+     - name: cpu-usage-alerts
+       rules:
+         - alert: HighCPUUsage
+           expr: node_cpu_seconds_total{mode="idle"} < 20
+           for: 1m
+           labels:
+             severity: warning
+           annotations:
+             summary: "High CPU Usage Alert"
+             description: "CPU usage is above the threshold on instance {{ $labels.instance }}"
+   ```
+
+   - Reload Prometheus configuration to apply the rule:
+     ```bash
+     curl -X POST http://localhost:9090/-/reload
+     ```
+
+2. **Integrating with Alertmanager**:
+
+   - Configure Prometheus to send alerts to Alertmanager, which can then route them to email, Slack, or PagerDuty.
+
+   **Alertmanager Configuration** (`alertmanager.yml`):
+
+   ```yaml
+   global:
+     smtp_smarthost: "smtp.example.com:587"
+     smtp_from: "alertmanager@example.com"
+     smtp_auth_username: "user"
+     smtp_auth_password: "password"
+
+   receivers:
+     - name: "team-email"
+       email_configs:
+         - to: "team@example.com"
+
+   route:
+     receiver: "team-email"
+   ```
+
+These examples provide a solid foundation for implementing monitoring, observability, and alerting in scalable systems. By combining tools like Prometheus, Grafana, and Jaeger, and configuring alerts effectively, you can ensure your system is well-prepared to handle challenges at scale.
