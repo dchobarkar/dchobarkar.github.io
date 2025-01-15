@@ -119,3 +119,80 @@ The versatility of AWS Lambda is evident in the variety of applications it suppo
    This code resizes images uploaded to an S3 bucket and saves the resized versions to a subfolder.
 
 AWS Lambda is more than just a compute service—it's a paradigm shift. By abstracting infrastructure concerns, it enables developers to focus on creating robust applications while benefiting from scalability, cost efficiency, and tight integration with the AWS ecosystem. With such capabilities, Lambda has become a cornerstone in the evolution of modern cloud architectures.
+
+## Setting Up Your AWS Lambda Environment
+
+Before diving into creating your first serverless application, it's essential to prepare your AWS Lambda environment. AWS Lambda is designed to simplify the deployment process, but a proper setup ensures a seamless experience. This section will guide you through the prerequisites, the steps to configure Lambda, and even include a hands-on example to solidify your understanding.
+
+### Prerequisites
+
+1. **AWS Account Setup**
+
+   To start, you’ll need an active AWS account. If you don’t already have one, visit [AWS’s official website](https://aws.amazon.com) and create an account. The signup process includes providing billing details, but AWS offers a free tier that’s perfect for exploring Lambda and other services without incurring costs.
+
+2. **Basic Understanding of AWS Management Console and CLI**
+
+   Familiarity with the AWS Management Console is essential since it provides a graphical interface for managing services. For those who prefer automation or scripting, the AWS Command Line Interface (CLI) is a must. If you haven’t installed the CLI yet, you can download it from [AWS CLI’s page](https://aws.amazon.com/cli/) and follow the installation instructions.
+
+### Steps to Configure AWS Lambda
+
+Once your AWS account is ready and the CLI (optional) is installed, it’s time to set up your first Lambda function.
+
+1. **Navigating the AWS Management Console**
+
+   - Log in to your AWS account and search for “Lambda” in the Services menu.
+   - Click on **Create Function** to start the setup process.
+
+2. **Creating Your First Lambda Function**
+
+   - **Choose the function creation method**: Select the “Author from scratch” option.
+   - **Define function details**:
+     - **Function Name**: Enter a name, e.g., `hello-world-lambda`.
+     - **Runtime**: Choose a programming language like Node.js or Python. Let’s go with **Node.js 16.x** for this example.
+   - **Execution Role**: AWS Lambda requires permissions to execute functions and access other services. Choose:
+     - “Create a new role with basic Lambda permissions” to let AWS handle the role creation.
+   - **Click Create Function**: AWS will provision your Lambda environment.
+
+### Code Example: Writing a Simple "Hello, World" Function
+
+Once the function is created, you’ll be taken to the Lambda function editor. Let’s write a basic **"Hello, World"** example.
+
+1. Replace the default code with the following Node.js snippet:
+
+   ```javascript
+   exports.handler = async (event) => {
+     return {
+       statusCode: 200,
+       body: JSON.stringify("Hello, World from AWS Lambda!"),
+     };
+   };
+   ```
+
+2. Click **Deploy** to save and deploy your changes.
+
+### Testing Your Lambda Function
+
+Now that the function is set up, it’s time to test it. AWS Lambda allows you to create test events to simulate real-world triggers.
+
+1. **Create a Test Event**
+
+   - Click on **Test** in the function editor.
+   - Name your test event, e.g., `testEvent1`, and leave the default JSON payload as it is:
+     ```json
+     {}
+     ```
+
+2. **Run the Test**
+
+   - Click **Test** to invoke your function.
+   - The results will appear at the top of the editor, showing the output:
+     ```json
+     {
+       "statusCode": 200,
+       "body": "\"Hello, World from AWS Lambda!\""
+     }
+     ```
+
+This simple test validates that your Lambda environment is functioning correctly.
+
+With your environment set up, your AWS Lambda function created, and your first test run successfully completed, you're ready to explore more complex serverless workflows. By following these steps, you’ve laid the foundation for integrating Lambda with other AWS services, which we’ll dive into in the next section.
