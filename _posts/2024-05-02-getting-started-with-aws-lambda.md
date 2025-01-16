@@ -196,3 +196,127 @@ Now that the function is set up, it’s time to test it. AWS Lambda allows you t
 This simple test validates that your Lambda environment is functioning correctly.
 
 With your environment set up, your AWS Lambda function created, and your first test run successfully completed, you're ready to explore more complex serverless workflows. By following these steps, you’ve laid the foundation for integrating Lambda with other AWS services, which we’ll dive into in the next section.
+
+## Integrating AWS Lambda with Other AWS Services
+
+One of the key advantages of AWS Lambda is its seamless integration with a wide range of AWS services, enabling developers to build highly efficient and event-driven architectures. Whether it’s processing data from S3 buckets, responding to changes in DynamoDB, or creating API endpoints with API Gateway, Lambda acts as a central piece in connecting and orchestrating workflows.
+
+### AWS S3 Integration
+
+S3 (Simple Storage Service) is a widely used AWS service for storing and retrieving data. Integrating AWS Lambda with S3 allows you to automatically process files as they are uploaded or modified, making it perfect for scenarios like image processing, data transformation, or content generation.
+
+**Triggering Lambda Functions with S3 Events**
+
+Lambda can be triggered by events in an S3 bucket, such as an object being created, modified, or deleted. For example, you can set up a Lambda function to automatically generate a thumbnail for every image uploaded to an S3 bucket.
+
+**Code Example: Processing an Uploaded Image File**
+
+```python
+import boto3
+from PIL import Image
+import io
+
+s3_client = boto3.client('s3')
+
+def lambda_handler(event, context):
+    # Get the bucket and file details from the event
+    bucket_name = event['Records'][0]['s3']['bucket']['name']
+    file_name = event['Records'][0]['s3']['object']['key']
+
+    # Download the image from S3
+    response = s3_client.get_object(Bucket=bucket_name, Key=file_name)
+    img = Image.open(io.BytesIO(response['Body'].read()))
+
+    # Resize the image
+    img.thumbnail((128, 128))
+    buffer = io.BytesIO()
+    img.save(buffer, format="JPEG")
+    buffer.seek(0)
+
+    # Save the resized image back to S3
+    output_key = f"thumbnails/{file_name}"
+    s3_client.put_object(Bucket=bucket_name, Key=output_key, Body=buffer, ContentType='image/jpeg')
+
+    return {"statusCode": 200, "body": f"Thumbnail created at {output_key}"}
+```
+
+This function listens for file uploads to an S3 bucket, generates a thumbnail, and saves it to a `thumbnails/` folder within the same bucket.
+
+### AWS DynamoDB Integration
+
+DynamoDB is a fully managed NoSQL database service that is often used for building scalable applications. Lambda can be triggered by DynamoDB Streams, which capture changes to items in the database in real time.
+
+**Using Lambda to Respond to Data Changes**
+
+By connecting Lambda to a DynamoDB stream, you can automate workflows like updating aggregated reports, synchronizing data across systems, or triggering downstream processes.
+
+**Code Example: Updating an Aggregated Report**
+
+```python
+import boto3
+
+dynamodb = boto3.resource('dynamodb')
+report_table = dynamodb.Table('AggregatedReports')
+
+def lambda_handler(event, context):
+    for record in event['Records']:
+        if record['eventName'] == 'INSERT':
+            new_data = record['dynamodb']['NewImage']
+            category = new_data['Category']['S']
+            value = int(new_data['Value']['N'])
+
+            # Update the aggregated report
+            report_table.update_item(
+                Key={'Category': category},
+                UpdateExpression="SET Total = if_not_exists(Total, :start) + :value",
+                ExpressionAttributeValues={
+                    ':start': 0,
+                    ':value': value
+                }
+            )
+    return {"statusCode": 200, "body": "Report updated successfully"}
+```
+
+This example demonstrates how to update an aggregated report whenever a new item is added to a DynamoDB table.
+
+### AWS API Gateway Integration
+
+API Gateway provides a powerful way to create RESTful APIs that serve as a front door for your Lambda functions. It enables you to expose Lambda functionality as web endpoints, allowing external systems or users to interact with your serverless application.
+
+**Creating RESTful Endpoints for Lambda Functions**
+
+With API Gateway, you can define methods like GET, POST, PUT, and DELETE that route incoming HTTP requests to specific Lambda functions.
+
+**Code Example: Building a Basic API Endpoint**
+
+Here’s an example of a Lambda function that handles GET and POST requests through API Gateway:
+
+```python
+import json
+
+def lambda_handler(event, context):
+    http_method = event['httpMethod']
+
+    if http_method == 'GET':
+        return {
+            "statusCode": 200,
+            "body": json.dumps({"message": "This is a GET response"})
+        }
+
+    elif http_method == 'POST':
+        body = json.loads(event['body'])
+        return {
+            "statusCode": 200,
+            "body": json.dumps({"message": f"Received data: {body}"})
+        }
+
+    else:
+        return {
+            "statusCode": 405,
+            "body": json.dumps({"error": "Method Not Allowed"})
+        }
+```
+
+This Lambda function checks the HTTP method of the incoming request and responds accordingly. You can link this function to an API Gateway endpoint for easy access.
+
+AWS Lambda’s ability to integrate with other AWS services like S3, DynamoDB, and API Gateway makes it a vital tool for creating robust and scalable applications. By leveraging these integrations, developers can automate workflows, build powerful APIs, and process data in real time with minimal effort. These examples highlight how versatile and impactful serverless architectures can be when combined with AWS’s ecosystem.
