@@ -505,3 +505,150 @@ Here’s a consolidated view of the TODO API codebase:
    Package each function and deploy as shown in the deployment step.
 
 By the end of this tutorial, you’ll have a fully functional, serverless REST API hosted on AWS Lambda, ready to handle real-world traffic. The combination of Lambda, API Gateway, and DynamoDB provides scalability, cost efficiency, and minimal operational overhead, making it a preferred choice for modern application development.
+
+## Testing and Debugging AWS Lambda Functions
+
+When working with AWS Lambda, testing and debugging are integral to ensuring your serverless application performs as expected. Whether you’re diagnosing an issue or validating a new feature, AWS offers several tools and strategies to simplify this process. Let’s dive into how you can test and debug your Lambda functions effectively.
+
+### Using the AWS Lambda Console for Testing
+
+The AWS Management Console provides a straightforward way to test your Lambda functions. This is particularly useful for quick validation of code logic or to simulate events during development. Here's how to use it:
+
+1. **Accessing the Test Interface:**
+
+   - Navigate to the AWS Lambda console.
+   - Select your Lambda function from the list.
+   - Click the **Test** button to create or modify a test event.
+
+2. **Creating a Test Event:**
+
+   - Choose a predefined event template or create a custom JSON payload. For example, if your Lambda function is triggered by an S3 event, you can use the built-in S3 template.
+   - Modify the JSON as needed to match your expected event structure. For instance:
+     ```json
+     {
+       "Records": [
+         {
+           "s3": {
+             "bucket": {
+               "name": "my-bucket"
+             },
+             "object": {
+               "key": "example-file.txt"
+             }
+           }
+         }
+       ]
+     }
+     ```
+
+3. **Executing the Test:**
+
+   - Save the test event and click the **Test** button again.
+   - The console displays the execution results, including the function's output, execution duration, and logs.
+
+This approach provides immediate feedback, but it's best suited for simple tests and quick debugging.
+
+### Setting Up Local Development with AWS SAM CLI
+
+For more advanced testing and debugging, the AWS Serverless Application Model (SAM) CLI enables local development. With SAM, you can replicate the Lambda runtime and test your functions on your local machine.
+
+1. **Install AWS SAM CLI:**
+
+   - Install the SAM CLI by following the instructions on the [official AWS documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html).
+   - Verify installation using:
+     ```bash
+     sam --version
+     ```
+
+2. **Initialize a SAM Project:**
+
+   - Use the following command to create a new project:
+     ```bash
+     sam init
+     ```
+   - Choose a runtime (e.g., Node.js, Python) and a starter template.
+
+3. **Running Lambda Locally:**
+
+   - Start the local Lambda environment with:
+     ```bash
+     sam local invoke FunctionName --event event.json
+     ```
+   - Replace `FunctionName` with your Lambda function’s name and `event.json` with your test event file.
+
+4. **Debugging with Breakpoints:**
+
+   - Use your IDE to set breakpoints and attach a debugger. SAM CLI supports debugging with tools like Visual Studio Code and PyCharm.
+   - For Node.js, start the local debugger with:
+     ```bash
+     sam local invoke FunctionName --debug-port 9229
+     ```
+
+### Debugging Tips
+
+Debugging Lambda functions requires a combination of logs, error handling, and monitoring tools. Here’s how to streamline the process:
+
+1. **Using CloudWatch Logs:**
+
+   - Every Lambda execution generates logs in Amazon CloudWatch.
+   - Access logs by navigating to the **Monitoring** tab in the Lambda console and clicking on the **View logs in CloudWatch** button.
+   - Use the logs to trace function execution, including input events and error messages.
+
+   Example log snippet:
+
+   ```
+   START RequestId: abc123-xyz456 Version: $LATEST
+   2023-01-01T12:00:00.000Z INFO Received S3 event: {"bucket": "my-bucket", "key": "example-file.txt"}
+   2023-01-01T12:00:00.500Z ERROR Error processing file: Access Denied
+   END RequestId: abc123-xyz456
+   ```
+
+2. **Handling Common Errors:**
+
+   - **Timeouts:** Increase the timeout setting if your function runs longer than expected.
+   - **Permissions Issues:** Ensure the Lambda function has appropriate IAM roles to access required services.
+   - **Environment Variable Misconfiguration:** Validate environment variables for missing or incorrect values.
+
+3. **Using AWS X-Ray for Tracing:**
+
+   - Enable AWS X-Ray to visualize and analyze the flow of requests through your application.
+   - Add the X-Ray SDK to your function code:
+     ```javascript
+     const AWSXRay = require("aws-xray-sdk-core");
+     const AWS = AWSXRay.captureAWS(require("aws-sdk"));
+     ```
+   - View traces in the X-Ray console for insights into latencies and bottlenecks.
+
+### Example: Debugging a Lambda Function
+
+Here’s a simple example of how you might debug an S3-triggered Lambda function locally:
+
+**Code Example:**
+
+```javascript
+exports.handler = async (event) => {
+  try {
+    console.log("Event received:", JSON.stringify(event, null, 2));
+    const bucket = event.Records[0].s3.bucket.name;
+    const key = event.Records[0].s3.object.key;
+
+    // Simulate processing
+    console.log(`Processing file: ${key} from bucket: ${bucket}`);
+    return { status: "success" };
+  } catch (error) {
+    console.error("Error occurred:", error);
+    throw new Error("Processing failed");
+  }
+};
+```
+
+**Testing Locally with SAM:**
+
+1. Create an `event.json` file with the test payload.
+2. Run the function locally:
+   ```bash
+   sam local invoke FunctionName --event event.json
+   ```
+3. Debug issues using logs generated by SAM.
+
+Testing and debugging AWS Lambda functions doesn’t have to be a daunting task. With tools like the AWS Management Console, SAM CLI, and CloudWatch Logs, you can identify issues quickly and ensure your serverless application runs smoothly. As you become more familiar with these practices, you’ll find it easier to troubleshoot complex problems and optimize your Lambda functions for production use.
