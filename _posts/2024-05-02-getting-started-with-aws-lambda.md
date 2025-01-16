@@ -320,3 +320,188 @@ def lambda_handler(event, context):
 This Lambda function checks the HTTP method of the incoming request and responds accordingly. You can link this function to an API Gateway endpoint for easy access.
 
 AWS Lambda’s ability to integrate with other AWS services like S3, DynamoDB, and API Gateway makes it a vital tool for creating robust and scalable applications. By leveraging these integrations, developers can automate workflows, build powerful APIs, and process data in real time with minimal effort. These examples highlight how versatile and impactful serverless architectures can be when combined with AWS’s ecosystem.
+
+## Building a Serverless REST API with AWS Lambda
+
+When it comes to modern software development, building REST APIs with serverless technology like AWS Lambda has revolutionized how we approach backend services. This method allows developers to create scalable, cost-effective, and highly efficient APIs without the overhead of managing servers. In this article, we'll explore how to build a serverless REST API using AWS Lambda, API Gateway, and DynamoDB.
+
+### Architecture Overview
+
+Before diving into the implementation, it’s essential to understand the components involved in a serverless REST API.
+
+1. **AWS Lambda**: Acts as the serverless function backend, processing requests and executing logic for each API endpoint.
+2. **API Gateway**: Serves as the front door for your API, handling HTTP requests and routing them to the appropriate Lambda functions.
+3. **DynamoDB**: A fully managed NoSQL database for storing and retrieving data, ideal for serverless applications due to its scalability and performance.
+
+**Workflow**:
+
+1. API Gateway receives the client request (HTTP method).
+2. The request is forwarded to the appropriate Lambda function.
+3. The Lambda function processes the request, interacts with DynamoDB as needed, and returns the response to API Gateway.
+4. API Gateway sends the response back to the client.
+
+### Step-by-Step Guide
+
+Let’s build a REST API to manage a TODO list with the following endpoints:
+
+1. `GET /todos` - Retrieve all tasks.
+2. `POST /todos` - Add a new task.
+3. `DELETE /todos/{id}` - Delete a specific task.
+
+#### Step 1: Define the API Structure
+
+Start by designing the API structure. For this example, our API includes endpoints for listing, adding, and deleting TODO items. Each item will have:
+
+- A unique `id` (UUID),
+- A `task` description,
+- A `completed` status.
+
+#### Step 2: Writing Lambda Functions
+
+For each endpoint, we’ll write a separate Lambda function.
+
+##### Function 1: Retrieve All TODOs
+
+```javascript
+const AWS = require("aws-sdk");
+const dynamoDB = new AWS.DynamoDB.DocumentClient();
+const TABLE_NAME = "Todos";
+
+exports.handler = async (event) => {
+  try {
+    const data = await dynamoDB.scan({ TableName: TABLE_NAME }).promise();
+    return {
+      statusCode: 200,
+      body: JSON.stringify(data.Items),
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message }),
+    };
+  }
+};
+```
+
+##### Function 2: Add a New TODO
+
+```javascript
+const AWS = require("aws-sdk");
+const { v4: uuidv4 } = require("uuid");
+const dynamoDB = new AWS.DynamoDB.DocumentClient();
+const TABLE_NAME = "Todos";
+
+exports.handler = async (event) => {
+  const { task, completed } = JSON.parse(event.body);
+  const item = {
+    id: uuidv4(),
+    task,
+    completed: completed || false,
+  };
+
+  try {
+    await dynamoDB
+      .put({
+        TableName: TABLE_NAME,
+        Item: item,
+      })
+      .promise();
+    return {
+      statusCode: 201,
+      body: JSON.stringify(item),
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message }),
+    };
+  }
+};
+```
+
+##### Function 3: Delete a TODO
+
+```javascript
+const AWS = require("aws-sdk");
+const dynamoDB = new AWS.DynamoDB.DocumentClient();
+const TABLE_NAME = "Todos";
+
+exports.handler = async (event) => {
+  const { id } = event.pathParameters;
+
+  try {
+    await dynamoDB
+      .delete({
+        TableName: TABLE_NAME,
+        Key: { id },
+      })
+      .promise();
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: `TODO with ID ${id} deleted` }),
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message }),
+    };
+  }
+};
+```
+
+#### Step 3: Deploying and Testing the API
+
+1. **Deploy the Lambda Functions**:
+
+   - Package each function into a `.zip` file, including all dependencies.
+   - Use the AWS Management Console or AWS CLI to upload the `.zip` files.
+
+   Example AWS CLI Command:
+
+   ```bash
+   aws lambda create-function \
+       --function-name getTodos \
+       --runtime nodejs18.x \
+       --role <execution-role-arn> \
+       --handler index.handler \
+       --zip-file fileb://getTodos.zip
+   ```
+
+2. **Set Up API Gateway**:
+
+   - Create a new REST API in API Gateway.
+   - Add resources (`/todos`) and methods (`GET`, `POST`, `DELETE`) corresponding to each Lambda function.
+   - Configure each method to integrate with its respective Lambda function.
+
+3. **Test the API**:
+
+   - Use Postman or cURL to test the API endpoints.
+   - Example cURL command for testing `GET /todos`:
+     ```bash
+     curl -X GET https://<your-api-id>.execute-api.<region>.amazonaws.com/<stage>/todos
+     ```
+
+### Code Example: Full TODO API Implementation
+
+Here’s a consolidated view of the TODO API codebase:
+
+1. **Folder Structure**:
+
+   ```
+   /todos-api
+       ├── getTodos
+       │   ├── index.js
+       │   └── package.json
+       ├── addTodo
+       │   ├── index.js
+       │   └── package.json
+       ├── deleteTodo
+           ├── index.js
+           └── package.json
+   ```
+
+2. **Deployment Command**:
+
+   Package each function and deploy as shown in the deployment step.
+
+By the end of this tutorial, you’ll have a fully functional, serverless REST API hosted on AWS Lambda, ready to handle real-world traffic. The combination of Lambda, API Gateway, and DynamoDB provides scalability, cost efficiency, and minimal operational overhead, making it a preferred choice for modern application development.
