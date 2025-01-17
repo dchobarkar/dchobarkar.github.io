@@ -272,3 +272,166 @@ Total cost = 2.5M * 0.00001667 = $41.68 per month
 This is **far cheaper** than running an always-on virtual machine!
 
 AWS Lambda’s event-driven nature, diverse language support, flexible invocation models, and **cost-efficient pricing structure** make it one of the most **powerful tools for serverless application development**. Whether you are building a **REST API**, **processing large datasets**, or **handling real-time events**, Lambda provides a scalable and reliable environment without the hassle of managing infrastructure.
+
+## Setting Up Your First Serverless Application
+
+Once you've created your AWS account and set up the necessary tools, you’re ready to build your first serverless application using AWS Lambda. This step-by-step guide will walk you through the entire process, ensuring you understand how AWS Lambda functions work in practice. Whether you're an experienced developer or new to serverless computing, this guide will help you create, deploy, and test your first AWS Lambda function.
+
+### Getting Started: Prerequisites
+
+Before diving into the actual implementation, it's crucial to have the necessary tools and permissions in place. Here’s what you need:
+
+1. **An AWS Account:** If you haven’t already, sign up for a free AWS account at [aws.amazon.com](https://aws.amazon.com). AWS provides a free tier, which includes 1 million free Lambda requests per month, making it an ideal platform for beginners.
+
+2. **AWS CLI Installed:** The **AWS Command Line Interface (CLI)** allows you to interact with AWS services directly from your terminal. If you haven’t installed it yet, you can download and install it by following the [AWS CLI installation guide](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html).
+
+3. **IAM User with Necessary Permissions:** To create and manage Lambda functions, you’ll need an **IAM (Identity and Access Management) user** with the following permissions:
+
+   - `AWSLambda_FullAccess` – Grants access to AWS Lambda functionalities.
+   - `IAMFullAccess` – Allows the user to manage roles and permissions.
+   - `AmazonS3FullAccess` (if using S3 as a trigger) – Grants access to S3.
+   - `AmazonDynamoDBFullAccess` (if using DynamoDB integration) – Allows Lambda to read/write from DynamoDB.
+
+   If you’re using an IAM role instead of root credentials, ensure the role has the above permissions.
+
+4. **A Code Editor (Optional):** While the AWS Lambda console provides an in-browser editor, using an **IDE like VS Code** or **PyCharm** can enhance the development experience.
+
+### Step-by-Step Guide: Creating and Deploying Your First AWS Lambda Function
+
+With the prerequisites in place, let’s move forward with creating a simple AWS Lambda function.
+
+#### Creating an AWS Lambda Function Using AWS Management Console
+
+The easiest way to create a Lambda function is through the AWS Management Console. Follow these steps:
+
+1. **Log in to AWS Management Console** and navigate to **AWS Lambda**.
+2. Click on **"Create function"**.
+3. Under **Function Creation Method**, select **"Author from scratch"**.
+4. Enter a **Function Name** (e.g., `helloWorldLambda`).
+5. Choose a **Runtime**:
+   - Select **Python 3.9** or **Node.js 18.x** (these are commonly used and well-supported).
+6. Select **Permissions**:
+   - Choose **"Create a new role with basic Lambda permissions"** (if this is your first time).
+   - Alternatively, if you’ve already set up an IAM role with Lambda access, choose **"Use an existing role"**.
+7. Click **Create function**.
+
+AWS will now create the Lambda function, and you’ll be redirected to the function’s dashboard.
+
+#### Writing a Simple "Hello World" Lambda Function
+
+Now that we have created the function, let’s write a basic AWS Lambda function. You can either use **Node.js (JavaScript)** or **Python**.
+
+##### Node.js Version (JavaScript)
+
+If you selected **Node.js** as the runtime, navigate to the **Code source** section and replace the existing code with the following:
+
+```javascript
+exports.handler = async (event) => {
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ message: "Hello, AWS Lambda!" }),
+  };
+};
+```
+
+This simple function:
+
+- Returns an HTTP **status code 200**.
+- Sends a JSON response with the message `"Hello, AWS Lambda!"`.
+
+##### Python Version
+
+If you selected **Python 3.9**, replace the existing code with the following:
+
+```python
+def lambda_handler(event, context):
+    return {
+        "statusCode": 200,
+        "body": "Hello, AWS Lambda!"
+    }
+```
+
+The Python version does the same thing—returns a simple response whenever invoked.
+
+After adding the code, click **Deploy** to save and apply changes.
+
+#### Deploying and Testing the AWS Lambda Function
+
+Now that the function is written, let's deploy and test it to ensure it runs correctly.
+
+##### Testing via AWS Console
+
+1. Click on the **Test** tab inside the Lambda function dashboard.
+2. Click **Create new test event**.
+3. Enter an **Event Name** (e.g., `TestEvent1`).
+4. Use the default JSON event input:
+   ```json
+   {
+     "message": "Test event for Lambda"
+   }
+   ```
+5. Click **Create** and then **Test**.
+
+If everything is set up correctly, you will see an execution result similar to this:
+
+```json
+{
+  "statusCode": 200,
+  "body": "Hello, AWS Lambda!"
+}
+```
+
+This confirms that the AWS Lambda function has been executed successfully.
+
+### Deploying AWS Lambda Using AWS CLI
+
+For those who prefer working with the **command line**, AWS CLI provides an alternative way to create and deploy Lambda functions.
+
+#### Step 1: Create a Deployment Package
+
+When deploying via AWS CLI, you need to package your function code into a `.zip` file.
+
+For **Node.js**:
+
+```bash
+zip function.zip index.js
+```
+
+For **Python**:
+
+```bash
+zip function.zip lambda_function.py
+```
+
+#### Step 2: Upload the Function to AWS
+
+Use the following command to create a new Lambda function using AWS CLI:
+
+```bash
+aws lambda create-function --function-name HelloWorldFunction \
+--runtime nodejs18.x --role arn:aws:iam::YOUR_ACCOUNT_ID:role/service-role/LambdaBasicExecutionRole \
+--handler index.handler --zip-file fileb://function.zip
+```
+
+Replace `YOUR_ACCOUNT_ID` with your actual AWS account ID.
+
+#### Step 3: Invoke the Lambda Function
+
+Once deployed, you can invoke the function using the following command:
+
+```bash
+aws lambda invoke --function-name HelloWorldFunction output.txt
+```
+
+This command runs the function and stores the output in `output.txt`.
+
+If successful, opening `output.txt` should show:
+
+```json
+{
+  "statusCode": 200,
+  "body": "Hello, AWS Lambda!"
+}
+```
+
+Congratulations! You’ve successfully created, deployed, and tested your first **AWS Lambda function**. Whether you used the **AWS Management Console** or **AWS CLI**, you now understand how to build a basic **serverless application**.
