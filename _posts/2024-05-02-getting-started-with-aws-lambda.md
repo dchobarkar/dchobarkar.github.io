@@ -108,624 +108,167 @@ Now that we have an understanding of AWS Lambda and its capabilities, let’s ou
 
 By the end of this article, you will have a strong grasp of **how to build and deploy AWS Lambda functions** efficiently, along with hands-on examples to get started.
 
-## What is AWS Lambda?
+## Understanding AWS Lambda
 
-AWS Lambda is a powerful service that lies at the heart of serverless computing. Designed to simplify application deployment and scalability, Lambda takes care of the heavy lifting involved in managing infrastructure. Whether you're building real-time data pipelines, handling backend logic for mobile apps, or automating repetitive tasks, Lambda provides an efficient, scalable, and cost-effective solution.
+AWS Lambda has redefined the way developers build applications by introducing a **serverless execution model** that allows code to run in response to events without requiring any server management. Unlike traditional computing models where servers need to be provisioned and maintained, Lambda dynamically scales and executes only when triggered, making it both efficient and cost-effective. To understand how AWS Lambda works, let’s break down its execution model, supported runtimes, invocation types, and pricing structure.
 
-### Definition and Core Principles
+### How AWS Lambda Works: The Event-Driven Execution Model
 
-At its core, AWS Lambda is an event-driven compute service that runs your code in response to specific triggers. Instead of provisioning, configuring, and maintaining servers, you write your code, package it, and deploy it to Lambda. From there, the service takes over, executing your code only when a triggering event occurs.
+AWS Lambda operates on an **event-driven architecture**, meaning that it is **triggered by events rather than running continuously**. These events can come from various AWS services, API requests, or even external applications. When an event occurs, AWS Lambda **spins up a container**, runs the function code, and shuts it down once the execution is complete. This ensures that compute resources are used only when necessary, minimizing costs and eliminating the need for constant server management.
 
-Lambda operates on two fundamental principles:
+At a high level, AWS Lambda follows these steps:
 
-1. **Event-Driven Computing**: Lambda functions are invoked in response to events. These events could be an HTTP request received via API Gateway, a new file uploaded to an S3 bucket, or a scheduled cron job triggered by Amazon EventBridge.
-2. **Managed Infrastructure with Pay-Per-Execution**: Unlike traditional setups where you pay for reserved resources, Lambda charges only for the compute time your code consumes. There are no upfront costs or charges for idle time, making it highly cost-effective.
+1. **Event Trigger:** A predefined event from an AWS service or external system triggers the function.
+2. **Execution Environment:** AWS Lambda automatically provisions a container with the required runtime and resources.
+3. **Code Execution:** The function processes the event and executes the logic defined in the code.
+4. **Response Handling:** The function returns a response or performs an action based on the execution results.
+5. **Resource Cleanup:** Once execution is complete, the Lambda environment is terminated (unless a new event triggers another execution).
 
-### Benefits of AWS Lambda
+To better understand this, let’s look at an example where AWS Lambda is triggered by an **Amazon S3 bucket upload**.
 
-The popularity of Lambda stems from its ability to simplify development workflows while offering several tangible benefits.
+#### Example: Processing S3 Uploads with AWS Lambda
 
-1. **Automatic Scaling**:
-
-   Lambda automatically adjusts its capacity to meet demand. Whether you're handling a single request per minute or thousands of requests per second, Lambda ensures your application scales seamlessly without manual intervention.
-
-2. **Cost Savings**:
-
-   Lambda's pay-as-you-go model is a game-changer for businesses. Instead of paying for pre-provisioned resources, you are billed per millisecond of execution time. This is particularly beneficial for applications with unpredictable traffic patterns.
-
-3. **Seamless Integration with AWS Services**:
-
-   Lambda integrates tightly with other AWS services, such as S3, DynamoDB, and API Gateway. This allows developers to build complex workflows and architectures with minimal effort.
-
-### Popular Use Cases for AWS Lambda
-
-The versatility of AWS Lambda is evident in the variety of applications it supports. Below are some common use cases where Lambda shines:
-
-1. **Real-Time Data Processing**:
-
-   Lambda excels at processing real-time streams of data. For instance, you can use it to analyze log files streamed via Amazon Kinesis or to process IoT device telemetry uploaded to AWS.
-
-   ```javascript
-   exports.handler = async (event) => {
-     event.Records.forEach((record) => {
-       console.log(
-         `Data: ${Buffer.from(record.kinesis.data, "base64").toString("ascii")}`
-       );
-     });
-     return { statusCode: 200 };
-   };
-   ```
-
-   In the example above, Lambda processes Kinesis stream records, decoding and logging the data.
-
-2. **Backend Services for Web and Mobile Apps**:
-
-   Lambda simplifies backend logic for apps by integrating with API Gateway to handle user requests. Whether it's user authentication, payment processing, or serving content, Lambda makes it easy to set up lightweight and scalable backend services.
-
-3. **Automation of Routine Tasks**:
-
-   Automating tasks such as resizing images, sending notifications, or cleaning up old database entries is a breeze with Lambda. For example, a Lambda function can be triggered when a new image is uploaded to an S3 bucket, automatically resizing the image and saving the optimized version back to S3.
-
-   ```javascript
-   const AWS = require("aws-sdk");
-   const sharp = require("sharp");
-   const s3 = new AWS.S3();
-
-   exports.handler = async (event) => {
-     const bucket = event.Records[0].s3.bucket.name;
-     const key = decodeURIComponent(
-       event.Records[0].s3.object.key.replace(/\+/g, " ")
-     );
-
-     const image = await s3.getObject({ Bucket: bucket, Key: key }).promise();
-     const resizedImage = await sharp(image.Body).resize(300, 300).toBuffer();
-
-     await s3
-       .putObject({
-         Bucket: bucket,
-         Key: `resized/${key}`,
-         Body: resizedImage,
-         ContentType: "image/jpeg",
-       })
-       .promise();
-
-     return { statusCode: 200, body: "Image resized successfully" };
-   };
-   ```
-
-   This code resizes images uploaded to an S3 bucket and saves the resized versions to a subfolder.
-
-AWS Lambda is more than just a compute service—it's a paradigm shift. By abstracting infrastructure concerns, it enables developers to focus on creating robust applications while benefiting from scalability, cost efficiency, and tight integration with the AWS ecosystem. With such capabilities, Lambda has become a cornerstone in the evolution of modern cloud architectures.
-
-## Setting Up Your AWS Lambda Environment
-
-Before diving into creating your first serverless application, it's essential to prepare your AWS Lambda environment. AWS Lambda is designed to simplify the deployment process, but a proper setup ensures a seamless experience. This section will guide you through the prerequisites, the steps to configure Lambda, and even include a hands-on example to solidify your understanding.
-
-### Prerequisites
-
-1. **AWS Account Setup**
-
-   To start, you’ll need an active AWS account. If you don’t already have one, visit [AWS’s official website](https://aws.amazon.com) and create an account. The signup process includes providing billing details, but AWS offers a free tier that’s perfect for exploring Lambda and other services without incurring costs.
-
-2. **Basic Understanding of AWS Management Console and CLI**
-
-   Familiarity with the AWS Management Console is essential since it provides a graphical interface for managing services. For those who prefer automation or scripting, the AWS Command Line Interface (CLI) is a must. If you haven’t installed the CLI yet, you can download it from [AWS CLI’s page](https://aws.amazon.com/cli/) and follow the installation instructions.
-
-### Steps to Configure AWS Lambda
-
-Once your AWS account is ready and the CLI (optional) is installed, it’s time to set up your first Lambda function.
-
-1. **Navigating the AWS Management Console**
-
-   - Log in to your AWS account and search for “Lambda” in the Services menu.
-   - Click on **Create Function** to start the setup process.
-
-2. **Creating Your First Lambda Function**
-
-   - **Choose the function creation method**: Select the “Author from scratch” option.
-   - **Define function details**:
-     - **Function Name**: Enter a name, e.g., `hello-world-lambda`.
-     - **Runtime**: Choose a programming language like Node.js or Python. Let’s go with **Node.js 16.x** for this example.
-   - **Execution Role**: AWS Lambda requires permissions to execute functions and access other services. Choose:
-     - “Create a new role with basic Lambda permissions” to let AWS handle the role creation.
-   - **Click Create Function**: AWS will provision your Lambda environment.
-
-### Code Example: Writing a Simple "Hello, World" Function
-
-Once the function is created, you’ll be taken to the Lambda function editor. Let’s write a basic **"Hello, World"** example.
-
-1. Replace the default code with the following Node.js snippet:
-
-   ```javascript
-   exports.handler = async (event) => {
-     return {
-       statusCode: 200,
-       body: JSON.stringify("Hello, World from AWS Lambda!"),
-     };
-   };
-   ```
-
-2. Click **Deploy** to save and deploy your changes.
-
-### Testing Your Lambda Function
-
-Now that the function is set up, it’s time to test it. AWS Lambda allows you to create test events to simulate real-world triggers.
-
-1. **Create a Test Event**
-
-   - Click on **Test** in the function editor.
-   - Name your test event, e.g., `testEvent1`, and leave the default JSON payload as it is:
-     ```json
-     {}
-     ```
-
-2. **Run the Test**
-
-   - Click **Test** to invoke your function.
-   - The results will appear at the top of the editor, showing the output:
-     ```json
-     {
-       "statusCode": 200,
-       "body": "\"Hello, World from AWS Lambda!\""
-     }
-     ```
-
-This simple test validates that your Lambda environment is functioning correctly.
-
-With your environment set up, your AWS Lambda function created, and your first test run successfully completed, you're ready to explore more complex serverless workflows. By following these steps, you’ve laid the foundation for integrating Lambda with other AWS services, which we’ll dive into in the next section.
-
-## Integrating AWS Lambda with Other AWS Services
-
-One of the key advantages of AWS Lambda is its seamless integration with a wide range of AWS services, enabling developers to build highly efficient and event-driven architectures. Whether it’s processing data from S3 buckets, responding to changes in DynamoDB, or creating API endpoints with API Gateway, Lambda acts as a central piece in connecting and orchestrating workflows.
-
-### AWS S3 Integration
-
-S3 (Simple Storage Service) is a widely used AWS service for storing and retrieving data. Integrating AWS Lambda with S3 allows you to automatically process files as they are uploaded or modified, making it perfect for scenarios like image processing, data transformation, or content generation.
-
-**Triggering Lambda Functions with S3 Events**
-
-Lambda can be triggered by events in an S3 bucket, such as an object being created, modified, or deleted. For example, you can set up a Lambda function to automatically generate a thumbnail for every image uploaded to an S3 bucket.
-
-**Code Example: Processing an Uploaded Image File**
+Imagine you have an application where users upload images to an S3 bucket, and you want to automatically resize them upon upload. AWS Lambda can listen for new file uploads and process the image in real-time.
 
 ```python
 import boto3
 from PIL import Image
 import io
 
-s3_client = boto3.client('s3')
+s3 = boto3.client('s3')
 
 def lambda_handler(event, context):
-    # Get the bucket and file details from the event
+    # Get the bucket and object key from the event
     bucket_name = event['Records'][0]['s3']['bucket']['name']
-    file_name = event['Records'][0]['s3']['object']['key']
+    object_key = event['Records'][0]['s3']['object']['key']
 
     # Download the image from S3
-    response = s3_client.get_object(Bucket=bucket_name, Key=file_name)
-    img = Image.open(io.BytesIO(response['Body'].read()))
+    file_obj = s3.get_object(Bucket=bucket_name, Key=object_key)
+    image = Image.open(io.BytesIO(file_obj['Body'].read()))
 
     # Resize the image
-    img.thumbnail((128, 128))
-    buffer = io.BytesIO()
-    img.save(buffer, format="JPEG")
-    buffer.seek(0)
+    image = image.resize((300, 300))
 
-    # Save the resized image back to S3
-    output_key = f"thumbnails/{file_name}"
-    s3_client.put_object(Bucket=bucket_name, Key=output_key, Body=buffer, ContentType='image/jpeg')
+    # Save the processed image back to S3
+    output_buffer = io.BytesIO()
+    image.save(output_buffer, format="JPEG")
+    output_buffer.seek(0)
+    s3.put_object(Bucket=bucket_name, Key=f"resized-{object_key}", Body=output_buffer)
 
-    return {"statusCode": 200, "body": f"Thumbnail created at {output_key}"}
+    return {"statusCode": 200, "body": "Image resized successfully!"}
 ```
 
-This function listens for file uploads to an S3 bucket, generates a thumbnail, and saves it to a `thumbnails/` folder within the same bucket.
+Here, the function automatically resizes the uploaded image without requiring a continuously running server. This demonstrates the **event-driven nature** of AWS Lambda.
 
-### AWS DynamoDB Integration
+### Supported Runtimes in AWS Lambda
 
-DynamoDB is a fully managed NoSQL database service that is often used for building scalable applications. Lambda can be triggered by DynamoDB Streams, which capture changes to items in the database in real time.
+AWS Lambda supports multiple programming languages, allowing developers to write functions in the language they are most comfortable with. The currently supported runtimes include:
 
-**Using Lambda to Respond to Data Changes**
+- **Node.js** (Commonly used for API development and real-time applications)
+- **Python** (Ideal for data processing, automation, and AI-related workloads)
+- **Java** (Good for enterprise applications and microservices)
+- **Go** (Useful for performance-optimized applications)
+- **C# (.NET Core)** (For Windows-based applications and enterprise solutions)
+- **Ruby** (Preferred for scripting and automation tasks)
 
-By connecting Lambda to a DynamoDB stream, you can automate workflows like updating aggregated reports, synchronizing data across systems, or triggering downstream processes.
+Each runtime provides a specific execution environment, and AWS keeps them updated to include the latest versions. Additionally, AWS Lambda **allows custom runtimes**, meaning you can bring your own runtime and execute functions in languages not officially supported.
 
-**Code Example: Updating an Aggregated Report**
+For example, if you want to write a simple **Hello World** function in Python, your Lambda function might look like this:
 
 ```python
-import boto3
-
-dynamodb = boto3.resource('dynamodb')
-report_table = dynamodb.Table('AggregatedReports')
-
 def lambda_handler(event, context):
-    for record in event['Records']:
-        if record['eventName'] == 'INSERT':
-            new_data = record['dynamodb']['NewImage']
-            category = new_data['Category']['S']
-            value = int(new_data['Value']['N'])
-
-            # Update the aggregated report
-            report_table.update_item(
-                Key={'Category': category},
-                UpdateExpression="SET Total = if_not_exists(Total, :start) + :value",
-                ExpressionAttributeValues={
-                    ':start': 0,
-                    ':value': value
-                }
-            )
-    return {"statusCode": 200, "body": "Report updated successfully"}
+    return {
+        "statusCode": 200,
+        "body": "Hello, AWS Lambda!"
+    }
 ```
 
-This example demonstrates how to update an aggregated report whenever a new item is added to a DynamoDB table.
-
-### AWS API Gateway Integration
-
-API Gateway provides a powerful way to create RESTful APIs that serve as a front door for your Lambda functions. It enables you to expose Lambda functionality as web endpoints, allowing external systems or users to interact with your serverless application.
-
-**Creating RESTful Endpoints for Lambda Functions**
-
-With API Gateway, you can define methods like GET, POST, PUT, and DELETE that route incoming HTTP requests to specific Lambda functions.
-
-**Code Example: Building a Basic API Endpoint**
-
-Here’s an example of a Lambda function that handles GET and POST requests through API Gateway:
-
-```python
-import json
-
-def lambda_handler(event, context):
-    http_method = event['httpMethod']
-
-    if http_method == 'GET':
-        return {
-            "statusCode": 200,
-            "body": json.dumps({"message": "This is a GET response"})
-        }
-
-    elif http_method == 'POST':
-        body = json.loads(event['body'])
-        return {
-            "statusCode": 200,
-            "body": json.dumps({"message": f"Received data: {body}"})
-        }
-
-    else:
-        return {
-            "statusCode": 405,
-            "body": json.dumps({"error": "Method Not Allowed"})
-        }
-```
-
-This Lambda function checks the HTTP method of the incoming request and responds accordingly. You can link this function to an API Gateway endpoint for easy access.
-
-AWS Lambda’s ability to integrate with other AWS services like S3, DynamoDB, and API Gateway makes it a vital tool for creating robust and scalable applications. By leveraging these integrations, developers can automate workflows, build powerful APIs, and process data in real time with minimal effort. These examples highlight how versatile and impactful serverless architectures can be when combined with AWS’s ecosystem.
-
-## Building a Serverless REST API with AWS Lambda
-
-When it comes to modern software development, building REST APIs with serverless technology like AWS Lambda has revolutionized how we approach backend services. This method allows developers to create scalable, cost-effective, and highly efficient APIs without the overhead of managing servers. In this article, we'll explore how to build a serverless REST API using AWS Lambda, API Gateway, and DynamoDB.
-
-### Architecture Overview
-
-Before diving into the implementation, it’s essential to understand the components involved in a serverless REST API.
-
-1. **AWS Lambda**: Acts as the serverless function backend, processing requests and executing logic for each API endpoint.
-2. **API Gateway**: Serves as the front door for your API, handling HTTP requests and routing them to the appropriate Lambda functions.
-3. **DynamoDB**: A fully managed NoSQL database for storing and retrieving data, ideal for serverless applications due to its scalability and performance.
-
-**Workflow**:
-
-1. API Gateway receives the client request (HTTP method).
-2. The request is forwarded to the appropriate Lambda function.
-3. The Lambda function processes the request, interacts with DynamoDB as needed, and returns the response to API Gateway.
-4. API Gateway sends the response back to the client.
-
-### Step-by-Step Guide
-
-Let’s build a REST API to manage a TODO list with the following endpoints:
-
-1. `GET /todos` - Retrieve all tasks.
-2. `POST /todos` - Add a new task.
-3. `DELETE /todos/{id}` - Delete a specific task.
-
-#### Step 1: Define the API Structure
-
-Start by designing the API structure. For this example, our API includes endpoints for listing, adding, and deleting TODO items. Each item will have:
-
-- A unique `id` (UUID),
-- A `task` description,
-- A `completed` status.
-
-#### Step 2: Writing Lambda Functions
-
-For each endpoint, we’ll write a separate Lambda function.
-
-##### Function 1: Retrieve All TODOs
+Or in **Node.js**:
 
 ```javascript
-const AWS = require("aws-sdk");
-const dynamoDB = new AWS.DynamoDB.DocumentClient();
-const TABLE_NAME = "Todos";
-
 exports.handler = async (event) => {
-  try {
-    const data = await dynamoDB.scan({ TableName: TABLE_NAME }).promise();
-    return {
-      statusCode: 200,
-      body: JSON.stringify(data.Items),
-    };
-  } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error.message }),
-    };
-  }
-};
-```
-
-##### Function 2: Add a New TODO
-
-```javascript
-const AWS = require("aws-sdk");
-const { v4: uuidv4 } = require("uuid");
-const dynamoDB = new AWS.DynamoDB.DocumentClient();
-const TABLE_NAME = "Todos";
-
-exports.handler = async (event) => {
-  const { task, completed } = JSON.parse(event.body);
-  const item = {
-    id: uuidv4(),
-    task,
-    completed: completed || false,
+  return {
+    statusCode: 200,
+    body: "Hello, AWS Lambda!",
   };
-
-  try {
-    await dynamoDB
-      .put({
-        TableName: TABLE_NAME,
-        Item: item,
-      })
-      .promise();
-    return {
-      statusCode: 201,
-      body: JSON.stringify(item),
-    };
-  } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error.message }),
-    };
-  }
 };
 ```
 
-##### Function 3: Delete a TODO
+These functions can be executed whenever an event triggers them, making it easy to build lightweight, event-driven applications.
 
-```javascript
-const AWS = require("aws-sdk");
-const dynamoDB = new AWS.DynamoDB.DocumentClient();
-const TABLE_NAME = "Todos";
+### Invocation Types in AWS Lambda: Synchronous vs. Asynchronous
 
-exports.handler = async (event) => {
-  const { id } = event.pathParameters;
+AWS Lambda provides two primary invocation models: **synchronous** and **asynchronous** execution. The choice of invocation type depends on how the function is triggered and the expected response behavior.
 
-  try {
-    await dynamoDB
-      .delete({
-        TableName: TABLE_NAME,
-        Key: { id },
-      })
-      .promise();
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ message: `TODO with ID ${id} deleted` }),
-    };
-  } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error.message }),
-    };
-  }
-};
-```
+#### 1. Synchronous Invocation
 
-#### Step 3: Deploying and Testing the API
+In synchronous invocation, AWS Lambda executes the function **immediately and returns a response to the caller**. This is commonly used when a function needs to return data to an API request or another AWS service.
 
-1. **Deploy the Lambda Functions**:
+✅ **Use cases:**
 
-   - Package each function into a `.zip` file, including all dependencies.
-   - Use the AWS Management Console or AWS CLI to upload the `.zip` files.
+- API requests (via Amazon API Gateway)
+- Real-time applications
+- Data retrieval functions
 
-   Example AWS CLI Command:
+🔹 **Example: Synchronous Invocation via API Gateway**
 
-   ```bash
-   aws lambda create-function \
-       --function-name getTodos \
-       --runtime nodejs18.x \
-       --role <execution-role-arn> \
-       --handler index.handler \
-       --zip-file fileb://getTodos.zip
-   ```
-
-2. **Set Up API Gateway**:
-
-   - Create a new REST API in API Gateway.
-   - Add resources (`/todos`) and methods (`GET`, `POST`, `DELETE`) corresponding to each Lambda function.
-   - Configure each method to integrate with its respective Lambda function.
-
-3. **Test the API**:
-
-   - Use Postman or cURL to test the API endpoints.
-   - Example cURL command for testing `GET /todos`:
-     ```bash
-     curl -X GET https://<your-api-id>.execute-api.<region>.amazonaws.com/<stage>/todos
-     ```
-
-### Code Example: Full TODO API Implementation
-
-Here’s a consolidated view of the TODO API codebase:
-
-1. **Folder Structure**:
-
-   ```
-   /todos-api
-       ├── getTodos
-       │   ├── index.js
-       │   └── package.json
-       ├── addTodo
-       │   ├── index.js
-       │   └── package.json
-       ├── deleteTodo
-           ├── index.js
-           └── package.json
-   ```
-
-2. **Deployment Command**:
-
-   Package each function and deploy as shown in the deployment step.
-
-By the end of this tutorial, you’ll have a fully functional, serverless REST API hosted on AWS Lambda, ready to handle real-world traffic. The combination of Lambda, API Gateway, and DynamoDB provides scalability, cost efficiency, and minimal operational overhead, making it a preferred choice for modern application development.
-
-## Testing and Debugging AWS Lambda Functions
-
-When working with AWS Lambda, testing and debugging are integral to ensuring your serverless application performs as expected. Whether you’re diagnosing an issue or validating a new feature, AWS offers several tools and strategies to simplify this process. Let’s dive into how you can test and debug your Lambda functions effectively.
-
-### Using the AWS Lambda Console for Testing
-
-The AWS Management Console provides a straightforward way to test your Lambda functions. This is particularly useful for quick validation of code logic or to simulate events during development. Here's how to use it:
-
-1. **Accessing the Test Interface:**
-
-   - Navigate to the AWS Lambda console.
-   - Select your Lambda function from the list.
-   - Click the **Test** button to create or modify a test event.
-
-2. **Creating a Test Event:**
-
-   - Choose a predefined event template or create a custom JSON payload. For example, if your Lambda function is triggered by an S3 event, you can use the built-in S3 template.
-   - Modify the JSON as needed to match your expected event structure. For instance:
-     ```json
-     {
-       "Records": [
-         {
-           "s3": {
-             "bucket": {
-               "name": "my-bucket"
-             },
-             "object": {
-               "key": "example-file.txt"
-             }
-           }
-         }
-       ]
-     }
-     ```
-
-3. **Executing the Test:**
-
-   - Save the test event and click the **Test** button again.
-   - The console displays the execution results, including the function's output, execution duration, and logs.
-
-This approach provides immediate feedback, but it's best suited for simple tests and quick debugging.
-
-### Setting Up Local Development with AWS SAM CLI
-
-For more advanced testing and debugging, the AWS Serverless Application Model (SAM) CLI enables local development. With SAM, you can replicate the Lambda runtime and test your functions on your local machine.
-
-1. **Install AWS SAM CLI:**
-
-   - Install the SAM CLI by following the instructions on the [official AWS documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html).
-   - Verify installation using:
-     ```bash
-     sam --version
-     ```
-
-2. **Initialize a SAM Project:**
-
-   - Use the following command to create a new project:
-     ```bash
-     sam init
-     ```
-   - Choose a runtime (e.g., Node.js, Python) and a starter template.
-
-3. **Running Lambda Locally:**
-
-   - Start the local Lambda environment with:
-     ```bash
-     sam local invoke FunctionName --event event.json
-     ```
-   - Replace `FunctionName` with your Lambda function’s name and `event.json` with your test event file.
-
-4. **Debugging with Breakpoints:**
-
-   - Use your IDE to set breakpoints and attach a debugger. SAM CLI supports debugging with tools like Visual Studio Code and PyCharm.
-   - For Node.js, start the local debugger with:
-     ```bash
-     sam local invoke FunctionName --debug-port 9229
-     ```
-
-### Debugging Tips
-
-Debugging Lambda functions requires a combination of logs, error handling, and monitoring tools. Here’s how to streamline the process:
-
-1. **Using CloudWatch Logs:**
-
-   - Every Lambda execution generates logs in Amazon CloudWatch.
-   - Access logs by navigating to the **Monitoring** tab in the Lambda console and clicking on the **View logs in CloudWatch** button.
-   - Use the logs to trace function execution, including input events and error messages.
-
-   Example log snippet:
-
-   ```
-   START RequestId: abc123-xyz456 Version: $LATEST
-   2023-01-01T12:00:00.000Z INFO Received S3 event: {"bucket": "my-bucket", "key": "example-file.txt"}
-   2023-01-01T12:00:00.500Z ERROR Error processing file: Access Denied
-   END RequestId: abc123-xyz456
-   ```
-
-2. **Handling Common Errors:**
-
-   - **Timeouts:** Increase the timeout setting if your function runs longer than expected.
-   - **Permissions Issues:** Ensure the Lambda function has appropriate IAM roles to access required services.
-   - **Environment Variable Misconfiguration:** Validate environment variables for missing or incorrect values.
-
-3. **Using AWS X-Ray for Tracing:**
-
-   - Enable AWS X-Ray to visualize and analyze the flow of requests through your application.
-   - Add the X-Ray SDK to your function code:
-     ```javascript
-     const AWSXRay = require("aws-xray-sdk-core");
-     const AWS = AWSXRay.captureAWS(require("aws-sdk"));
-     ```
-   - View traces in the X-Ray console for insights into latencies and bottlenecks.
-
-### Example: Debugging a Lambda Function
-
-Here’s a simple example of how you might debug an S3-triggered Lambda function locally:
-
-**Code Example:**
+If an API Gateway request triggers a Lambda function, it will wait for the response before sending it back to the user.
 
 ```javascript
 exports.handler = async (event) => {
-  try {
-    console.log("Event received:", JSON.stringify(event, null, 2));
-    const bucket = event.Records[0].s3.bucket.name;
-    const key = event.Records[0].s3.object.key;
-
-    // Simulate processing
-    console.log(`Processing file: ${key} from bucket: ${bucket}`);
-    return { status: "success" };
-  } catch (error) {
-    console.error("Error occurred:", error);
-    throw new Error("Processing failed");
-  }
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ message: "Data processed successfully!" }),
+  };
 };
 ```
 
-**Testing Locally with SAM:**
+Here, the API Gateway will receive the response and return it to the client.
 
-1. Create an `event.json` file with the test payload.
-2. Run the function locally:
-   ```bash
-   sam local invoke FunctionName --event event.json
-   ```
-3. Debug issues using logs generated by SAM.
+#### 2. Asynchronous Invocation
 
-Testing and debugging AWS Lambda functions doesn’t have to be a daunting task. With tools like the AWS Management Console, SAM CLI, and CloudWatch Logs, you can identify issues quickly and ensure your serverless application runs smoothly. As you become more familiar with these practices, you’ll find it easier to troubleshoot complex problems and optimize your Lambda functions for production use.
+In asynchronous invocation, AWS Lambda **queues the event and processes it in the background**, without waiting for a response. This is useful when the function doesn’t need to return an immediate result.
+
+✅ **Use cases:**
+
+- Processing background tasks (e.g., sending emails, log processing)
+- S3 event-driven functions
+- Message queue processing (e.g., Amazon SNS, SQS)
+
+🔹 **Example: Asynchronous Invocation via S3 Event**
+
+When a new file is uploaded to an S3 bucket, AWS Lambda can be triggered to process it asynchronously.
+
+```python
+def lambda_handler(event, context):
+    print("File processing started in the background.")
+    return {"statusCode": 202, "body": "Processing started!"}
+```
+
+The function starts execution, but the client doesn’t need to wait for a response.
+
+### AWS Lambda Pricing Model
+
+AWS Lambda follows a **pay-as-you-go** pricing model, making it cost-effective for applications of all sizes. The pricing structure is based on:
+
+1. **Number of Requests** – The first **1 million requests per month are free**; beyond that, each request costs a fraction of a cent.
+2. **Compute Time (GB-seconds)** – You are billed for the actual execution time, rounded to the nearest millisecond.
+
+#### Two Key Pricing Components:
+
+- **Pay-Per-Execution Model**: You are billed only when your function is executed. If your function runs **for 200ms with 512MB of memory**, you pay only for that execution.
+- **Provisioned Concurrency (Always-On Model)**: If you want your Lambda function to be **always available** with no cold start, you can enable provisioned concurrency, which incurs additional costs.
+
+✅ **Example Cost Calculation**
+
+Suppose your function is triggered **10 million times per month**, and each execution takes **250ms with 512MB of memory**. Your monthly cost would be:
+
+```
+Execution time = 10 million * 250ms = 2.5 million GB-seconds
+Cost per GB-second = $0.00001667
+Total cost = 2.5M * 0.00001667 = $41.68 per month
+```
+
+This is **far cheaper** than running an always-on virtual machine!
+
+AWS Lambda’s event-driven nature, diverse language support, flexible invocation models, and **cost-efficient pricing structure** make it one of the most **powerful tools for serverless application development**. Whether you are building a **REST API**, **processing large datasets**, or **handling real-time events**, Lambda provides a scalable and reliable environment without the hassle of managing infrastructure.
