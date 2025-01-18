@@ -435,3 +435,150 @@ If successful, opening `output.txt` should show:
 ```
 
 Congratulations! You’ve successfully created, deployed, and tested your first **AWS Lambda function**. Whether you used the **AWS Management Console** or **AWS CLI**, you now understand how to build a basic **serverless application**.
+
+## Integrating AWS Lambda with Other AWS Services
+
+AWS Lambda becomes truly powerful when integrated with other AWS services, enabling developers to create fully serverless, event-driven applications. Instead of simply running standalone functions, AWS Lambda can seamlessly connect with **Amazon S3**, **DynamoDB**, and **API Gateway** to handle real-time data processing, build scalable APIs, and automate workflows. These integrations eliminate the need for traditional servers, reducing maintenance overhead while improving efficiency. Let’s explore how Lambda can work with these services and implement some real-world examples.
+
+### Triggering AWS Lambda with Amazon S3
+
+One of the most common use cases for AWS Lambda is processing files uploaded to **Amazon S3**. Whether you need to **resize images, extract metadata, transcode videos, or analyze logs**, AWS Lambda can be triggered automatically whenever a new file is uploaded to a designated S3 bucket.
+
+Imagine a scenario where users upload profile pictures to an application, and each image needs to be resized to different dimensions for various use cases. Instead of running a server to monitor uploads and process images, we can configure **S3 to trigger a Lambda function** whenever a new file is added to a specific bucket.
+
+#### Setting Up S3 as a Lambda Trigger
+
+To configure S3 to invoke AWS Lambda:
+
+1. Go to the **AWS Lambda Console** and open the Lambda function you created.
+2. Click **"Add Trigger"**, select **S3**, and choose the bucket where files will be uploaded.
+3. Under **Event type**, select **"PUT"**, so Lambda runs whenever a file is added.
+4. Click **"Add"** to enable the integration.
+
+#### Example: Automatically Resizing Images on S3 Upload
+
+Let’s say we want to resize images whenever a new one is uploaded.
+
+```python
+import boto3
+from PIL import Image
+import io
+
+s3 = boto3.client('s3')
+
+def lambda_handler(event, context):
+    # Get bucket and file details
+    bucket_name = event['Records'][0]['s3']['bucket']['name']
+    object_key = event['Records'][0]['s3']['object']['key']
+
+    # Download the image
+    file_obj = s3.get_object(Bucket=bucket_name, Key=object_key)
+    image = Image.open(io.BytesIO(file_obj['Body'].read()))
+
+    # Resize the image
+    image = image.resize((300, 300))
+
+    # Save the resized image back to S3
+    output_buffer = io.BytesIO()
+    image.save(output_buffer, format="JPEG")
+    output_buffer.seek(0)
+
+    new_key = f"resized-{object_key}"
+    s3.put_object(Bucket=bucket_name, Key=new_key, Body=output_buffer)
+
+    return {"statusCode": 200, "body": f"Image resized and saved as {new_key}"}
+```
+
+Now, whenever a user uploads an image, AWS Lambda will **automatically resize it and save the resized version** in the same S3 bucket. This allows applications to handle dynamic media processing without requiring dedicated servers.
+
+### Processing DynamoDB Streams with AWS Lambda
+
+Amazon DynamoDB is a NoSQL database that stores large amounts of data efficiently. However, what makes it even more powerful is **DynamoDB Streams**, which captures real-time changes (insert, update, delete operations) and can trigger AWS Lambda to respond to these events.
+
+For example, consider an e-commerce platform that logs every order placed in a DynamoDB table. Instead of manually checking for new orders, **AWS Lambda can process new entries automatically**—sending confirmation emails, updating inventory, or notifying third-party services.
+
+#### Enabling DynamoDB Streams for AWS Lambda
+
+1. Open the **DynamoDB Console** and select your table.
+2. Navigate to the **Streams** section and enable **DynamoDB Streams**.
+3. Choose **"New and Old Images"** so that Lambda can access full record details.
+4. In the **Lambda Console**, add **DynamoDB as a trigger** and select the table’s stream.
+
+#### Example: Logging New Orders in DynamoDB
+
+Let’s write a Lambda function that logs every new order added to the DynamoDB table.
+
+```python
+import json
+
+def lambda_handler(event, context):
+    for record in event['Records']:
+        if record['eventName'] == 'INSERT':
+            new_order = record['dynamodb']['NewImage']
+            print(f"New order placed: {json.dumps(new_order)}")
+    return {"statusCode": 200, "body": "Processed database changes"}
+```
+
+Whenever a new record is inserted into the table, this function **automatically logs the order details**. This can be extended to **send notifications**, **update analytics dashboards**, or **trigger external workflows**.
+
+### Building a REST API with AWS Lambda and API Gateway
+
+AWS Lambda can also be used to create **fully serverless REST APIs** by integrating it with **Amazon API Gateway**. API Gateway acts as an HTTP interface for AWS Lambda, allowing users to interact with Lambda functions via standard HTTP requests.
+
+Consider a **user management system** where you need to create an API to **fetch user details**. Instead of running a backend server, API Gateway can directly invoke a Lambda function to handle these requests.
+
+#### Setting Up API Gateway for AWS Lambda
+
+1. Open the **API Gateway Console**.
+2. Click **"Create API"** and choose **"HTTP API"**.
+3. Add a new **resource** (e.g., `/users`).
+4. Set AWS Lambda as the **backend integration**.
+5. Deploy the API and note the generated **endpoint URL**.
+
+#### Example: Creating a Simple REST API with AWS Lambda
+
+Now, let’s write a Lambda function to handle API requests and return user data.
+
+```javascript
+exports.handler = async (event) => {
+  const userId = event.queryStringParameters
+    ? event.queryStringParameters.id
+    : "unknown";
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ message: `User ID received: ${userId}` }),
+  };
+};
+```
+
+This function takes a **user ID from the query string** and returns it in the response.
+
+#### Testing the API
+
+Once deployed, you can test it using **Postman** or a web browser.
+
+Example API request:
+
+```sh
+curl -X GET "https://your-api-id.execute-api.us-east-1.amazonaws.com/users?id=123"
+```
+
+Response:
+
+```json
+{
+  "message": "User ID received: 123"
+}
+```
+
+This confirms that the Lambda function is **successfully handling API requests**.
+
+### Bringing It All Together
+
+By integrating AWS Lambda with **Amazon S3, DynamoDB, and API Gateway**, we can create **highly efficient, serverless applications** that scale automatically and handle complex workflows without needing a dedicated backend.
+
+1. **Amazon S3** allows Lambda to **process files in real-time**.
+2. **DynamoDB Streams** enable Lambda to **respond to database changes dynamically**.
+3. **API Gateway** lets us expose Lambda functions as **RESTful APIs**.
+
+Each of these integrations unlocks **new possibilities** for building applications that are cost-effective, highly scalable, and easy to maintain.
