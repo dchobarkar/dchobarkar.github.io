@@ -582,3 +582,246 @@ By integrating AWS Lambda with **Amazon S3, DynamoDB, and API Gateway**, we can 
 3. **API Gateway** lets us expose Lambda functions as **RESTful APIs**.
 
 Each of these integrations unlocks **new possibilities** for building applications that are cost-effective, highly scalable, and easy to maintain.
+
+## Building a Serverless REST API with AWS Lambda
+
+Building a **serverless REST API** using AWS Lambda, API Gateway, and DynamoDB is a highly efficient way to develop scalable applications without managing infrastructure. This setup allows you to create a fully functional API that **automatically scales, minimizes costs, and eliminates the need for dedicated servers**. In this section, we will walk through the entire process—from designing the architecture to deploying and testing the API.
+
+### Overview of the Serverless API Architecture
+
+A serverless REST API using AWS Lambda is built on three core AWS services:
+
+1. **AWS Lambda** – Handles business logic and processes incoming API requests.
+2. **Amazon API Gateway** – Acts as the interface for HTTP requests, forwarding them to the appropriate Lambda function.
+3. **Amazon DynamoDB** – Stores and retrieves data, serving as the backend database.
+
+#### How These Services Work Together
+
+- A **client (browser, mobile app, or external service)** sends an HTTP request to API Gateway.
+- **API Gateway routes the request** to an AWS Lambda function based on the request method (GET, POST, PUT, DELETE).
+- The **Lambda function processes the request**, interacts with DynamoDB if needed, and returns a response.
+- API Gateway **formats the response** and sends it back to the client.
+
+This architecture ensures that you only pay for what you use—**no servers to maintain, no idle resources consuming costs, and seamless scalability**.
+
+### Setting Up API Gateway to Trigger AWS Lambda
+
+To expose a Lambda function as a REST API, we need to configure API Gateway.
+
+#### Step 1: Creating an API in API Gateway
+
+1. Go to the **API Gateway Console**.
+2. Click **"Create API"** and select **"HTTP API"**.
+3. Click **"Build"** and name your API (e.g., `ServerlessAPI`).
+4. Click **"Next"** and then **"Create"**.
+
+#### Step 2: Creating a Lambda Integration
+
+1. Click **"Add Integration"**.
+2. Select **"Lambda Function"**.
+3. Choose the Lambda function you want to link (we will create this in the next step).
+4. Click **"Add Integration"**.
+
+#### Step 3: Defining Routes and Methods
+
+1. Under the **Routes** tab, click **"Create Route"**.
+2. Enter the **path** for the endpoint (e.g., `/users`).
+3. Select the HTTP method (**GET, POST, PUT, DELETE** as required).
+4. Choose the Lambda function integration.
+5. Click **"Save"**.
+
+At this stage, API Gateway is configured to forward requests to Lambda.
+
+### Writing the AWS Lambda Function for CRUD Operations
+
+Now, let’s create a Lambda function that will handle **CRUD (Create, Read, Update, Delete) operations** on DynamoDB.
+
+#### Step 1: Creating a DynamoDB Table
+
+1. Go to the **DynamoDB Console**.
+2. Click **"Create Table"** and enter the **table name** (`Users`).
+3. Set the **Primary Key** as `userId` (string).
+4. Click **"Create"**.
+
+Now, we can write the Lambda function.
+
+### Lambda Function for CRUD Operations
+
+We'll write a single Lambda function that supports **Create, Read, Update, and Delete (CRUD) operations**.
+
+#### Step 2: Writing the CRUD Lambda Function
+
+```javascript
+const AWS = require("aws-sdk");
+const dynamoDB = new AWS.DynamoDB.DocumentClient();
+const TABLE_NAME = "Users";
+
+exports.handler = async (event) => {
+  let response;
+
+  switch (event.httpMethod) {
+    case "GET":
+      response = await getUser(event);
+      break;
+    case "POST":
+      response = await createUser(event);
+      break;
+    case "PUT":
+      response = await updateUser(event);
+      break;
+    case "DELETE":
+      response = await deleteUser(event);
+      break;
+    default:
+      response = {
+        statusCode: 400,
+        body: JSON.stringify({ error: "Invalid Request" }),
+      };
+  }
+
+  return response;
+};
+
+// Create a new user
+const createUser = async (event) => {
+  const body = JSON.parse(event.body);
+  const params = {
+    TableName: TABLE_NAME,
+    Item: { userId: body.userId, name: body.name, email: body.email },
+  };
+  await dynamoDB.put(params).promise();
+  return {
+    statusCode: 201,
+    body: JSON.stringify({ message: "User created successfully" }),
+  };
+};
+
+// Get user details
+const getUser = async (event) => {
+  const userId = event.queryStringParameters?.userId;
+  const params = {
+    TableName: TABLE_NAME,
+    Key: { userId },
+  };
+  const result = await dynamoDB.get(params).promise();
+  return { statusCode: 200, body: JSON.stringify(result.Item) };
+};
+
+// Update user details
+const updateUser = async (event) => {
+  const body = JSON.parse(event.body);
+  const params = {
+    TableName: TABLE_NAME,
+    Key: { userId: body.userId },
+    UpdateExpression: "set name = :name, email = :email",
+    ExpressionAttributeValues: {
+      ":name": body.name,
+      ":email": body.email,
+    },
+  };
+  await dynamoDB.update(params).promise();
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ message: "User updated successfully" }),
+  };
+};
+
+// Delete a user
+const deleteUser = async (event) => {
+  const userId = event.queryStringParameters?.userId;
+  const params = {
+    TableName: TABLE_NAME,
+    Key: { userId },
+  };
+  await dynamoDB.delete(params).promise();
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ message: "User deleted successfully" }),
+  };
+};
+```
+
+This function:
+
+- Creates a new user (`POST` request).
+- Retrieves user details (`GET` request).
+- Updates user information (`PUT` request).
+- Deletes a user (`DELETE` request).
+
+### Testing the API Using Postman or AWS Console
+
+Once the API is deployed, we need to test it using **Postman, cURL, or API Gateway Console**.
+
+#### Example API Requests
+
+##### Create a New User (POST)
+
+```sh
+curl -X POST "https://your-api-id.execute-api.us-east-1.amazonaws.com/users" \
+     -H "Content-Type: application/json" \
+     -d '{"userId": "123", "name": "John Doe", "email": "john@example.com"}'
+```
+
+**Response:**
+
+```json
+{
+  "message": "User created successfully"
+}
+```
+
+##### Retrieve User Data (GET)
+
+```sh
+curl -X GET "https://your-api-id.execute-api.us-east-1.amazonaws.com/users?userId=123"
+```
+
+**Response:**
+
+```json
+{
+  "userId": "123",
+  "name": "John Doe",
+  "email": "john@example.com"
+}
+```
+
+##### Update User Data (PUT)
+
+```sh
+curl -X PUT "https://your-api-id.execute-api.us-east-1.amazonaws.com/users" \
+     -H "Content-Type: application/json" \
+     -d '{"userId": "123", "name": "Jane Doe", "email": "jane@example.com"}'
+```
+
+**Response:**
+
+```json
+{
+  "message": "User updated successfully"
+}
+```
+
+##### Delete User Data (DELETE)
+
+```sh
+curl -X DELETE "https://your-api-id.execute-api.us-east-1.amazonaws.com/users?userId=123"
+```
+
+**Response:**
+
+```json
+{
+  "message": "User deleted successfully"
+}
+```
+
+### Deploying the API to Production
+
+Once tested, we can deploy the API to production.
+
+1. In API Gateway, select the **Deploy API** option.
+2. Create a **new stage** (e.g., `prod`).
+3. Copy the **API endpoint** and use it in your application.
+
+With AWS Lambda, API Gateway, and DynamoDB, we’ve built a **fully functional, serverless REST API** that can handle user data efficiently. This **cost-effective and scalable architecture** eliminates the need for managing backend servers, making it an ideal choice for modern applications.
