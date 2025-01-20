@@ -289,3 +289,156 @@ This ensures that **execution details are recorded**, making debugging easier.
 Azure Functions **stand out from other serverless platforms** due to their **flexibility, multiple execution models, and seamless Azure integrations**. Whether you need **event-driven automation, API development, or complex workflow orchestration**, Azure Functions provide the tools to **build scalable and cost-efficient applications**.
 
 In the next section, we will explore **how to set up event-driven workflows with Azure Functions and Logic Apps**, demonstrating how these services work together to automate processes efficiently. 🚀
+
+## Setting Up Event-Driven Workflows with Azure Functions and Logic Apps
+
+In today’s cloud computing landscape, **event-driven architectures** have become essential for building **scalable, automated, and real-time applications**. Microsoft Azure provides two powerful tools for implementing such workflows: **Azure Functions** and **Azure Logic Apps**. These services enable businesses to create **seamless integrations, automate processes, and respond to real-time events** without managing infrastructure.
+
+In this section, we’ll explore how **Azure Functions and Logic Apps work together**, the differences between them, and how to set up **an event-driven workflow** that automates file processing from **Azure Blob Storage**.
+
+### What Are Logic Apps? Understanding How They Work with Azure Functions
+
+**Azure Logic Apps** is a **cloud-based workflow automation service** that enables developers to integrate **various services, APIs, and on-premises systems** using a **visual designer**. Unlike Azure Functions, which require writing code, Logic Apps provide a **low-code/no-code** solution for automating workflows.
+
+#### Key Features of Logic Apps
+
+✅ **Graphical Workflow Designer** – Build workflows visually without coding.  
+✅ **Pre-Built Connectors** – Integrate with **Azure services, Office 365, Salesforce, GitHub, Twitter, and more**.  
+✅ **Scalability** – Handles thousands of executions without requiring manual scaling.  
+✅ **Built-In Monitoring** – Provides execution logs and performance metrics.
+
+Logic Apps are often used for **business process automation**, such as:
+
+- **Sending email notifications** when an event occurs.
+- **Synchronizing data** between different cloud services.
+- **Processing API requests** without writing custom backend logic.
+
+Although **Logic Apps can execute logic**, they are **not designed for complex computations**—this is where **Azure Functions** come in.
+
+### When to Use Azure Functions vs. Logic Apps for Event-Driven Workflows
+
+While both Azure Functions and Logic Apps are **event-driven**, they serve different purposes. The choice depends on **how much customization, coding, and orchestration** your workflow requires.
+
+#### Comparison: Azure Functions vs. Logic Apps
+
+| Feature             | Azure Functions                                                                    | Azure Logic Apps                                                            |
+| ------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **Execution Model** | Code-based execution                                                               | Visual workflow-based execution                                             |
+| **Ideal For**       | Compute-intensive tasks, custom logic, and API processing                          | Process automation, API orchestration, and system integrations              |
+| **Triggers**        | Event-driven execution based on HTTP requests, queue messages, or database changes | Wide range of **built-in connectors** (SaaS apps, storage, databases, etc.) |
+| **State Handling**  | Stateless by default (Durable Functions enable stateful execution)                 | Stateful execution with built-in monitoring                                 |
+| **Best Use Case**   | Processing data, APIs, background jobs, complex business logic                     | Automating workflows, integrating services, triggering actions              |
+
+💡 **When to Use Logic Apps**
+
+- When you need **workflow automation** across multiple services.
+- When you prefer a **low-code** solution without writing much code.
+- When working with **business processes** (approvals, notifications, integrations).
+
+💡 **When to Use Azure Functions**
+
+- When you need **complex computations** or **data transformations**.
+- When building a **serverless API** or **background processing task**.
+- When integrating with **external services** via API calls.
+
+🚀 **Best Practice:** Use **Logic Apps to orchestrate workflows** and **Azure Functions to execute complex tasks**.
+
+### Connecting Azure Functions with Logic Apps to Automate Business Processes
+
+One of the most powerful features of Azure is the ability to **combine Azure Functions with Logic Apps** to build robust, event-driven applications. Logic Apps can call Azure Functions whenever **custom business logic or heavy processing** is required.
+
+#### How They Work Together
+
+1. **Logic App listens for an event** (e.g., a new file uploaded to Azure Blob Storage).
+2. **Logic App calls an Azure Function**, passing relevant data (e.g., file name, metadata).
+3. **Azure Function processes the event**, such as resizing an image, parsing a document, or storing extracted data.
+4. **Logic App continues the workflow**, such as sending a notification or storing data in a database.
+
+💡 **Example Use Case:** A document-processing system where Logic Apps detects file uploads and Azure Functions extracts text from PDFs.
+
+### Real-World Example: Automating File Processing from an Azure Blob Storage Trigger
+
+Let's build an **event-driven workflow** that automatically processes uploaded files using **Azure Blob Storage, Logic Apps, and Azure Functions**.
+
+#### Scenario
+
+- A company stores **incoming customer invoices** in **Azure Blob Storage**.
+- When a **new invoice is uploaded**, Azure Logic Apps **detects the file**.
+- Logic Apps **calls an Azure Function** to **extract and validate invoice details**.
+- The extracted data is then **stored in an Azure SQL Database** for further processing.
+
+### Step-by-Step Guide to Setting Up an Event-Driven Architecture
+
+#### Step 1: Create an Azure Storage Account and Blob Container
+
+1. Navigate to **Azure Portal** → **Storage Accounts** → **Create a new storage account**.
+2. Choose a **Resource Group** and set the name (e.g., `invoice-storage`).
+3. Under **Containers**, create a new **Blob container** (e.g., `invoices`).
+
+#### Step 2: Create an Azure Logic App to Monitor Blob Storage
+
+1. In **Azure Portal**, go to **Logic Apps** → **Create a new Logic App**.
+2. Select **Blank Logic App** and open the **Logic App Designer**.
+3. Add a **Trigger**:
+   - Search for **"Azure Blob Storage"**.
+   - Select **"When a blob is added or modified"**.
+   - Connect to your **storage account** and select the `invoices` container.
+
+#### Step 3: Add an Azure Function to Process the Uploaded File
+
+1. In **Logic Apps Designer**, click **“+ New Step”** → Search for **"Azure Functions"**.
+2. Select **"Call Azure Function"**.
+3. Choose **"Create New Function App"** → Name it `InvoiceProcessorFunction`.
+
+💡 **Write the Azure Function to Read and Process the File**
+
+##### Python Code for Processing the Invoice File
+
+```python
+import logging
+import azure.functions as func
+import json
+
+def main(myblob: func.InputStream):
+    logging.info(f"Processing new file: {myblob.name}")
+
+    # Read file content
+    file_content = myblob.read().decode("utf-8")
+
+    # Simulated invoice extraction
+    invoice_data = {
+        "customer_id": "12345",
+        "invoice_amount": "500.00",
+        "invoice_date": "2024-01-17"
+    }
+
+    logging.info(f"Extracted invoice data: {json.dumps(invoice_data)}")
+    return invoice_data
+```
+
+This function:
+✅ Reads the uploaded **invoice file**.  
+✅ Extracts **invoice details** using **text processing** (simulation).  
+✅ Logs the extracted data for further processing.
+
+#### Step 4: Store Extracted Invoice Data in Azure SQL Database
+
+1. In **Logic Apps Designer**, add a **new step**.
+2. Choose **Azure SQL Database** → **Insert row**.
+3. Map the extracted invoice data to SQL fields.
+
+#### Step 5: Send a Confirmation Email (Optional)
+
+1. Add another step → Search for **"Send an email (Outlook 365, Gmail)"**.
+2. Configure the recipient and **add invoice details** to the email body.
+
+#### Step 6: Test and Deploy the Workflow
+
+1. **Upload an invoice file** to **Azure Blob Storage**.
+2. Check **Logic Apps execution logs** to verify it triggered the function.
+3. Open **Azure Functions logs** to confirm that invoice data was extracted.
+4. Check **Azure SQL Database** to verify data insertion.
+
+Azure Functions and Logic Apps **work seamlessly together** to build powerful, **automated workflows**. By using **Logic Apps for orchestration** and **Azure Functions for processing**, businesses can create **scalable, event-driven applications** with minimal effort.
+
+In the next section, we will dive into **creating a serverless function that processes messages from Azure Service Bus**, demonstrating another real-world application of Azure Functions in distributed systems. 🚀
