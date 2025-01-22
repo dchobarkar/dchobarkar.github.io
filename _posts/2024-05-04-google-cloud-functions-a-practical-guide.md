@@ -292,3 +292,179 @@ jobs:
 This setup automatically **deploys a function whenever new code is pushed to the main branch**.
 
 Understanding the architecture of Google Cloud Functions is crucial for **building scalable, efficient serverless applications**. As we move forward, we’ll explore how **Cloud Functions integrate seamlessly with Google Cloud services like Pub/Sub, Firestore, and BigQuery**, enabling **powerful event-driven applications** that scale effortlessly. 🚀
+
+## Integrating Google Cloud Functions with Other Google Cloud Services
+
+Google Cloud Functions are designed to work seamlessly within the **Google Cloud ecosystem**, allowing developers to build **event-driven applications** that react to changes in real time. By integrating Cloud Functions with services like **Google Cloud Pub/Sub, Firestore, and BigQuery**, developers can create powerful workflows that handle **real-time data processing, automation, and analytics** without managing infrastructure.
+
+In this section, we’ll explore how Cloud Functions integrate with these services, covering practical use cases and providing **code examples** to illustrate key concepts.
+
+### Google Cloud Pub/Sub: Enabling Event-Driven Messaging
+
+#### Setting Up Event-Driven Messaging with Pub/Sub Triggers
+
+Google Cloud Pub/Sub is a **real-time messaging service** that allows different components of an application to communicate **asynchronously**. It follows the **publisher-subscriber (pub/sub) model**, where:
+
+- **Publishers** send messages to a Pub/Sub **topic**.
+- **Subscribers** listen for new messages on a **subscription** tied to that topic.
+- **Cloud Functions** can act as subscribers, processing messages as they arrive.
+
+Cloud Pub/Sub is ideal for **event-driven architectures**, ensuring reliable message delivery and decoupling services.
+
+#### Example Use Case: Processing Real-Time Logs from an Application
+
+Imagine a scenario where a **web application generates logs** for user activities. Instead of storing logs manually, the app **publishes log messages** to a Pub/Sub topic. A Cloud Function listens for these logs and **stores them in Cloud Storage or BigQuery for analysis**.
+
+#### Deploying a Cloud Function That Listens to Pub/Sub Messages (Python)
+
+This function **subscribes to a Pub/Sub topic**, processes incoming messages, and logs them.
+
+```python
+import base64
+import json
+
+def process_pubsub_message(event, context):
+    # Decode Pub/Sub message
+    message = base64.b64decode(event['data']).decode('utf-8')
+    log_data = json.loads(message)
+
+    # Process and store log data
+    print(f"Received log: {log_data}")
+```
+
+To deploy this function and link it to a **Pub/Sub topic**, use:
+
+```sh
+gcloud functions deploy process_pubsub_message \
+    --runtime python311 \
+    --trigger-topic my-topic
+```
+
+This setup ensures that **whenever a new message is published to `my-topic`, the Cloud Function is triggered automatically**.
+
+#### Other Use Cases for Pub/Sub Triggers
+
+✅ **Processing IoT events**: A fleet of IoT devices sends sensor data to a Pub/Sub topic, and a Cloud Function analyzes the data in real time.  
+✅ **Event-driven workflows**: Automating data synchronization between services, like **triggering database updates when new records are received**.
+
+### Google Firestore: Processing Real-Time Database Changes
+
+#### Using Firestore Triggers for Automated Data Processing
+
+Google Firestore is a **NoSQL document-based database** that supports **real-time updates**. Cloud Functions can be triggered when **documents are created, updated, or deleted**, allowing developers to automate tasks like **sending notifications, updating search indexes, or backing up data**.
+
+#### Example Use Case: Triggering a Function When a User Updates Their Profile
+
+Imagine an app where users can **update their profile information**. Instead of manually tracking these updates, a Firestore-triggered Cloud Function can **listen for changes and notify the system**.
+
+#### Deploying a Cloud Function That Runs on Firestore Document Updates (Node.js)
+
+This function executes whenever a **user’s profile document** is modified.
+
+```javascript
+const functions = require("firebase-functions");
+
+exports.handleProfileUpdate = functions.firestore
+  .document("users/{userId}")
+  .onUpdate((change, context) => {
+    const beforeData = change.before.data();
+    const afterData = change.after.data();
+
+    console.log(`User ${context.params.userId} updated their profile.`);
+    console.log("Before:", beforeData);
+    console.log("After:", afterData);
+  });
+```
+
+To deploy this function, use:
+
+```sh
+gcloud functions deploy handleProfileUpdate \
+    --runtime nodejs18 \
+    --trigger-event providers/cloud.firestore/eventTypes/document.update \
+    --trigger-resource projects/my-project/databases/(default)/documents/users/{userId}
+```
+
+#### Other Use Cases for Firestore Triggers
+
+✅ **Sending email notifications** when a new user signs up.  
+✅ **Automatically archiving old database records** based on date-based conditions.  
+✅ **Updating search indexes** whenever a new product is added in an e-commerce app.
+
+### BigQuery Integration: Automating Data Processing and Analytics
+
+#### Using Cloud Functions to Load and Process Data in BigQuery
+
+Google **BigQuery** is a **serverless data warehouse** designed for **fast analytics on large datasets**. Cloud Functions can **automate data ingestion and processing**, making it easy to **stream data into BigQuery from multiple sources**.
+
+#### Example Use Case: Automating Data Ingestion from Cloud Storage to BigQuery
+
+Suppose an application uploads **daily CSV reports** into Cloud Storage, and we want to automatically **load that data into BigQuery** for analytics.
+
+#### Deploying a Cloud Function That Loads CSV Data into BigQuery (Python)
+
+This function triggers **whenever a new CSV file is uploaded** to a Cloud Storage bucket.
+
+```python
+from google.cloud import bigquery
+import pandas as pd
+import io
+
+def load_data_to_bigquery(event, context):
+    """Triggered by a new file upload to Cloud Storage"""
+
+    # Extract bucket and file details
+    bucket_name = event['bucket']
+    file_name = event['name']
+
+    # Initialize BigQuery client
+    client = bigquery.Client()
+    dataset_id = "my_dataset"
+    table_id = "my_table"
+
+    # Read CSV data from Cloud Storage
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(file_name)
+    csv_data = blob.download_as_string()
+
+    # Convert CSV data to Pandas DataFrame
+    df = pd.read_csv(io.BytesIO(csv_data))
+
+    # Load data into BigQuery
+    job = client.load_table_from_dataframe(df, f"{dataset_id}.{table_id}")
+    job.result()  # Wait for the job to complete
+
+    print(f"Loaded {len(df)} rows into {dataset_id}.{table_id}.")
+```
+
+To deploy this function, use:
+
+```sh
+gcloud functions deploy load_data_to_bigquery \
+    --runtime python311 \
+    --trigger-resource my-bucket \
+    --trigger-event google.storage.object.finalize
+```
+
+Now, every time **a CSV file is uploaded**, the function runs **automatically**, extracting the data and inserting it into BigQuery.
+
+#### Other Use Cases for BigQuery Integration
+
+✅ **Streaming real-time analytics**: A function processes **live event logs** and inserts them into BigQuery for real-time dashboards.  
+✅ **Data transformation**: Automating **data cleansing and enrichment** before storing it in BigQuery.  
+✅ **Scheduled data processing**: Running **batch queries periodically** using **Cloud Scheduler** and Cloud Functions.
+
+#### Building Event-Driven Workflows with Cloud Functions
+
+By integrating Google Cloud Functions with **Pub/Sub, Firestore, and BigQuery**, developers can create **automated workflows** that respond to real-time changes in their data.
+
+For example, a **fraud detection system** in an e-commerce app could use:
+
+- **Cloud Pub/Sub** to handle **real-time transactions**.
+- **Firestore triggers** to log suspicious activities.
+- **BigQuery integration** to analyze patterns and generate reports.
+
+By combining these services, companies can **build highly scalable, cost-effective, and intelligent applications** without needing to manage servers.
+
+As we move forward, we’ll explore how to **deploy a Cloud Function that processes image uploads in real time**, showcasing how Google Cloud Functions can **power AI-driven applications** for modern cloud solutions. 🚀
