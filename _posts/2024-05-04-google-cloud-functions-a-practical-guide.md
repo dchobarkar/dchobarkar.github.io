@@ -715,9 +715,9 @@ In this section, we’ll explore:
 
 A **cold start** happens when a Cloud Function has been **idle for some time** and then needs to be **re-initialized** before execution. This causes delays, especially for functions that require **large dependencies or database connections**.
 
-### **Strategies to Reduce Cold Start Times**
+#### Strategies to Reduce Cold Start Times
 
-#### **1. Allocate the Right Memory Size**
+##### 1. Allocate the Right Memory Size
 
 Cloud Functions allocate CPU power **proportionally to memory size**. Increasing memory allocation can speed up execution and **reduce cold start delays**.
 
@@ -732,7 +732,7 @@ gcloud functions deploy myFunction \
 
 ✅ More memory = Faster execution = **Reduced cold start latency**.
 
-#### **2. Use the “Always-On” Feature in the Premium Tier**
+##### 2. Use the “Always-On” Feature in the Premium Tier
 
 If your function is **time-sensitive**, consider using **min_instances** to keep instances warm.
 
@@ -745,7 +745,7 @@ gcloud functions deploy myFunction \
 
 This **pre-warms** at least **one function instance**, reducing cold starts significantly.
 
-#### **3. Reduce Dependency Loading Time**
+##### 3. Reduce Dependency Loading Time
 
 Avoid including unnecessary dependencies.
 
@@ -765,15 +765,13 @@ Avoid including unnecessary dependencies.
 
 Avoid including large libraries unless necessary.
 
----
+### Efficient Logging and Monitoring Using Cloud Logging and Cloud Trace
 
-## **Efficient Logging and Monitoring Using Cloud Logging and Cloud Trace**
-
-### **Why Logging Matters?**
+#### Why Logging Matters?
 
 Google Cloud Logging helps monitor **function execution, failures, and performance metrics**, making debugging easier.
 
-### **1. Enable Structured Logging**
+#### 1. Enable Structured Logging
 
 Instead of simple console logs, use **structured logging** for better filtering.
 
@@ -798,7 +796,7 @@ exports.myFunction = (req, res) => {
 
 ✅ **Logs are now searchable in Cloud Logging**.
 
-### **2. Viewing Logs in Google Cloud Console**
+#### 2. Viewing Logs in Google Cloud Console
 
 Use the following command to fetch recent logs for a function:
 
@@ -806,7 +804,7 @@ Use the following command to fetch recent logs for a function:
 gcloud functions logs read myFunction --limit 50
 ```
 
-### **3. Using Cloud Trace for Performance Monitoring**
+#### 3. Using Cloud Trace for Performance Monitoring
 
 Cloud Trace helps analyze **function execution time and latency bottlenecks**.  
 To enable **Cloud Trace**, add this to your function:
@@ -815,15 +813,13 @@ To enable **Cloud Trace**, add this to your function:
 gcloud services enable cloudtrace.googleapis.com
 ```
 
----
+### Managing Secrets Securely with Google Secret Manager
 
-## **Managing Secrets Securely with Google Secret Manager**
-
-### **Why Avoid Hardcoding Secrets?**
+#### Why Avoid Hardcoding Secrets?
 
 Storing **API keys, database passwords, or sensitive credentials** in the function’s environment variables is a **security risk**. Instead, use **Google Secret Manager** for secure secret storage.
 
-### **1. Storing Secrets in Google Secret Manager**
+#### 1. Storing Secrets in Google Secret Manager
 
 Run the following command to **store a secret**:
 
@@ -831,7 +827,7 @@ Run the following command to **store a secret**:
 echo -n "my-database-password" | gcloud secrets create DB_PASSWORD --data-file=-
 ```
 
-### **2. Accessing Secrets Securely in a Cloud Function (Python Example)**
+#### 2. Accessing Secrets Securely in a Cloud Function (Python Example)
 
 ```python
 from google.cloud import secretmanager
@@ -845,11 +841,9 @@ def get_secret(secret_name):
 
 ✅ **This ensures secrets are never exposed in function code**.
 
----
+### Scaling Considerations for High-Load Applications
 
-## **Scaling Considerations for High-Load Applications**
-
-### **1. Controlling Maximum Concurrent Requests**
+#### 1. Controlling Maximum Concurrent Requests
 
 By default, each Cloud Function **handles one request at a time**. However, you can **increase concurrency** to **reduce function invocations**.
 
@@ -862,7 +856,7 @@ gcloud functions deploy myFunction \
 
 ✅ This allows **up to 10 instances** to handle requests in parallel.
 
-### **2. Using Cloud Tasks for Load Balancing**
+#### 2. Using Cloud Tasks for Load Balancing
 
 If a function needs to handle **high throughput**, use **Cloud Tasks** to distribute workloads efficiently.
 
@@ -874,11 +868,9 @@ gcloud tasks queues create my-queue
 
 Then, enqueue tasks instead of handling them directly in the function.
 
----
+### Error Handling and Retry Mechanisms for Robust Execution
 
-## **Error Handling and Retry Mechanisms for Robust Execution**
-
-### **1. Implementing Try-Catch Blocks**
+#### 1. Implementing Try-Catch Blocks
 
 To prevent crashes, wrap function logic in **try-catch blocks**.
 
@@ -901,7 +893,7 @@ exports.processData = async (req, res) => {
 
 ✅ Ensures errors are **logged properly**.
 
-### **2. Enabling Automatic Retries**
+#### 2. Enabling Automatic Retries
 
 Google Cloud Functions can **retry automatically** in case of transient failures.
 
@@ -916,7 +908,7 @@ gcloud functions deploy myFunction \
 
 This **ensures the function re-executes** in case of failures.
 
-### **3. Handling Timeout Errors**
+#### 3. Handling Timeout Errors
 
 To prevent long-running functions from failing, set a **timeout limit**.
 
@@ -928,9 +920,7 @@ gcloud functions deploy myFunction \
 
 ✅ This prevents the function from running indefinitely.
 
----
-
-## **Building Highly Optimized Cloud Functions**
+### Building Highly Optimized Cloud Functions
 
 By following these **best practices**, we can ensure Cloud Functions run **efficiently, securely, and with minimal costs**. Here’s a quick recap of what we’ve covered:
 
@@ -943,3 +933,252 @@ By following these **best practices**, we can ensure Cloud Functions run **effic
 By integrating these optimizations, Cloud Functions can **handle large-scale, high-performance workloads** with minimal downtime.
 
 Moving forward, we’ll explore **debugging and monitoring strategies**, ensuring that every function runs smoothly and any potential issues are detected early. 🚀
+
+# **Debugging and Monitoring Google Cloud Functions**
+
+Developing **Google Cloud Functions** is only part of the equation; ensuring that they run **smoothly, efficiently, and without errors** is equally critical. Proper **debugging and monitoring** help developers identify issues **before they escalate**, optimize function performance, and ensure reliability in **production environments**.
+
+In this section, we’ll explore:  
+✅ **Using Cloud Logging for real-time debugging**.  
+✅ **Setting up Google Cloud Trace for monitoring execution times**.  
+✅ **Common issues and troubleshooting techniques**.
+
+---
+
+## **Using Cloud Logging for Real-Time Logs and Debugging**
+
+### **Why Use Cloud Logging?**
+
+Google Cloud Logging provides **centralized logs** for monitoring function execution, debugging issues, and tracking errors. It helps developers:
+
+- **View real-time logs** to detect issues quickly.
+- **Analyze trends and failures** over time.
+- **Filter logs based on severity (INFO, WARNING, ERROR)**.
+- **Debug function behavior** across different invocations.
+
+### **1. Viewing Logs in the Google Cloud Console**
+
+The **easiest way to view function logs** is through the Google Cloud Console:
+
+1. Navigate to **Google Cloud Console** → **Cloud Functions**.
+2. Click on the **function name** you want to debug.
+3. Go to the **Logs** tab to see function execution details.
+
+### **2. Fetching Logs Using the gcloud CLI**
+
+For faster debugging, you can use the **gcloud CLI**:
+
+💡 **Get the latest logs for a function:**
+
+```sh
+gcloud functions logs read myFunction --limit 50
+```
+
+💡 **Filter logs for errors only:**
+
+```sh
+gcloud functions logs read myFunction --filter="severity=ERROR"
+```
+
+### **3. Writing Logs Inside Cloud Functions**
+
+To improve visibility, it’s best to **log relevant information** inside your function.
+
+💡 **Example: Adding Logs to a Node.js Function**
+
+```javascript
+exports.helloWorld = (req, res) => {
+  console.log("Function execution started");
+
+  try {
+    let name = req.query.name || "Guest";
+    console.info(`Processing request for ${name}`);
+    res.status(200).send(`Hello, ${name}!`);
+  } catch (error) {
+    console.error("Error occurred:", error);
+    res.status(500).send("Internal Server Error");
+  }
+};
+```
+
+✅ **Logs are now categorized** (`console.info`, `console.error`), making filtering easier.
+
+### **4. Debugging Logs in Cloud Logging**
+
+Logs are structured in **JSON format**, making them easy to query. You can run **advanced log queries** in Cloud Logging:
+
+💡 **Example Query: Finding all errors in the last 24 hours**
+
+```kql
+logName="projects/my-project/logs/cloudfunctions.googleapis.com%2Fcloud-function"
+severity=ERROR
+timestamp >= "2024-02-01T00:00:00Z"
+```
+
+✅ This query **retrieves only ERROR logs** for better troubleshooting.
+
+---
+
+## **Setting Up Google Cloud Trace for Execution Monitoring**
+
+### **What is Cloud Trace?**
+
+Google Cloud Trace provides **latency analysis** for Cloud Functions, helping developers:
+
+- **Identify slow function executions**.
+- **Analyze response times** to optimize performance.
+- **Find bottlenecks** in external API calls or database queries.
+
+### **1. Enabling Cloud Trace for a Cloud Function**
+
+First, enable the Cloud Trace API:
+
+```sh
+gcloud services enable cloudtrace.googleapis.com
+```
+
+Then, deploy your function with tracing enabled:
+
+```sh
+gcloud functions deploy myFunction \
+    --runtime nodejs18 \
+    --trigger-http \
+    --set-env-vars=ENABLE_TRACING=true
+```
+
+### **2. Viewing Traces in Google Cloud Console**
+
+1. Open **Google Cloud Console** → Navigate to **Cloud Trace**.
+2. Select the function name from the **trace list**.
+3. Click on an individual trace to see a **detailed breakdown of execution time**.
+
+### **3. Using Cloud Trace in Node.js Functions**
+
+Cloud Trace can be added programmatically using the **@google-cloud/trace-agent** library.
+
+💡 **Example: Adding Cloud Trace to a Node.js Function**
+
+```javascript
+require("@google-cloud/trace-agent").start();
+
+exports.traceExample = (req, res) => {
+  console.log("Function execution with tracing started");
+  res.status(200).send("Tracing enabled for this function");
+};
+```
+
+✅ Cloud Trace now **captures execution times automatically**, providing visibility into function performance.
+
+### **4. Measuring Function Execution Time**
+
+If you want to manually measure execution time:
+
+💡 **Example: Measuring Execution Time in Python**
+
+```python
+import time
+
+def my_function(event, context):
+    start_time = time.time()
+
+    # Function logic here...
+
+    execution_time = time.time() - start_time
+    print(f"Function executed in {execution_time:.3f} seconds")
+```
+
+✅ This helps **identify slow-running functions** and **optimize performance**.
+
+---
+
+## **Common Issues and Troubleshooting Techniques**
+
+Even with proper logging and monitoring, functions can run into **unexpected failures**. Below are **some common issues and how to resolve them**.
+
+### **1. Function Takes Too Long to Execute**
+
+**Issue:** The function exceeds the **execution timeout** (default: 60s).  
+**Solution:**  
+✅ Optimize function logic to **reduce processing time**.  
+✅ Increase the timeout value (max 540s):
+
+```sh
+gcloud functions deploy myFunction --timeout=300s
+```
+
+### **2. Memory Limit Exceeded**
+
+**Issue:** The function crashes due to **insufficient memory**.  
+**Solution:**  
+✅ Increase memory allocation:
+
+```sh
+gcloud functions deploy myFunction --memory=512MB
+```
+
+✅ Use **Cloud Tasks** for batch processing instead of processing large data in one execution.
+
+### **3. Function Fails Due to Missing Environment Variables**
+
+**Issue:** The function crashes because a required **environment variable** is missing.  
+**Solution:**  
+✅ Set environment variables using:
+
+```sh
+gcloud functions deploy myFunction \
+    --set-env-vars="DB_HOST=db.example.com,API_KEY=123456"
+```
+
+✅ Fetch environment variables securely from **Google Secret Manager** instead of hardcoding.
+
+### **4. Function Fails with “Permission Denied” Errors**
+
+**Issue:** The function does not have **enough IAM permissions**.  
+**Solution:**  
+✅ Assign the correct IAM role to the function’s service account:
+
+```sh
+gcloud projects add-iam-policy-binding my-project \
+    --member serviceAccount:my-function@my-project.iam.gserviceaccount.com \
+    --role roles/storage.objectViewer
+```
+
+✅ Ensure that the **Cloud Functions Service Account** has access to the required resources.
+
+### **5. Cloud Storage Trigger Not Firing**
+
+**Issue:** A function that listens for Cloud Storage events **doesn’t execute** when a file is uploaded.  
+**Solution:**  
+✅ Ensure the trigger type is correct:
+
+```sh
+gcloud functions deploy myFunction \
+    --trigger-resource my-bucket \
+    --trigger-event google.storage.object.finalize
+```
+
+✅ Make sure the **bucket name** is correct and the service account has **read access**.
+
+### **6. Pub/Sub Function Not Triggering**
+
+**Issue:** The function does not receive Pub/Sub messages.  
+**Solution:**  
+✅ Verify the Pub/Sub subscription:
+
+```sh
+gcloud pubsub subscriptions list
+```
+
+✅ Ensure that **message retention is enabled** for delayed processing.
+
+---
+
+## **Optimizing Debugging and Monitoring for Production**
+
+To maintain high availability and detect issues quickly, **production-grade Cloud Functions** should have:  
+✅ **Structured logging** to make logs easy to filter.  
+✅ **Cloud Trace enabled** to analyze execution performance.  
+✅ **Cloud Monitoring alerts** to get notified of failures.  
+✅ **Automated retries** to handle transient failures gracefully.
+
+By following these debugging and monitoring techniques, developers can ensure **reliable, scalable, and efficient Google Cloud Functions**. Moving forward, we’ll explore **conclusion and next steps**, including **best practices for advanced serverless applications, security, and CI/CD automation**. 🚀
