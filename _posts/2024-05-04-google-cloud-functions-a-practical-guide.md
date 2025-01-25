@@ -468,3 +468,232 @@ For example, a **fraud detection system** in an e-commerce app could use:
 By combining these services, companies can **build highly scalable, cost-effective, and intelligent applications** without needing to manage servers.
 
 As we move forward, we’ll explore how to **deploy a Cloud Function that processes image uploads in real time**, showcasing how Google Cloud Functions can **power AI-driven applications** for modern cloud solutions. 🚀
+
+## Deploying a Serverless Function to Process Image Uploads in Real-Time
+
+Processing images in real time is a common use case for **serverless applications**, especially for **automating tasks like image resizing, compression, or watermarking**. With **Google Cloud Functions**, we can build a fully automated pipeline that listens for image uploads in **Google Cloud Storage**, processes the images, and stores the transformed versions in another storage bucket.
+
+This section walks through **setting up a serverless image processing workflow**, covering:  
+✅ **Creating a Google Cloud Project and enabling Cloud Functions**.  
+✅ **Setting up a Cloud Storage trigger to detect image uploads**.  
+✅ **Implementing an image processing function using Python or Node.js**.  
+✅ **Saving processed images to another storage bucket**.  
+✅ **Error handling and logging with Google Cloud Logging**.
+
+### Project Setup: Creating a Google Cloud Project and Enabling Cloud Functions
+
+Before deploying the serverless function, we need to **set up a Google Cloud Project and enable necessary services**. Follow these steps to get started:
+
+#### 1. Create a Google Cloud Project
+
+If you don’t already have a Google Cloud Project:
+
+```sh
+gcloud projects create my-image-processing-project
+gcloud config set project my-image-processing-project
+```
+
+#### 2. Enable Required APIs
+
+Cloud Functions require several APIs to operate, including:
+
+- **Cloud Functions API**
+- **Cloud Storage API**
+- **Cloud Logging API**
+
+Run the following command to enable them:
+
+```sh
+gcloud services enable cloudfunctions.googleapis.com \
+    storage.googleapis.com \
+    logging.googleapis.com
+```
+
+#### 3. Set Up Authentication
+
+To deploy functions, you need to authenticate using a **Google Cloud Service Account** with the right permissions:
+
+```sh
+gcloud iam service-accounts create my-service-account \
+    --display-name "Cloud Functions Service Account"
+```
+
+Grant permissions for Cloud Storage and Logging:
+
+```sh
+gcloud projects add-iam-policy-binding my-image-processing-project \
+    --member "serviceAccount:my-service-account@my-image-processing-project.iam.gserviceaccount.com" \
+    --role "roles/storage.admin"
+
+gcloud projects add-iam-policy-binding my-image-processing-project \
+    --member "serviceAccount:my-service-account@my-image-processing-project.iam.gserviceaccount.com" \
+    --role "roles/logging.admin"
+```
+
+Now the **project setup is complete** and we can move on to the next step.
+
+### Storage Trigger Setup: Detecting Image Uploads in Cloud Storage
+
+To automate image processing, we need a **Cloud Storage trigger** that activates the Cloud Function **whenever a new image is uploaded**.
+
+#### 1. Create a Cloud Storage Bucket
+
+The bucket serves as the **source location** where users or applications upload images:
+
+```sh
+gsutil mb gs://uploaded-images-bucket
+```
+
+#### 2. Deploy a Cloud Function with a Cloud Storage Trigger
+
+A **Cloud Function can be triggered when a new file is added, modified, or deleted** in a Storage bucket.
+
+To deploy a function that triggers on **file uploads**, we use:
+
+```sh
+gcloud functions deploy process_image_upload \
+    --runtime python311 \
+    --trigger-resource uploaded-images-bucket \
+    --trigger-event google.storage.object.finalize
+```
+
+This ensures that the function is **invoked automatically** whenever a new image is uploaded to `uploaded-images-bucket`.
+
+### Implementing an Image Processing Function Using Python
+
+The **image processing logic** can involve **resizing, converting, or adding watermarks**. Below is a **Python-based Cloud Function** using the **Pillow (PIL) library** for image transformations.
+
+#### Python Code for Image Processing
+
+```python
+import os
+from google.cloud import storage
+from PIL import Image
+import io
+
+# Initialize Cloud Storage client
+storage_client = storage.Client()
+
+def process_image(event, context):
+    """Triggered by an image upload to Cloud Storage."""
+
+    bucket_name = event["bucket"]
+    file_name = event["name"]
+
+    # Define destination bucket for processed images
+    destination_bucket_name = "processed-images-bucket"
+
+    print(f"Processing image {file_name} from bucket {bucket_name}")
+
+    # Get the image from Cloud Storage
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(file_name)
+    image_data = blob.download_as_bytes()
+
+    # Open the image with PIL
+    image = Image.open(io.BytesIO(image_data))
+
+    # Resize image
+    image = image.resize((500, 500))
+
+    # Convert to JPEG format
+    output_bytes = io.BytesIO()
+    image.save(output_bytes, format="JPEG")
+    output_bytes.seek(0)
+
+    # Upload processed image to the destination bucket
+    destination_bucket = storage_client.bucket(destination_bucket_name)
+    destination_blob = destination_bucket.blob(f"processed-{file_name}")
+    destination_blob.upload_from_file(output_bytes, content_type="image/jpeg")
+
+    print(f"Processed image uploaded as {destination_blob.name}")
+```
+
+#### How This Function Works
+
+1. **Detects an image upload** in the Cloud Storage bucket.
+2. **Downloads the image** and processes it using the **Pillow (PIL) library**.
+3. **Resizes the image** to 500x500 pixels and converts it to **JPEG format**.
+4. **Uploads the processed image** to another Cloud Storage bucket.
+
+#### Deploying the Function
+
+To deploy this function, use:
+
+```sh
+gcloud functions deploy process_image \
+    --runtime python311 \
+    --trigger-resource uploaded-images-bucket \
+    --trigger-event google.storage.object.finalize
+```
+
+Once deployed, **every time a new image is uploaded**, the function will process it and store the **resized image** in `processed-images-bucket`.
+
+### Saving Processed Images to Another Storage Bucket
+
+To keep **raw images and processed images separate**, we need a **second Cloud Storage bucket**.
+
+#### 1. Create a Destination Bucket for Processed Images
+
+```sh
+gsutil mb gs://processed-images-bucket
+```
+
+#### 2. Set Permissions for Cloud Functions to Write to the Destination Bucket
+
+```sh
+gsutil iam ch serviceAccount:my-service-account@my-image-processing-project.iam.gserviceaccount.com:roles/storage.objectAdmin gs://processed-images-bucket
+```
+
+This ensures that the function can **upload processed images** to the new bucket.
+
+Now, whenever an image is uploaded to `uploaded-images-bucket`, the Cloud Function will **process and store it** in `processed-images-bucket`.
+
+### Error Handling and Logging with Google Cloud Logging
+
+#### Handling Errors Gracefully
+
+To **prevent function crashes**, errors should be **caught and logged**.
+
+💡 **Example: Adding Error Handling to the Image Processing Function**
+
+```python
+try:
+    # Attempt to process the image
+    image = Image.open(io.BytesIO(image_data))
+    image = image.resize((500, 500))
+    image.save(output_bytes, format="JPEG")
+except Exception as e:
+    print(f"Error processing image {file_name}: {str(e)}")
+    return
+```
+
+If an error occurs (e.g., **invalid image format**), it is **logged** instead of crashing the function.
+
+#### Enabling Logging for Debugging
+
+Google Cloud Logging helps monitor **function execution, failures, and performance metrics**.
+
+To **view logs for the function**, use:
+
+```sh
+gcloud functions logs read process_image --limit=50
+```
+
+To filter logs for **error messages**, use:
+
+```sh
+gcloud functions logs read process_image --filter="severity=ERROR"
+```
+
+By enabling **structured logging**, we ensure that **every function execution is traceable**, making debugging easier.
+
+### Building an Efficient Image Processing Pipeline
+
+By combining **Cloud Functions, Cloud Storage, and Cloud Logging**, we’ve built a **fully automated, real-time image processing system**. This setup ensures that:  
+✅ Images are **processed instantly** after upload.  
+✅ **No servers** are required—Google Cloud **handles all scaling and execution**.  
+✅ Processed images are **stored separately** for better organization.  
+✅ Errors and execution details are **logged for monitoring and debugging**.
+
+With this foundation in place, we can extend our **image processing pipeline** to include **AI-powered enhancements**, such as **face detection, object recognition, and content moderation**. Moving forward, we’ll explore **best practices for optimizing Cloud Functions for performance, security, and scalability**, ensuring that **serverless applications run efficiently at scale**. 🚀
