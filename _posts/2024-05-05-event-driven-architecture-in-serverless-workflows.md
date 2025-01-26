@@ -62,3 +62,102 @@ To ensure efficient **event routing and filtering**, modern cloud platforms prov
 For instance, if an **e-commerce platform** generates order events, but a function only needs to process **high-value transactions**, event routing tools can **filter out low-value orders**, ensuring that compute resources are used efficiently. Event filtering can be **attribute-based, payload-based, or context-based**, depending on the use case.
 
 Understanding how these **event-driven patterns** work allows developers to build **responsive, scalable, and highly efficient serverless applications**. By leveraging **Pub/Sub for notifications, event streaming for high-volume data processing, and event routing for filtering unnecessary executions**, businesses can **optimize cloud workloads** while ensuring that **real-time interactions remain seamless and fault-tolerant**.
+
+## Common Event Sources in Serverless Architectures
+
+Event-driven serverless architectures rely on **various event sources** to trigger functions dynamically, ensuring applications remain scalable and responsive without requiring continuous server management. In a **serverless workflow**, an event can originate from **HTTP requests, database changes, file uploads, or real-time data streams**, each triggering an automated function execution. By leveraging **cloud-native event sources**, developers can build **fully automated, event-driven applications** that handle tasks asynchronously and scale on demand.
+
+One of the most commonly used event sources in serverless systems is **HTTP requests**, which allow functions to process incoming web requests, interact with clients, and expose APIs without needing a dedicated backend server. **AWS Lambda, Azure Functions, and Google Cloud Functions** can be invoked via **API Gateway**, which serves as a managed HTTP interface that routes requests to serverless functions. This setup is widely used for building **RESTful APIs, authentication systems, and webhook integrations**.
+
+For instance, **processing webhooks from third-party services** is a common use case for HTTP-triggered serverless functions. Webhooks enable services to send real-time data to an API endpoint when an event occurs. Consider an **e-commerce platform** integrated with **Stripe for payment processing**. When a customer completes a purchase, Stripe sends a webhook event to a serverless function, which processes the transaction, updates the order status, and sends a confirmation email—all without the need for a continuously running server.
+
+A simple **AWS Lambda function to process Stripe webhooks** might look like this:
+
+```javascript
+exports.handler = async (event) => {
+  const body = JSON.parse(event.body);
+
+  if (body.type === "checkout.session.completed") {
+    console.log(
+      `Payment successful for customer: ${body.data.object.customer_email}`
+    );
+    // Update order status, send email, etc.
+  }
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ received: true }),
+  };
+};
+```
+
+This function runs **only when a webhook event is received**, ensuring **cost efficiency and automatic scaling**.
+
+Another essential event source in serverless systems is **database changes**, where functions automatically respond to updates in cloud-hosted databases. Cloud providers offer **native database triggers** that notify serverless functions whenever a record is inserted, updated, or deleted. This enables real-time processing of **analytics updates, notifications, and data synchronization**.
+
+For example, **AWS DynamoDB Streams, Google Firestore Triggers, and Azure CosmosDB Change Feed** allow developers to listen for changes and trigger actions. A typical use case is **automatically updating an analytics dashboard whenever new data is added to a database**.
+
+Consider a **news aggregation platform** that tracks trending articles. When a new article is added to Firestore, a Cloud Function updates a trending statistics table in BigQuery:
+
+```javascript
+const functions = require("firebase-functions");
+const { BigQuery } = require("@google-cloud/bigquery");
+
+const bigquery = new BigQuery();
+
+exports.updateTrendingStats = functions.firestore
+  .document("articles/{articleId}")
+  .onCreate(async (snap, context) => {
+    const newArticle = snap.data();
+    console.log(`New article added: ${newArticle.title}`);
+
+    const query = `INSERT INTO my_dataset.trending_articles (title, views) VALUES ('${newArticle.title}', 0)`;
+    await bigquery.query(query);
+  });
+```
+
+This function **triggers automatically** when a new document is created in Firestore, ensuring that **trending statistics remain up-to-date in real time**.
+
+Another powerful event source is **file uploads and object storage events**, which allow applications to react when files are uploaded to cloud storage services like **AWS S3, Google Cloud Storage, and Azure Blob Storage**. This is widely used in **image processing, document indexing, and multimedia content workflows**.
+
+For instance, an **image processing pipeline** can be triggered whenever a user uploads an image to an S3 bucket. The serverless function can **resize the image, apply transformations, or extract metadata** before saving it to another storage location.
+
+A **Python-based AWS Lambda function** to generate image thumbnails might look like this:
+
+```python
+import boto3
+from PIL import Image
+import io
+
+s3 = boto3.client("s3")
+
+def lambda_handler(event, context):
+    for record in event["Records"]:
+        bucket_name = record["s3"]["bucket"]["name"]
+        file_name = record["s3"]["object"]["key"]
+
+        # Download image from S3
+        file_obj = s3.get_object(Bucket=bucket_name, Key=file_name)
+        image = Image.open(io.BytesIO(file_obj["Body"].read()))
+
+        # Resize image
+        image.thumbnail((200, 200))
+
+        # Save thumbnail to another bucket
+        thumbnail_buffer = io.BytesIO()
+        image.save(thumbnail_buffer, format="JPEG")
+        thumbnail_buffer.seek(0)
+
+        s3.put_object(
+            Bucket="processed-images-bucket",
+            Key=f"thumbnail-{file_name}",
+            Body=thumbnail_buffer,
+            ContentType="image/jpeg"
+        )
+
+    return {"statusCode": 200, "body": "Thumbnail created"}
+```
+
+This function listens for **new file uploads**, processes the image, and stores a **resized thumbnail** in another S3 bucket. Similar event-driven image processing workflows can be built using **Google Cloud Storage Triggers** or **Azure Blob Storage Events**.
+
+By leveraging **HTTP requests, database triggers, and storage events**, serverless applications become **highly reactive, scalable, and cost-efficient**. These event sources enable **real-time workflows** where functions execute **only when necessary**, ensuring that applications remain **responsive and optimized for performance**.
