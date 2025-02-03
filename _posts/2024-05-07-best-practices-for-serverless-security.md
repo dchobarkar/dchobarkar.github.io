@@ -174,3 +174,177 @@ aws cloudtrail create-trail --name MyLambdaTrail --s3-bucket-name logs-bucket
 ✅ **Monitors function activity and detects suspicious behavior**.
 
 By implementing **these security best practices**, developers can **minimize security risks** while leveraging the **scalability and flexibility of serverless architectures**. 🚀
+
+## Securing Serverless Applications
+
+Security is a critical aspect of **serverless application development**, as the lack of traditional network-based security measures increases reliance on **identity and access management, secret storage, and API security**. This section explores **best practices for securing serverless applications**, focusing on **IAM roles, API key protection, and API Gateway security**.
+
+### A. Implementing IAM Roles and Least Privilege Access
+
+Serverless applications require **identity and access management (IAM) policies** to define **who can invoke functions, access resources, and modify configurations**. Following the **principle of least privilege** is crucial to **minimizing security risks**.
+
+#### Understanding IAM Roles vs. Permissions in AWS, Azure, and Google Cloud
+
+Each cloud provider offers **IAM-based access control** for serverless functions:
+
+| **Cloud Provider**         | **IAM Role Type**  | **Access Control Method**                               |
+| -------------------------- | ------------------ | ------------------------------------------------------- |
+| **AWS Lambda**             | IAM Policies       | Resource-based permissions using IAM roles and policies |
+| **Azure Functions**        | Managed Identities | Role-Based Access Control (RBAC)                        |
+| **Google Cloud Functions** | IAM Policies       | Role-based access using Google IAM                      |
+
+💡 **Key Difference:** **AWS uses IAM policies**, while **Azure and Google Cloud rely on RBAC-based identity management**.
+
+#### Best Practices for Least Privilege Access in Serverless Functions
+
+1. ✅ **Deny all access by default** and grant only the **minimum required permissions**.
+2. ✅ **Use function-specific IAM roles** instead of granting broad administrative permissions.
+3. ✅ **Restrict cross-account access** to **only trusted resources**.
+4. ✅ **Audit IAM roles periodically** using security tools like **AWS IAM Access Analyzer**.
+
+#### Example: Configuring a Restricted AWS IAM Policy for Lambda
+
+The following **IAM policy** grants an AWS Lambda function **read-only access to an S3 bucket** instead of allowing unrestricted permissions:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::my-secure-bucket/*"
+    }
+  ]
+}
+```
+
+✅ **Why is this better?** It **limits access** to only **GET requests** for a specific S3 bucket, preventing accidental modifications.
+
+#### How to Audit IAM Roles Using AWS IAM Access Analyzer
+
+AWS IAM Access Analyzer helps **detect over-permissive IAM roles** and recommends security improvements.
+
+💡 **Enable IAM Access Analyzer in AWS CLI:**
+
+```sh
+aws accessanalyzer create-analyzer --analyzer-name "ServerlessIAMAnalyzer" --type ACCOUNT
+```
+
+✅ **Monitors IAM roles and alerts on excessive permissions**.
+
+### B. Securing API Keys and Environment Variables
+
+#### Why API Key Security is Critical in Serverless?
+
+API keys are **used for authentication** when interacting with **databases, third-party services, or internal APIs**. **Exposed or hardcoded API keys** can lead to **data breaches and unauthorized access**.
+
+#### Storing API Keys Securely in AWS Secrets Manager, Azure Key Vault, and Google Secret Manager
+
+To prevent **hardcoded secrets**, use **secure vaults** to store and retrieve API keys dynamically.
+
+| **Cloud Provider**         | **Secret Management Service** |
+| -------------------------- | ----------------------------- |
+| **AWS Lambda**             | AWS Secrets Manager           |
+| **Azure Functions**        | Azure Key Vault               |
+| **Google Cloud Functions** | Google Secret Manager         |
+
+#### Avoiding Hardcoded Secrets in Serverless Function Code
+
+❌ **Bad Practice (Exposing API Key in Code)**
+
+```python
+API_KEY = "my-secret-key"
+```
+
+❌ **Risk:** If the code is **leaked or logged**, the API key is compromised.
+
+✅ **Best Practice: Fetch API Key Securely Using AWS Secrets Manager**
+
+```python
+import boto3
+secrets_client = boto3.client("secretsmanager")
+secret = secrets_client.get_secret_value(SecretId="MyAPIKey")
+API_KEY = secret["SecretString"]
+```
+
+✅ **Why is this better?** The API key is **never exposed in code**.
+
+#### Best Practices for Managing Environment Variables Securely
+
+✅ **Use environment variables for non-sensitive configurations**, but avoid using them for **secrets like API keys**.  
+✅ **Encrypt environment variables at rest** before storing them in cloud functions.  
+✅ **Use IAM roles instead of API keys** when possible.
+
+💡 **Example: Encrypting an Environment Variable in AWS Lambda**
+
+```sh
+aws lambda update-function-configuration --function-name MyFunction \
+  --environment Variables="{API_KEY='encrypted-key'}"
+```
+
+✅ **Ensures API keys are stored securely and not hardcoded**.
+
+### C. Securing API Gateway and Function Invocation
+
+Serverless functions are often **invoked via API Gateway**, making **API security a top priority**.
+
+#### Protecting Serverless APIs from Unauthorized Access
+
+1. ✅ **Use authentication mechanisms like OAuth 2.0, JWT, or AWS Cognito**.
+2. ✅ **Enable rate limiting and throttling to prevent abuse**.
+3. ✅ **Implement request validation to prevent injection attacks**.
+
+#### Enabling OAuth 2.0, JWT Authentication, and API Gateway Authorizers
+
+To **secure API Gateway routes**, authentication can be enforced using **OAuth 2.0, JWT, or Cognito authorizers**.
+
+💡 **Example: Setting Up OAuth 2.0 Authentication for AWS API Gateway**
+
+```json
+{
+  "type": "OAUTH2",
+  "authorizerId": "my-oauth2-authorizer"
+}
+```
+
+✅ **Restricts access to authenticated users only**.
+
+#### Example: Setting Up Cognito Authentication for AWS Lambda API Gateway
+
+AWS Cognito provides **user authentication** for serverless APIs.
+
+💡 **Steps to Secure AWS Lambda with Cognito Authentication:**
+
+1. **Create a Cognito User Pool**:
+
+```sh
+aws cognito-idp create-user-pool --pool-name MyUserPool
+```
+
+2. **Create a Cognito Authorizer in API Gateway**:
+
+```sh
+aws apigateway create-authorizer \
+  --name "MyCognitoAuth" \
+  --identity-source "method.request.header.Authorization" \
+  --provider-arns "arn:aws:cognito-idp:us-east-1:123456789012:userpool/us-east-1_ABC123"
+```
+
+✅ **Ensures only authenticated users can invoke API Gateway routes**.
+
+#### Rate Limiting and Throttling API Requests to Prevent DDoS Attacks
+
+Without **rate limiting**, attackers can **overload serverless APIs**, causing **high execution costs and denial of service**.
+
+💡 **Example: Setting Up API Gateway Rate Limiting in AWS**
+
+```sh
+aws apigateway update-stage --rest-api-id API_ID \
+  --stage-name Prod \
+  --patch-operations op="replace",path="/throttle/rateLimit",value="100"
+```
+
+✅ **Limits the API to 100 requests per second, preventing abuse**.
+
+By following **these security best practices**, organizations can **protect serverless applications from common threats** while ensuring **secure function execution and API access**. 🚀
