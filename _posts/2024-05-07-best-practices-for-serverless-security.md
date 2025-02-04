@@ -348,3 +348,176 @@ aws apigateway update-stage --rest-api-id API_ID \
 ✅ **Limits the API to 100 requests per second, preventing abuse**.
 
 By following **these security best practices**, organizations can **protect serverless applications from common threats** while ensuring **secure function execution and API access**. 🚀
+
+## Handling Sensitive Data in Serverless Workflows
+
+In serverless architectures, sensitive data flows through **event-driven workflows, APIs, and cloud storage systems**, making it essential to **protect data at all stages**—whether in transit, at rest, or within logs. Misconfigurations can expose **personally identifiable information (PII), API keys, or confidential records**, leading to **data breaches and compliance violations**.
+
+This section covers **encryption techniques, securing event-driven workflows, and preventing data leaks in logs** to ensure **end-to-end security** for serverless applications.
+
+### A. Encrypting Data in Transit and at Rest
+
+Data encryption is a **critical security measure** that ensures sensitive data remains **protected from unauthorized access**—whether it's **being transmitted over networks** or **stored in databases, object storage, or function logs**.
+
+#### 1. How to Enable TLS Encryption for Serverless Functions
+
+Transport Layer Security (**TLS**) ensures **secure communication** between serverless functions, APIs, and external services.
+
+✅ **Best Practices for Enabling TLS Encryption:**
+
+- **Use HTTPS for API Gateway & serverless endpoints** instead of HTTP.
+- **Encrypt data transfers between AWS Lambda and external APIs using TLS 1.2 or higher.**
+- **Ensure database connections (e.g., RDS, Firestore) are encrypted using SSL/TLS.**
+
+💡 **Example: Enforcing TLS for API Gateway in AWS**
+
+```sh
+aws apigateway update-rest-api \
+  --rest-api-id API_ID \
+  --patch-operations op="replace",path="/minimumProtocolVersion",value="TLS_1_2"
+```
+
+✅ **Forces API Gateway to only accept encrypted connections**.
+
+#### 2. Encrypting Sensitive Data at Rest Using AWS KMS, Azure Key Vault, and Google KMS
+
+Cloud providers offer **key management services (KMS)** to encrypt sensitive data **before storing it in databases, object storage, or logs**.
+
+| **Cloud Provider**         | **Encryption Service**           | **Use Case**                                                    |
+| -------------------------- | -------------------------------- | --------------------------------------------------------------- |
+| **AWS Lambda**             | AWS Key Management Service (KMS) | Encrypting S3 objects, RDS data, DynamoDB fields                |
+| **Azure Functions**        | Azure Key Vault                  | Encrypting sensitive environment variables and database records |
+| **Google Cloud Functions** | Google Cloud KMS                 | Encrypting Firestore and Cloud Storage objects                  |
+
+💡 **Example: Encrypting Data Using AWS KMS in Lambda**
+
+```python
+import boto3
+
+kms_client = boto3.client("kms")
+
+# Encrypt sensitive data using KMS key
+encrypted_data = kms_client.encrypt(
+    KeyId="alias/my-kms-key",
+    Plaintext="SuperSecretData"
+)
+
+print("Encrypted:", encrypted_data['CiphertextBlob'])
+```
+
+✅ **Ensures sensitive data remains encrypted before storing it in databases or logs**.
+
+### B. Protecting Event-Driven Workflows
+
+Serverless applications are **event-driven**, meaning functions can be **triggered by cloud storage uploads, database updates, or messaging services**. If not properly secured, attackers can **inject malicious events**, causing **unauthorized function execution**.
+
+#### 1. Ensuring Secure Event Triggers (e.g., S3 Bucket Events, Pub/Sub Triggers)
+
+Every **event source** that triggers a function must be **restricted** to prevent unauthorized execution.
+
+✅ **Best Practices for Securing Event Triggers:**
+
+- **Restrict S3 event triggers to trusted IAM roles.**
+- **Use fine-grained access controls for event-driven triggers (e.g., AWS EventBridge, Google Pub/Sub).**
+- **Monitor and log event invocations for anomaly detection.**
+
+💡 **Example: Securing an AWS Lambda Trigger for an S3 Bucket**
+
+```json
+{
+  "Effect": "Allow",
+  "Action": "s3:PutObject",
+  "Resource": "arn:aws:s3:::my-secure-bucket/*",
+  "Principal": {
+    "AWS": "arn:aws:iam::123456789012:role/MyLambdaRole"
+  }
+}
+```
+
+✅ **Ensures only the designated IAM role can trigger Lambda when files are uploaded to S3**.
+
+#### 2. Preventing Unauthorized Function Invocation
+
+If an attacker **gains access to a public API or an open event trigger**, they can **invoke a function maliciously**, leading to **resource exhaustion or data leaks**.
+
+✅ **Best Practices for Restricting Function Invocation:**
+
+- **Limit function execution to trusted IAM roles.**
+- **Use AWS Lambda permission policies to control who can invoke functions.**
+- **Enable request authentication using IAM, API Gateway Authorizers, or JWT tokens.**
+
+💡 **Example: Restricting AWS Lambda Invocation to a Specific IAM Role**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Deny",
+      "Action": "lambda:InvokeFunction",
+      "Resource": "arn:aws:lambda:us-east-1:123456789012:function:MyFunction",
+      "Condition": {
+        "StringNotEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::123456789012:role/AllowedRole"
+        }
+      }
+    }
+  ]
+}
+```
+
+✅ **Blocks any unauthorized role from invoking the function**.
+
+### C. Preventing Data Leakage in Logs and Debugging
+
+Serverless applications **log execution details, request data, and system errors** into cloud monitoring services like **AWS CloudWatch, Azure Monitor, and Google Stackdriver**. **If logs contain sensitive data, attackers or unauthorized users may access critical information**.
+
+#### 1. Best Practices for Sanitizing Logs Before Writing to CloudWatch, Azure Monitor, or Stackdriver
+
+✅ **Mask sensitive data before logging requests**.  
+✅ **Ensure logs do not capture API keys, tokens, or user credentials**.  
+✅ **Use IAM permissions to restrict log access to authorized teams only**.
+
+💡 **Example: Redacting Sensitive Data Before Writing to CloudWatch Logs in AWS Lambda**
+
+```python
+import logging
+import re
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+def lambda_handler(event, context):
+    user_input = event.get("input", "")
+
+    # Masking sensitive data like credit card numbers
+    sanitized_input = re.sub(r'\b\d{16}\b', '****-****-****-****', user_input)
+
+    logger.info(f"Received input: {sanitized_input}")
+    return {"status": "Success"}
+```
+
+✅ **Prevents storing raw sensitive data in logs**.
+
+#### 2. Restricting Access to Log Data
+
+Logs should **only be accessible** to authorized **administrators and security teams**.
+
+💡 **Example: Restricting AWS CloudWatch Log Access to a Specific IAM Role**
+
+```json
+{
+  "Effect": "Deny",
+  "Action": "logs:DescribeLogStreams",
+  "Resource": "arn:aws:logs:us-east-1:123456789012:log-group:/aws/lambda/MyFunction",
+  "Condition": {
+    "StringNotEquals": {
+      "aws:PrincipalArn": "arn:aws:iam::123456789012:role/SecurityTeamRole"
+    }
+  }
+}
+```
+
+✅ **Ensures that only the security team can access logs**.
+
+By implementing **these security measures**, organizations can **protect sensitive data in serverless applications** while maintaining **compliance with industry security standards**. 🚀
