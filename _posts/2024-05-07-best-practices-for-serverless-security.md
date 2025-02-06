@@ -521,3 +521,167 @@ Logs should **only be accessible** to authorized **administrators and security t
 ✅ **Ensures that only the security team can access logs**.
 
 By implementing **these security measures**, organizations can **protect sensitive data in serverless applications** while maintaining **compliance with industry security standards**. 🚀
+
+## Tools for Vulnerability Scanning in Serverless Environments
+
+Ensuring security in **serverless environments** requires **continuous vulnerability scanning, automated threat detection, and compliance monitoring**. Since serverless functions rely on **event-driven execution**, **third-party dependencies**, and **cloud-based configurations**, attackers can exploit **misconfigurations, exposed secrets, and insecure dependencies** if not properly secured.
+
+This section explores **built-in security scanners from AWS, Azure, and Google Cloud**, **third-party security tools**, and **automated compliance monitoring techniques** to enhance **serverless security**.
+
+### A. Serverless Security Scanners
+
+Cloud providers offer **native security tools** to **detect vulnerabilities, misconfigurations, and policy violations** in serverless applications.
+
+#### 1. AWS Security Hub: Detecting Misconfigurations and Threats in AWS Lambda
+
+AWS Security Hub provides **continuous security monitoring** for **Lambda, IAM roles, API Gateway, and other AWS resources**.
+
+✅ **Key Features:**
+
+- Detects **overly permissive IAM roles in AWS Lambda**.
+- Identifies **exposed APIs and misconfigured security groups**.
+- Provides **security scorecards and compliance insights (e.g., CIS benchmarks, PCI DSS, GDPR).**
+
+💡 **Example: Running an Automated AWS Lambda Security Audit Using AWS Security Hub**
+
+Enable Security Hub:
+
+```sh
+aws securityhub enable-security-hub
+```
+
+Run an automated security audit:
+
+```sh
+aws securityhub get-findings --filters '{"ResourceType": ["AWS::Lambda::Function"]}'
+```
+
+✅ **Detects security threats and compliance violations in AWS Lambda.**
+
+#### 2. Google Cloud Security Scanner: Identifying Security Risks in Serverless Applications
+
+Google Cloud Security Scanner scans **Google Cloud Functions, App Engine, and Compute Engine** for **vulnerabilities**.
+
+✅ **Key Features:**
+
+- Detects **SQL injection, XSS, and authentication flaws** in serverless apps.
+- Scans **Cloud Functions for open event triggers**.
+- Provides **detailed risk analysis for APIs and cloud services**.
+
+💡 **Example: Running a Google Cloud Security Scan for Cloud Functions**
+
+Run a vulnerability scan:
+
+```sh
+gcloud beta web-security-scanner scan-runs start --scan-config="my-serverless-scan"
+```
+
+✅ **Finds security flaws in Google Cloud serverless workloads**.
+
+#### 3. Azure Defender for Serverless: Monitoring Threats in Azure Functions
+
+Azure Defender provides **security monitoring for Azure Functions, Storage, and Kubernetes**.
+
+✅ **Key Features:**
+
+- Detects **unauthorized function execution attempts**.
+- Identifies **insecure API configurations and excessive permissions**.
+- Provides **real-time alerts for potential attacks**.
+
+💡 **Example: Enabling Azure Defender for Serverless**
+
+Enable Defender for Azure Functions:
+
+```sh
+az security pricing create --name "Functions" --tier "Standard"
+```
+
+✅ **Monitors Azure Functions for security risks and compliance issues**.
+
+### B. Third-Party Security Tools
+
+Beyond built-in cloud security tools, **third-party platforms provide advanced vulnerability detection**.
+
+#### 1. Checkov: Static Analysis for Serverless Security Misconfigurations
+
+Checkov is an **open-source infrastructure-as-code (IaC) scanner** that identifies **misconfigured serverless policies, IAM roles, and API Gateway settings**.
+
+✅ **Key Features:**
+
+- Scans **Terraform, CloudFormation, and AWS SAM templates** for security flaws.
+- Identifies **IAM over-permissioning and open event triggers**.
+
+💡 **Example: Scanning AWS Serverless Configurations with Checkov**
+
+```sh
+checkov -d . --framework cloudformation
+```
+
+✅ **Detects insecure IAM roles, API Gateway settings, and function permissions**.
+
+#### 2. Snyk: Detecting Vulnerabilities in Serverless Function Dependencies
+
+Snyk scans **serverless function dependencies** for **known vulnerabilities in third-party libraries**.
+
+✅ **Key Features:**
+
+- Identifies **outdated npm, Python, and Java dependencies**.
+- Provides **real-time security patches**.
+
+💡 **Example: Using Snyk CLI to Scan a Node.js AWS Lambda Function**
+
+Install Snyk:
+
+```sh
+npm install -g snyk
+```
+
+Run a security scan:
+
+```sh
+snyk test
+```
+
+✅ **Detects dependency vulnerabilities and suggests patches**.
+
+### C. Automated Compliance and Monitoring
+
+To **prevent security misconfigurations**, cloud providers offer **compliance monitoring tools** to enforce **best practices**.
+
+#### 1. Setting Up Real-Time Security Alerts for Unauthorized Function Execution
+
+✅ **Use AWS CloudTrail, Google Cloud Audit Logs, or Azure Policy to detect unauthorized function execution.**
+
+💡 **Example: Creating an AWS CloudWatch Alarm for Unauthorized Lambda Execution**
+
+```sh
+aws cloudwatch put-metric-alarm \
+  --alarm-name "UnauthorizedLambdaExecution" \
+  --metric-name Invocations \
+  --namespace AWS/Lambda \
+  --statistic Sum \
+  --threshold 5 \
+  --comparison-operator GreaterThanThreshold \
+  --evaluation-periods 1 \
+  --alarm-actions arn:aws:sns:us-east-1:123456789012:security-alerts
+```
+
+✅ **Triggers an alert if a function is invoked unexpectedly.**
+
+#### 2. Using AWS Config, Google Cloud Audit Logs, and Azure Policy for Compliance Monitoring
+
+✅ **AWS Config** → Monitors AWS Lambda configurations for **security violations**.  
+✅ **Google Cloud Audit Logs** → Tracks **function execution and access patterns**.  
+✅ **Azure Policy** → Enforces **serverless security best practices**.
+
+💡 **Example: Enabling AWS Config Rules to Monitor Lambda Function Changes**
+
+```sh
+aws configservice put-config-rule \
+  --config-rule-name "LambdaConfigMonitoring" \
+  --source Owner="AWS", SourceIdentifier="LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED"
+```
+
+✅ **Detects misconfigurations in AWS Lambda security settings.**
+
+By integrating **these security tools into the development workflow**, organizations can **proactively detect, monitor, and mitigate security risks in serverless applications**. 🚀
