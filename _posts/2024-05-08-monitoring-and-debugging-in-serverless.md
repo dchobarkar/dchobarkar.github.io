@@ -530,3 +530,196 @@ newrelic-lambda install \
 ```
 
 ✅ **Monitors AWS Lambda with real-time analytics.**
+
+## Code Example: Setting Up a Centralized Monitoring Dashboard for Serverless Functions
+
+Monitoring **serverless functions across AWS, Azure, and Google Cloud** can be complex due to **different logging and tracing mechanisms**. A centralized monitoring dashboard **consolidates logs, performance metrics, and tracing data** into a single **unified view**, making it easier to **debug and optimize serverless workloads**.
+
+This section provides a **step-by-step guide** to **setting up a centralized monitoring dashboard** using **AWS CloudWatch, Azure Monitor, and Google Stackdriver**, along with **structured logging, tracing, and alerting mechanisms**.
+
+### A. Project Setup: Creating a Centralized Dashboard for AWS, Azure, and GCP
+
+A **centralized monitoring dashboard** collects logs, errors, and tracing data from multiple cloud providers and **displays them in a unified interface**.
+
+#### 1. Using AWS CloudWatch, Azure Monitor, and Google Stackdriver
+
+Each cloud provider offers its own **monitoring and logging solution**:
+
+| **Cloud Provider**         | **Monitoring Tool** | **Purpose**                      |
+| -------------------------- | ------------------- | -------------------------------- |
+| **AWS Lambda**             | AWS CloudWatch      | Stores logs and function metrics |
+| **Azure Functions**        | Azure Monitor       | Tracks execution time and logs   |
+| **Google Cloud Functions** | Google Stackdriver  | Captures structured logs         |
+
+✅ **Goal:** Forward logs from AWS, Azure, and Google Cloud to **a single monitoring dashboard**.
+
+#### 2. Building a Unified Dashboard with AWS Lambda, Azure Functions, and GCP Cloud Functions
+
+We will **deploy serverless functions** that:  
+✅ **Collect logs from multiple cloud services**.  
+✅ **Forward logs to a centralized monitoring system (e.g., Prometheus, Grafana, or Datadog)**.
+
+💡 **Example: Creating a Centralized Dashboard Using Prometheus and Grafana**
+
+##### Step 1: Set Up a Prometheus Server to Collect Metrics
+
+Prometheus is an **open-source monitoring tool** that collects **metrics from AWS, Azure, and GCP**.
+
+🔹 **Create a Prometheus config file (`prometheus.yml`)**:
+
+```yaml
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "aws_lambda_metrics"
+    static_configs:
+      - targets: ["aws-metrics-endpoint"]
+
+  - job_name: "azure_functions_metrics"
+    static_configs:
+      - targets: ["azure-metrics-endpoint"]
+
+  - job_name: "gcp_functions_metrics"
+    static_configs:
+      - targets: ["gcp-metrics-endpoint"]
+```
+
+✅ **This config pulls serverless function metrics from AWS, Azure, and GCP.**
+
+##### Step 2: Set Up Grafana to Visualize Metrics
+
+Grafana is a **dashboarding tool** that can display logs and function performance.
+
+🔹 **Run Grafana using Docker**:
+
+```sh
+docker run -d -p 3000:3000 grafana/grafana
+```
+
+✅ **Grafana will now visualize the logs and metrics collected by Prometheus.**
+
+### B. Logging and Error Tracking Implementation
+
+A **structured logging system** is essential to make logs **searchable and easy to analyze**.
+
+#### 1. Writing Structured Logs in AWS Lambda (JSON Logs for Easier Parsing)
+
+Instead of using **plain text logs**, we format logs as **JSON** for **better indexing and filtering**.
+
+💡 **Example: Writing Structured Logs in AWS Lambda**
+
+```python
+import json
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+def lambda_handler(event, context):
+    log_data = {
+        "function_name": context.function_name,
+        "memory_used": context.memory_limit_in_mb,
+        "event": event
+    }
+    logger.info(json.dumps(log_data))
+    return {"status": "Success"}
+```
+
+✅ **JSON logs allow centralized dashboards to parse and filter logs efficiently.**
+
+#### 2. Sending Logs to a Centralized Logging System (CloudWatch, Log Analytics, or Stackdriver)
+
+We need to **forward logs from multiple cloud providers** into a **single logging system**.
+
+##### Forward AWS Lambda Logs to CloudWatch
+
+🔹 **Grant permissions to write logs**:
+
+```sh
+aws lambda add-permission \
+  --function-name MyLambdaFunction \
+  --statement-id CloudWatchLogging \
+  --action logs:PutLogEvents \
+  --principal logs.amazonaws.com
+```
+
+##### Forward Azure Function Logs to Azure Log Analytics
+
+🔹 **Enable log forwarding**:
+
+```sh
+az monitor diagnostic-settings create \
+  --name "AzureFunctionLogs" \
+  --resource-group "my-resource-group" \
+  --workspace "my-log-analytics-workspace"
+```
+
+##### Forward Google Cloud Function Logs to Stackdriver
+
+🔹 **Enable log collection**:
+
+```sh
+gcloud functions deploy my-function \
+  --runtime python39 \
+  --trigger-http \
+  --set-env-vars ENABLE_STACKDRIVER_LOGGING=true
+```
+
+✅ **Now, logs from AWS, Azure, and GCP are centralized for analysis.**
+
+#### 3. Example: Using AWS CloudWatch Insights to Filter Lambda Logs
+
+CloudWatch Insights allows **querying and filtering logs** efficiently.
+
+💡 **Example: Querying AWS CloudWatch for Lambda Errors**
+
+```sh
+aws logs filter-log-events \
+  --log-group-name "/aws/lambda/myLambdaFunction" \
+  --filter-pattern "{ $.errorMessage = * }"
+```
+
+✅ **Retrieves all error logs from AWS Lambda.**
+
+### C. Setting Up Tracing and Alerts for Performance Issues
+
+To track **execution time, dependencies, and failures**, we enable **tracing tools**.
+
+#### 1. Using AWS X-Ray, Azure Application Insights, and Cloud Trace for Full-Stack Tracing
+
+| **Cloud Provider**         | **Tracing Tool**           | **Purpose**                            |
+| -------------------------- | -------------------------- | -------------------------------------- |
+| **AWS Lambda**             | AWS X-Ray                  | Tracks function execution latency      |
+| **Azure Functions**        | Azure Application Insights | Captures function dependency execution |
+| **Google Cloud Functions** | Google Cloud Trace         | Provides distributed tracing           |
+
+💡 **Example: Enabling AWS X-Ray for Lambda Function Tracing**
+
+```sh
+aws lambda update-function-configuration \
+  --function-name MyLambdaFunction \
+  --tracing-config Mode=Active
+```
+
+✅ **This allows AWS X-Ray to track execution time and detect slow function calls.**
+
+#### 2. Example: Creating an Alert for Slow Function Execution Using AWS CloudWatch
+
+To detect **performance bottlenecks**, we set up **CloudWatch Alarms**.
+
+💡 **Example: Setting an Alert for Slow Lambda Execution**
+
+```sh
+aws cloudwatch put-metric-alarm \
+  --alarm-name "SlowLambdaExecution" \
+  --metric-name Duration \
+  --namespace AWS/Lambda \
+  --statistic Average \
+  --threshold 5000 \
+  --comparison-operator GreaterThanThreshold \
+  --evaluation-periods 1 \
+  --alarm-actions arn:aws:sns:us-east-1:123456789012:alerts-topic
+```
+
+✅ **Triggers an alert if function execution exceeds 5 seconds.**
