@@ -443,3 +443,157 @@ aws apigateway create-rest-api --name "HybridAPI"
 ```
 
 ✅ Now, external users can trigger **AWS Lambda**, which routes requests to **Amazon EKS**.
+
+## Emerging Trends in Serverless Computing
+
+Serverless computing is continuously evolving, moving beyond simple **stateless functions** to support **long-lived processes, AI workloads, and edge computing**. These advancements are shaping the future of **cloud-native applications**, enabling **greater scalability, cost efficiency, and real-time processing**.
+
+In this section, we’ll explore the latest trends in **serverless computing**, including:
+
+✅ **FaaS 2.0: Long-lived and orchestrated serverless functions**.  
+✅ **Serverless AI: Running machine learning workloads with serverless functions**.  
+✅ **Edge computing: Bringing serverless closer to users for ultra-low latency**.  
+✅ **A practical example: Deploying an AI model using AWS Lambda**.
+
+### The Rise of FaaS 2.0
+
+#### 1. How FaaS 2.0 Is Evolving Beyond Stateless Functions
+
+Traditional **Function as a Service (FaaS)** platforms like **AWS Lambda, Azure Functions, and Google Cloud Functions** execute **short-lived, stateless functions** that automatically scale. However, **some applications require long-lived execution, state management, and workflow coordination**, leading to the rise of **FaaS 2.0**.
+
+💡 **What’s new in FaaS 2.0?**  
+✅ **Support for long-running transactions**: Previously, functions were limited to **15 minutes of execution** (AWS Lambda), but now **stateful workflows** allow longer execution.  
+✅ **State persistence**: Instead of relying on external databases, FaaS 2.0 enables **stateful function execution**.  
+✅ **Workflow orchestration**: Modern FaaS platforms can **coordinate multiple functions into larger workflows**.
+
+#### 2. Examples of FaaS 2.0 in Action
+
+🚀 **AWS Step Functions** → Orchestrates multiple Lambda functions for complex workflows.  
+🚀 **Azure Durable Functions** → Enables **stateful function execution and long-running processes**.  
+🚀 **Google Workflows** → Connects cloud functions with external APIs and event-driven workflows.
+
+💡 **Example: Using AWS Step Functions for an Order Processing Workflow**
+
+✅ **Order Received (Lambda Function 1)** → ✅ **Payment Processing (Lambda Function 2)** → ✅ **Inventory Check (Lambda Function 3)** → ✅ **Shipping Confirmation (Lambda Function 4)**
+
+📌 **Code Example: AWS Step Functions Definition**
+
+```json
+{
+  "Comment": "Order Processing Workflow",
+  "StartAt": "ReceiveOrder",
+  "States": {
+    "ReceiveOrder": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:123456789:function:ReceiveOrder",
+      "Next": "ProcessPayment"
+    },
+    "ProcessPayment": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:123456789:function:ProcessPayment",
+      "Next": "CheckInventory"
+    },
+    "CheckInventory": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:123456789:function:CheckInventory",
+      "Next": "ShipOrder"
+    },
+    "ShipOrder": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:123456789:function:ShipOrder",
+      "End": true
+    }
+  }
+}
+```
+
+✅ This example **chains multiple serverless functions together** in an automated workflow.
+
+### Serverless AI: Running Machine Learning Workloads in a Serverless Environment
+
+#### 1. Why AI and Serverless Work Well Together
+
+Serverless computing is **changing the way machine learning (ML) workloads are deployed**, making it easier to:
+
+✅ **Run AI models without provisioning GPUs**.  
+✅ **Automatically scale inference workloads**.  
+✅ **Reduce infrastructure costs by running models only when needed**.
+
+#### 2. How Serverless AI Works
+
+🚀 **Inference on demand** → Deploying AI models as **serverless functions** for real-time predictions.  
+🚀 **Pre-trained models on serverless runtimes** → AWS Lambda, Google Cloud Functions, and Azure Functions support AI models.  
+🚀 **Serverless AI at the edge** → Running models closer to users with **Cloudflare Workers and AWS Lambda@Edge**.
+
+💡 **Example: AI Chatbot Using AWS Lambda and TensorFlow**  
+✅ A user sends a message → ✅ AWS Lambda **runs an NLP model** → ✅ The response is sent back instantly.
+
+📌 **Deploying an AI Model with AWS Lambda**
+
+```python
+import json
+import tensorflow as tf
+import numpy as np
+
+# Load pre-trained model
+model = tf.keras.models.load_model("model.h5")
+
+def lambda_handler(event, context):
+    data = json.loads(event["body"])
+    input_features = np.array(data["features"]).reshape(1, -1)
+
+    prediction = model.predict(input_features)
+
+    return {
+        "statusCode": 200,
+        "body": json.dumps({"prediction": prediction.tolist()})
+    }
+```
+
+✅ This function **loads a pre-trained TensorFlow model** and **performs real-time inference**.
+
+### Edge Computing and Serverless
+
+#### 1. What Is Edge Computing in Serverless?
+
+**Edge computing** moves computation **closer to users**, reducing **latency** and **improving performance** for real-time applications.
+
+✅ **Traditional cloud computing** → Requests travel to central cloud servers (higher latency).  
+✅ **Edge computing** → Functions execute at the nearest **edge location**, reducing delays.
+
+#### 2. Real-World Use Cases of Edge Serverless
+
+🚀 **IoT Processing** → Edge functions analyze sensor data in real-time.  
+🚀 **Video Analytics** → AI-powered edge functions detect **objects in security cameras**.  
+🚀 **Content Delivery Optimization** → Cloudflare Workers and AWS Lambda@Edge **reduce website load times**.
+
+#### 3. Examples of Serverless Edge Computing
+
+🚀 **Cloudflare Workers** → Runs serverless functions **closer to users for web optimization**.  
+🚀 **AWS Lambda@Edge** → Extends Lambda functions to **CloudFront edge locations**.  
+🚀 **Azure IoT Edge** → Runs **serverless workloads** on **IoT devices**.
+
+💡 **Example: Image Processing Using AWS Lambda@Edge**  
+✅ A user uploads an image → ✅ Lambda@Edge **resizes it** before storing it in S3.
+
+📌 **Lambda@Edge Function Example (Python)**
+
+```python
+import json
+import boto3
+
+s3 = boto3.client("s3")
+
+def lambda_handler(event, context):
+    bucket = "edge-image-bucket"
+    key = event["Records"][0]["s3"]["object"]["key"]
+
+    # Resize image logic (simplified)
+    resized_image = process_image(key)
+
+    s3.put_object(Bucket=bucket, Key=f"resized/{key}", Body=resized_image)
+
+    return {"statusCode": 200, "body": "Image processed at edge"}
+```
+
+✅ This function processes images at the **edge**, reducing latency and bandwidth usage.
