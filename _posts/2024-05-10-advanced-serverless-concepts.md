@@ -272,3 +272,174 @@ resource "azurerm_function_app" "multi_cloud" {
 ✅ **This function is now deployed across AWS, Azure, and GCP**.
 
 This **multi-cloud serverless approach** ensures **flexibility, scalability, and high availability** for modern cloud applications.
+
+## Hybrid Serverless: Integrating Serverless Functions with Containerized Microservices\*\*
+
+As cloud applications become more complex, businesses are moving beyond **pure serverless architectures** and adopting **hybrid serverless models**, which combine **serverless functions and containerized microservices**. This hybrid approach enables organizations to:
+
+✅ **Leverage the scalability of serverless functions for event-driven workflows.**  
+✅ **Use containerized microservices for long-running, stateful processes.**  
+✅ **Ensure cost efficiency by running workloads in the most optimized environment.**
+
+In this section, we’ll explore how **hybrid serverless architectures** work, their **use cases**, and how to integrate **AWS Lambda with Kubernetes** for a real-world example.
+
+### Understanding Hybrid Serverless Architectures
+
+#### 1. How Serverless Functions and Containerized Services Work Together
+
+Traditional **serverless functions** (e.g., AWS Lambda, Azure Functions, Google Cloud Functions) are ideal for **short-lived, event-driven tasks**. However, when applications require **long-running workloads, stateful services, or advanced networking**, **containers and Kubernetes** provide greater control.
+
+By combining both approaches, businesses can:  
+✅ **Use serverless for lightweight, transient tasks.**  
+✅ **Deploy microservices in Kubernetes for persistent, scalable workloads.**  
+✅ **Orchestrate event-driven workflows between serverless functions and microservices.**
+
+#### 2. Differences Between FaaS (Function as a Service) and Container-Based Workloads
+
+| Feature                        | Serverless (FaaS)                    | Containerized Microservices                   |
+| ------------------------------ | ------------------------------------ | --------------------------------------------- |
+| **Execution Time**             | Short-lived (typically < 15 min)     | Long-running, stateful processes              |
+| **Scalability**                | Auto-scales instantly                | Requires manual autoscaling or Kubernetes HPA |
+| **State Management**           | Stateless (uses external storage)    | Can be stateful or stateless                  |
+| **Startup Time**               | Fast (cold starts possible)          | Slower due to container startup overhead      |
+| **Networking & Communication** | Limited network control              | Full control over networking & security       |
+| **Use Cases**                  | Event-driven functions, API backends | Persistent services, databases, AI/ML models  |
+
+💡 **Example: Hybrid Architecture for a SaaS Platform**
+
+- **AWS Lambda** handles real-time API requests.
+- **Amazon EKS (Kubernetes)** runs a background AI model for batch processing.
+- **AWS API Gateway** routes requests between serverless functions and microservices.
+
+#### 3. When to Use Serverless vs. Kubernetes-Based Microservices
+
+| **Scenario**             | **Best Choice**                                                 |
+| ------------------------ | --------------------------------------------------------------- |
+| Short-lived API requests | ✅ Serverless (FaaS)                                            |
+| Long-running batch jobs  | ✅ Kubernetes (Containers)                                      |
+| Event-driven processing  | ✅ Serverless (FaaS)                                            |
+| Stateful applications    | ✅ Kubernetes (Containers)                                      |
+| AI/ML model training     | ✅ Kubernetes (Containers)                                      |
+| CI/CD pipelines          | ✅ Kubernetes (Containers)                                      |
+| API backends             | ✅ Serverless for lightweight APIs, Containers for complex APIs |
+
+### Use Cases for Hybrid Serverless Architectures
+
+#### 1. Event-Driven Microservices: Serverless for Event Processing, Kubernetes for Long-Running Services
+
+Hybrid architectures are commonly used in **event-driven workflows**, where:
+
+- **Serverless functions** handle incoming events (e.g., API calls, file uploads, database triggers).
+- **Kubernetes microservices** process complex, long-running tasks.
+
+💡 **Example: E-Commerce Order Processing**  
+✅ **AWS Lambda** listens for new orders from an API.  
+✅ **A Kubernetes service** performs **fraud detection, inventory validation, and payment processing**.  
+✅ **Event-driven architecture** ensures **scalability, resilience, and cost efficiency**.
+
+#### 2. AI and ML Pipelines: Serverless for Inference, Kubernetes for Training
+
+AI-driven applications require **high-performance computing for model training**, but serverless is **cost-effective for inference**.
+
+💡 **Example: AI-Based Image Processing**  
+✅ **AWS Lambda** handles image uploads and pre-processing.  
+✅ **Amazon EKS (Kubernetes)** runs **deep learning models** for real-time analysis.  
+✅ **Serverless functions trigger Kubernetes jobs asynchronously**.
+
+#### 3. Financial and Compliance-Sensitive Workloads: Hybrid Approach for Data Security and Governance
+
+Finance and healthcare applications require **strict security controls** while maintaining **scalability**.
+
+💡 **Example: Fraud Detection System**  
+✅ **Google Cloud Functions** processes transactions in real time.  
+✅ **Google Kubernetes Engine (GKE)** performs **machine learning-based fraud analysis**.  
+✅ **Hybrid architecture ensures compliance while maintaining speed**.
+
+### Connecting AWS Lambda with a Kubernetes Cluster
+
+#### 1. Setting Up an API Gateway to Trigger a Containerized Microservice Running on Amazon EKS
+
+In a **hybrid serverless setup**, AWS Lambda can **trigger a containerized microservice** running on Amazon EKS.
+
+#### Step 1: Deploy the Kubernetes Microservice
+
+We’ll deploy a simple Python-based **Flask API** inside a Kubernetes cluster.
+
+💡 **Flask App for Kubernetes (Python API)**
+
+```python
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route('/process', methods=['POST'])
+def process():
+    data = request.get_json()
+    response = {"message": f"Processed: {data}"}
+    return jsonify(response)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+```
+
+💡 **Kubernetes Deployment YAML**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-microservice
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: flask-microservice
+  template:
+    metadata:
+      labels:
+        app: flask-microservice
+    spec:
+      containers:
+        - name: flask-api
+          image: mydockerhub/flask-api:latest
+          ports:
+            - containerPort: 5000
+```
+
+✅ This deploys a **Flask API microservice inside an Amazon EKS cluster**.
+
+#### Step 2: Writing a Lambda Function to Process Incoming API Requests and Forward Them to Kubernetes
+
+AWS Lambda will **receive an API request and forward it to the Kubernetes microservice**.
+
+💡 **AWS Lambda Function (Python)**
+
+```python
+import json
+import requests
+
+def lambda_handler(event, context):
+    url = "http://flask-microservice.default.svc.cluster.local:5000/process"
+    payload = json.loads(event["body"])
+
+    response = requests.post(url, json=payload)
+
+    return {
+        "statusCode": response.status_code,
+        "body": response.text
+    }
+```
+
+✅ This **serverless function forwards API requests to the Kubernetes microservice**.
+
+#### Step 3: Deploying API Gateway to Expose the Lambda Function
+
+To **invoke the Lambda function externally**, we’ll use **AWS API Gateway**.
+
+💡 **AWS CLI Command to Deploy API Gateway**
+
+```sh
+aws apigateway create-rest-api --name "HybridAPI"
+```
+
+✅ Now, external users can trigger **AWS Lambda**, which routes requests to **Amazon EKS**.
