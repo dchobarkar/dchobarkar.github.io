@@ -815,3 +815,191 @@ server.listen().then(({ url }) => console.log(`GraphQL API running at ${url}`));
 - **GraphQL** excels when clients require **nested data** in a single request, offering **flexibility** and **performance efficiency**.
 
 Both approaches have their strengths; the choice depends on **project requirements**, **performance goals**, and **team expertise**.
+
+## 🛡 Error Handling Differences
+
+Effective error handling is crucial for robust API design. REST and GraphQL have distinct mechanisms for managing errors, each with its own advantages. This section explores these differences with comprehensive explanations and code snippets.
+
+### 🌿 REST: Standard HTTP Status Codes
+
+#### ✅ Key Concepts:
+
+- REST relies on **standard HTTP status codes** to indicate the outcome of requests.
+- Common codes include:
+  - `200 OK`: Successful request.
+  - `400 Bad Request`: Invalid client request.
+  - `404 Not Found`: Resource does not exist.
+  - `500 Internal Server Error`: Server-side error.
+
+#### 📜 Example: REST Error Response (Node.js with Express)
+
+```javascript
+app.get("/users/:id", (req, res) => {
+  const user = users.find((u) => u.id === parseInt(req.params.id));
+  if (!user) {
+    return res.status(404).json({
+      error: "User not found",
+      code: 404,
+    });
+  }
+  res.json(user);
+});
+```
+
+##### 📝 Response:
+
+```json
+{
+  "error": "User not found",
+  "code": 404
+}
+```
+
+#### ⚠️ Pros and Cons of REST Error Handling:
+
+- ✅ **Pros:**
+  - Clear mapping to HTTP protocol semantics.
+  - Easy integration with HTTP-based tools.
+- ❌ **Cons:**
+  - Limited to HTTP semantics; lacks granularity in complex scenarios.
+
+### ⚡ GraphQL: Structured Errors Field
+
+#### ✅ Key Concepts:
+
+- GraphQL returns errors in a **structured `errors` field** within the response, allowing both **data** and **error information** to be delivered together.
+- Supports **partial success** where part of the query can succeed while other parts fail.
+- Allows **custom error extensions** for additional context.
+
+#### 📜 Example: GraphQL Error Response
+
+##### 🔄 Query:
+
+```graphql
+query {
+  user(id: "99") {
+    name
+    email
+  }
+}
+```
+
+##### 📝 Response:
+
+```json
+{
+  "data": {
+    "user": null
+  },
+  "errors": [
+    {
+      "message": "User not found",
+      "locations": [{ "line": 2, "column": 3 }],
+      "path": ["user"],
+      "extensions": {
+        "code": "USER_NOT_FOUND",
+        "httpStatus": 404
+      }
+    }
+  ]
+}
+```
+
+#### ⚙️ Partial Success Handling:
+
+If part of the query is valid, GraphQL returns available data alongside errors for invalid fields.
+
+##### 📜 Example: Partial Success Query
+
+```graphql
+query {
+  user(id: "1") {
+    name
+    nonExistentField # Invalid field
+  }
+}
+```
+
+##### 📝 Response:
+
+```json
+{
+  "data": {
+    "user": { "name": "Alice" }
+  },
+  "errors": [
+    {
+      "message": "Cannot query field 'nonExistentField' on type 'User'.",
+      "locations": [{ "line": 4, "column": 5 }],
+      "path": ["user", "nonExistentField"]
+    }
+  ]
+}
+```
+
+### 🔒 Handling Validation and Authentication Errors
+
+#### 🛡 REST Example: Authentication Error
+
+```javascript
+app.get("/secure-data", (req, res) => {
+  if (!req.headers.authorization) {
+    return res.status(401).json({
+      error: "Unauthorized access",
+      code: 401,
+    });
+  }
+  res.json({ data: "Secure data content" });
+});
+```
+
+##### 📝 Response:
+
+```json
+{
+  "error": "Unauthorized access",
+  "code": 401
+}
+```
+
+#### ⚡ GraphQL Example: Authentication Error
+
+```graphql
+query {
+  secureData {
+    content
+  }
+}
+```
+
+##### 📝 Response:
+
+```json
+{
+  "errors": [
+    {
+      "message": "Unauthorized access",
+      "extensions": {
+        "code": "UNAUTHORIZED",
+        "httpStatus": 401
+      }
+    }
+  ]
+}
+```
+
+### 📝 Key Differences Recap
+
+| Aspect                | REST                            | GraphQL                                 |
+| --------------------- | ------------------------------- | --------------------------------------- |
+| **Error Location**    | HTTP status code, response body | `errors` field in JSON response         |
+| **Partial Success**   | Not supported                   | Supported (returns valid data + errors) |
+| **Error Granularity** | Limited to HTTP codes           | Highly granular with custom extensions  |
+| **Response Format**   | Separate for each endpoint      | Unified response with data and errors   |
+
+### 🎯 Key Takeaways
+
+- **REST** provides a **simple**, **standardized** approach to error handling, ideal for straightforward APIs.
+- **GraphQL** offers **rich, structured error responses** that enhance debugging and support **partial success**, making it ideal for complex, client-driven applications.
+
+Understanding these differences is vital for designing APIs that deliver **robust error feedback**, ensuring a seamless **developer experience** and **efficient debugging processes**.
