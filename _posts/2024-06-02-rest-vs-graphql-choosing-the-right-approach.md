@@ -1003,3 +1003,174 @@ query {
 - **GraphQL** offers **rich, structured error responses** that enhance debugging and support **partial success**, making it ideal for complex, client-driven applications.
 
 Understanding these differences is vital for designing APIs that deliver **robust error feedback**, ensuring a seamless **developer experience** and **efficient debugging processes**.
+
+## 🔐 Security Considerations
+
+Security is a crucial aspect of any API architecture. While both **REST** and **GraphQL** offer robust security mechanisms, their approaches differ significantly. This section explores the key security considerations for both paradigms, complete with **code snippets** and **practical insights**.
+
+### 🛡 Authentication & Authorization
+
+#### 🌿 REST: Token-Based Authentication (JWT) & OAuth Flows
+
+REST commonly uses **JSON Web Tokens (JWT)** and **OAuth** for managing authentication and authorization.
+
+##### 📜 Example: JWT Authentication in REST (Node.js with Express)
+
+```javascript
+const jwt = require("jsonwebtoken");
+const express = require("express");
+const app = express();
+
+const secretKey = "your_secret_key";
+
+app.post("/login", (req, res) => {
+  const user = { id: 1, username: "Alice" };
+  const token = jwt.sign(user, secretKey, { expiresIn: "1h" });
+  res.json({ token });
+});
+
+const authenticateJWT = (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.sendStatus(401);
+  jwt.verify(token, secretKey, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+};
+
+app.get("/secure-data", authenticateJWT, (req, res) => {
+  res.json({ data: "Secure content" });
+});
+
+app.listen(3000, () => console.log("REST API running on port 3000"));
+```
+
+##### 📝 Key Insights:
+
+- **JWT** allows **stateless authentication**, ideal for distributed systems.
+- **OAuth** is commonly used for third-party integrations, providing **token-based access**.
+
+#### ⚡ GraphQL: Field-Level Authorization & Custom Resolvers
+
+GraphQL provides **fine-grained control** by allowing **field-level authorization** and **custom authentication resolvers**.
+
+##### 📜 Example: Authentication in GraphQL with Apollo Server
+
+```javascript
+const { ApolloServer, gql } = require("apollo-server");
+const jwt = require("jsonwebtoken");
+
+const secretKey = "your_secret_key";
+
+const typeDefs = gql`
+  type Query {
+    secureData: String
+  }
+`;
+
+const resolvers = {
+  Query: {
+    secureData: (parent, args, context) => {
+      if (!context.user) throw new Error("Unauthorized");
+      return "Secure content";
+    },
+  },
+};
+
+const getUser = (token) => {
+  try {
+    return jwt.verify(token, secretKey);
+  } catch (err) {
+    return null;
+  }
+};
+
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  context: ({ req }) => {
+    const token = req.headers.authorization?.split(" ")[1];
+    const user = getUser(token);
+    return { user };
+  },
+});
+
+server.listen().then(({ url }) => console.log(`GraphQL API running at ${url}`));
+```
+
+##### 📝 Key Insights:
+
+- **Field-level control** ensures only authorized users access sensitive fields.
+- **Custom resolvers** provide flexible authentication workflows.
+
+### 🔒 Preventing Common Vulnerabilities
+
+#### 🌿 REST: Securing Endpoints & Rate-Limiting
+
+- **Endpoint security:** Use **HTTPS**, **input validation**, and **CORS policies**.
+- **Rate-limiting:** Prevents **brute force** and **denial-of-service (DoS)** attacks.
+
+##### 📜 Example: Rate Limiting with Express-Rate-Limit
+
+```javascript
+const rateLimit = require("express-rate-limit");
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+});
+
+app.use(limiter);
+```
+
+#### ⚡ GraphQL: Query Depth Limiting & Complexity Analysis
+
+GraphQL’s **flexible query structure** can be exploited for **resource-intensive operations**. Mitigation strategies include:
+
+- **Query depth limiting:** Restricts query depth to prevent nested attacks.
+- **Complexity analysis:** Estimates and limits the cost of query execution.
+
+##### 📜 Example: Depth Limiting with graphql-depth-limit
+
+```javascript
+const depthLimit = require("graphql-depth-limit");
+
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  validationRules: [depthLimit(5)], // Maximum depth: 5
+});
+```
+
+##### 📜 Example: Complexity Analysis with graphql-query-complexity
+
+```javascript
+const { createComplexityLimitRule } = require("graphql-validation-complexity");
+
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  validationRules: [
+    createComplexityLimitRule(1000, {
+      onCost: (cost) => console.log("Query cost:", cost),
+    }),
+  ],
+});
+```
+
+### 📝 Key Differences Recap
+
+| Security Aspect                     | REST                                       | GraphQL                                 |
+| ----------------------------------- | ------------------------------------------ | --------------------------------------- |
+| **Authentication**                  | JWT, OAuth                                 | Field-level auth, custom resolvers      |
+| **Rate Limiting**                   | HTTP middleware (e.g., express-rate-limit) | Query depth and complexity limits       |
+| **Common Vulnerability Mitigation** | Endpoint security, input validation        | Query validation, introspection control |
+| **Authorization Granularity**       | Endpoint-based                             | Field and resolver-based                |
+
+### 🎯 Key Takeaways
+
+- **REST** offers **straightforward security** using HTTP mechanisms like **JWT**, **OAuth**, and **rate-limiting**.
+- **GraphQL** provides **fine-grained control** with **field-level authorization**, **query validation**, and **complexity analysis**.
+
+Both REST and GraphQL require careful attention to **security best practices** to ensure **robust**, **scalable**, and **secure** API designs.
