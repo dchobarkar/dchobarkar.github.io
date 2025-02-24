@@ -1174,3 +1174,209 @@ const server = new ApolloServer({
 - **GraphQL** provides **fine-grained control** with **field-level authorization**, **query validation**, and **complexity analysis**.
 
 Both REST and GraphQL require careful attention to **security best practices** to ensure **robust**, **scalable**, and **secure** API designs.
+
+## 💻 Code Snippets: RESTful Endpoints vs. GraphQL Queries
+
+This section provides practical **code examples** highlighting key operations in both **REST** and **GraphQL**, including **CRUD operations**, **authentication workflows**, and **pagination/filtering strategies**.
+
+### 📝 User CRUD Operations: REST vs. GraphQL
+
+#### 🌿 REST: User CRUD Endpoints
+
+##### 📜 Endpoints for User Management (Node.js with Express)
+
+```javascript
+const express = require("express");
+const app = express();
+app.use(express.json());
+
+const users = [];
+
+// Create User
+app.post("/users", (req, res) => {
+  const user = { id: users.length + 1, ...req.body };
+  users.push(user);
+  res.status(201).json(user);
+});
+
+// Read Users
+app.get("/users", (req, res) => res.json(users));
+
+// Read User by ID
+app.get("/users/:id", (req, res) => {
+  const user = users.find((u) => u.id === parseInt(req.params.id));
+  user ? res.json(user) : res.status(404).send("User not found");
+});
+
+// Update User
+app.put("/users/:id", (req, res) => {
+  const user = users.find((u) => u.id === parseInt(req.params.id));
+  if (user) {
+    Object.assign(user, req.body);
+    res.json(user);
+  } else {
+    res.status(404).send("User not found");
+  }
+});
+
+// Delete User
+app.delete("/users/:id", (req, res) => {
+  const index = users.findIndex((u) => u.id === parseInt(req.params.id));
+  index !== -1
+    ? users.splice(index, 1) && res.status(204).send()
+    : res.status(404).send("User not found");
+});
+
+app.listen(3000, () => console.log("REST API running on port 3000"));
+```
+
+#### ⚡ GraphQL: User CRUD Operations
+
+##### 📜 Schema & Resolvers (Apollo Server)
+
+```javascript
+const { ApolloServer, gql } = require("apollo-server");
+
+const typeDefs = gql`
+  type User {
+    id: ID!
+    name: String!
+    email: String!
+  }
+  type Query {
+    users: [User]
+    user(id: ID!): User
+  }
+  type Mutation {
+    createUser(name: String!, email: String!): User
+    updateUser(id: ID!, name: String, email: String): User
+    deleteUser(id: ID!): Boolean
+  }
+`;
+
+const users = [];
+
+const resolvers = {
+  Query: {
+    users: () => users,
+    user: (_, { id }) => users.find((u) => u.id === id),
+  },
+  Mutation: {
+    createUser: (_, { name, email }) => {
+      const user = { id: `${users.length + 1}`, name, email };
+      users.push(user);
+      return user;
+    },
+    updateUser: (_, { id, ...args }) =>
+      Object.assign(users.find((u) => u.id === id) || {}, args),
+    deleteUser: (_, { id }) =>
+      users.splice(
+        users.findIndex((u) => u.id === id),
+        1
+      ).length > 0,
+  },
+};
+
+new ApolloServer({ typeDefs, resolvers })
+  .listen()
+  .then(({ url }) => console.log(`GraphQL API at ${url}`));
+```
+
+### 🔐 Authentication Workflow
+
+#### 🌿 REST: Token Validation Middleware
+
+##### 📜 REST Authentication (JWT)
+
+```javascript
+const jwt = require("jsonwebtoken");
+
+app.post("/login", (req, res) => {
+  const { username } = req.body;
+  const token = jwt.sign({ username }, "secretKey", { expiresIn: "1h" });
+  res.json({ token });
+});
+
+const authenticateJWT = (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  token
+    ? jwt.verify(token, "secretKey", (err, user) =>
+        err ? res.sendStatus(403) : ((req.user = user), next())
+      )
+    : res.sendStatus(401);
+};
+
+app.get("/secure-data", authenticateJWT, (req, res) =>
+  res.json({ data: "Secure content" })
+);
+```
+
+#### ⚡ GraphQL: Context-Based Authentication
+
+##### 📜 GraphQL Authentication with Apollo Server
+
+```javascript
+const getUserFromToken = (token) => jwt.verify(token, "secretKey");
+
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  context: ({ req }) => {
+    const token = req.headers.authorization?.split(" ")[1];
+    return { user: token ? getUserFromToken(token) : null };
+  },
+});
+```
+
+### 📈 Pagination and Filtering
+
+#### 🌿 REST: Query Parameters for Pagination
+
+##### 📜 REST Pagination Example
+
+```javascript
+app.get("/users", (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+  const startIndex = (page - 1) * limit;
+  const paginatedUsers = users.slice(startIndex, startIndex + limit);
+  res.json(paginatedUsers);
+});
+```
+
+#### ⚡ GraphQL: Arguments for Pagination
+
+##### 📜 GraphQL Pagination Query
+
+```graphql
+query GetPaginatedUsers($page: Int!, $limit: Int!) {
+  users(page: $page, limit: $limit) {
+    id
+    name
+    email
+  }
+}
+```
+
+##### ⚙️ Resolver Implementation
+
+```javascript
+Query: {
+  users: (_, { page = 1, limit = 10 }) => users.slice((page - 1) * limit, page * limit),
+}
+```
+
+### 🔍 Key Differences Recap
+
+| Feature             | REST (Endpoints & Middleware)               | GraphQL (Queries & Mutations)     |
+| ------------------- | ------------------------------------------- | --------------------------------- |
+| **CRUD Operations** | Separate endpoints per operation            | Single endpoint, flexible queries |
+| **Authentication**  | JWT with middleware validation              | Context-based token validation    |
+| **Pagination**      | Query parameters (e.g., `?page=1&limit=10`) | Arguments passed in queries       |
+| **Filtering**       | Endpoint-specific filtering                 | Flexible query parameters         |
+
+### 🎯 Key Takeaways
+
+- **REST** offers clear, standardized patterns for **CRUD**, **authentication**, and **pagination** using distinct endpoints and middleware.
+- **GraphQL** provides **greater flexibility** with **dynamic queries**, **context-based authentication**, and **integrated pagination**, ideal for modern, client-driven applications.
+
+These examples demonstrate how to implement **core API functionalities** efficiently in both **REST** and **GraphQL**, allowing developers to choose the best approach based on their project needs.
