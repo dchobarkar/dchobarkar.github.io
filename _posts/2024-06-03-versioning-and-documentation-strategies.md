@@ -628,3 +628,298 @@ Now, visiting **`http://localhost:4000/playground`** provides a feature-rich UI 
 - **Choosing the right tool** depends on API type, interactivity needs, and branding preferences.
 
 By integrating **Swagger, Redoc, or GraphQL Playground**, teams can ensure that their APIs remain **well-documented, accessible, and easy to use** for developers worldwide. 🚀
+
+## 💻 Code Snippets: OpenAPI Definitions and Swagger Integration
+
+When building APIs, **documenting them properly** ensures that developers can easily understand, test, and integrate them into their applications. OpenAPI (formerly Swagger) provides a **standardized way** to describe APIs using **YAML or JSON**. In this section, we will explore **how to define OpenAPI schemas** and **integrate Swagger UI into Express.js and NestJS applications** with step-by-step code snippets.
+
+### 🚀 Creating OpenAPI Definitions
+
+OpenAPI defines an API's structure using **YAML or JSON**. Below are examples of an OpenAPI schema that describes a **simple user management API**.
+
+#### 1️⃣ OpenAPI Definition in YAML
+
+```yaml
+openapi: 3.0.0
+info:
+  title: User API
+  description: API for managing users
+  version: 1.0.0
+servers:
+  - url: https://api.example.com/v1
+paths:
+  /users:
+    get:
+      summary: Get all users
+      responses:
+        "200":
+          description: Successfully retrieved users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      summary: Create a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+      responses:
+        "201":
+          description: User created successfully
+  /users/{id}:
+    get:
+      summary: Get a user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+```
+
+#### 2️⃣ OpenAPI Definition in JSON
+
+```json
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "User API",
+    "description": "API for managing users",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com/v1"
+    }
+  ],
+  "paths": {
+    "/users": {
+      "get": {
+        "summary": "Get all users",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/User"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "email": { "type": "string" }
+        }
+      }
+    }
+  }
+}
+```
+
+#### 3️⃣ Integrating OpenAPI Definitions into a Node.js App
+
+Once an OpenAPI schema is defined, you can serve it dynamically in a **Node.js Express application**:
+
+```javascript
+const express = require("express");
+const swaggerUi = require("swagger-ui-express");
+const swaggerDocument = require("./openapi.json"); // Load OpenAPI JSON file
+
+const app = express();
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+app.listen(3000, () => {
+  console.log("Server running at http://localhost:3000/api-docs");
+});
+```
+
+After running this, visiting **`http://localhost:3000/api-docs`** will render an **interactive API documentation UI** powered by Swagger.
+
+### 🏗 Integrating Swagger in Express.js and NestJS
+
+#### 1️⃣ Integrating Swagger in Express.js
+
+To integrate Swagger in an **Express.js application**, follow these steps:
+
+##### 📌 Step 1: Install Dependencies
+
+```sh
+npm install swagger-ui-express swagger-jsdoc
+```
+
+##### 📌 Step 2: Define Swagger Configuration
+
+Create a `swagger.js` file:
+
+```javascript
+const swaggerJsdoc = require("swagger-jsdoc");
+
+const swaggerOptions = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "User API",
+      version: "1.0.0",
+      description: "API documentation for managing users",
+    },
+    servers: [{ url: "http://localhost:3000" }],
+  },
+  apis: ["./routes/*.js"], // Define paths to API route files
+};
+
+const swaggerDocs = swaggerJsdoc(swaggerOptions);
+module.exports = swaggerDocs;
+```
+
+##### 📌 Step 3: Set Up Swagger UI in `server.js`
+
+```javascript
+const express = require("express");
+const swaggerUi = require("swagger-ui-express");
+const swaggerDocs = require("./swagger");
+
+const app = express();
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
+app.listen(3000, () =>
+  console.log("Server running on http://localhost:3000/api-docs")
+);
+```
+
+#### 2️⃣ Advanced Configuration for NestJS APIs
+
+NestJS provides built-in support for OpenAPI via the **`@nestjs/swagger`** package.
+
+##### 📌 Step 1: Install Dependencies
+
+```sh
+npm install --save @nestjs/swagger swagger-ui-express
+```
+
+##### 📌 Step 2: Configure Swagger in `main.ts`
+
+```typescript
+import { NestFactory } from "@nestjs/core";
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { AppModule } from "./app.module";
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  const config = new DocumentBuilder()
+    .setTitle("User API")
+    .setDescription("API documentation for user management")
+    .setVersion("1.0")
+    .addBearerAuth() // Adding JWT authentication
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup("api-docs", app, document);
+
+  await app.listen(3000);
+}
+bootstrap();
+```
+
+##### 📌 Step 3: Adding Swagger Annotations to Controllers
+
+NestJS allows developers to use **decorators** to enhance API documentation.
+
+Example **`users.controller.ts`**:
+
+```typescript
+import { Controller, Get, Post, Body } from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiResponse, ApiBody } from "@nestjs/swagger";
+
+@ApiTags("Users")
+@Controller("users")
+export class UsersController {
+  @Get()
+  @ApiOperation({ summary: "Get all users" })
+  @ApiResponse({ status: 200, description: "Returns all users" })
+  getAllUsers() {
+    return [
+      { id: 1, name: "Alice" },
+      { id: 2, name: "Bob" },
+    ];
+  }
+
+  @Post()
+  @ApiOperation({ summary: "Create a new user" })
+  @ApiBody({
+    schema: { example: { name: "John Doe", email: "john@example.com" } },
+  })
+  @ApiResponse({ status: 201, description: "User created successfully" })
+  createUser(@Body() user) {
+    return { id: 3, ...user };
+  }
+}
+```
+
+Now, when running the NestJS application, visiting **`http://localhost:3000/api-docs`** will provide an interactive Swagger UI with **auto-generated documentation**.
+
+### 🎯 Key Takeaways
+
+- **OpenAPI definitions** can be written in **YAML or JSON** to provide structured API documentation.
+- **Swagger UI** is an industry standard for **REST API documentation**.
+- **Express.js** can integrate **Swagger UI dynamically** using `swagger-ui-express`.
+- **NestJS** offers **built-in Swagger support** with decorators, making documentation seamless.
+- Automating API documentation **saves time, improves developer experience, and enhances API adoption**.
+
+By using OpenAPI and Swagger, teams can ensure that their **APIs are well-documented, easy to explore, and simple to integrate**, promoting better adoption and long-term maintainability. 🚀
