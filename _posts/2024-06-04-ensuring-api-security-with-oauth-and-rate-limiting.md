@@ -791,3 +791,251 @@ To troubleshoot:
 - **Avoid Overly Permissive Headers:** Do not allow **Authorization** headers from unknown sources unless needed.
 
 Proper CORS management not only enhances the **security** of your API but also ensures that **legitimate cross-origin requests** function seamlessly. By configuring **CORS policies** thoughtfully, you create a safer and more controlled environment for **API interactions**, protecting both your **server** and your **clients** from potential threats.
+
+## 🛡 Real-World Example: Securing a Public API with OAuth and JWT
+
+Securing a public API is not just about adding authentication—it's about creating a robust framework that prevents unauthorized access, protects data, and ensures a smooth developer experience. Let's explore a practical example where we combine **OAuth 2.0**, **JWTs**, **rate limiting**, and **CORS** to secure a **User Management API**.
+
+### 🏢 Case Study: Securing a User Management API
+
+#### 🚦 Scenario: A Public User Management API
+
+Imagine you're building an API for a SaaS platform that manages user data. The API offers:
+
+- **Public Endpoints:** User registration and login.
+- **Protected Endpoints:** Accessing and updating user profiles.
+- **Rate-Limited Endpoints:** To prevent abuse and ensure fair usage.
+
+To secure this API, we need:
+
+1. **Authentication:** Using **OAuth 2.0** to validate user identities.
+2. **Authorization:** Using **JWTs** to manage permissions for protected routes.
+3. **Rate Limiting:** Preventing abuse by limiting the number of requests.
+4. **CORS Management:** Ensuring only trusted domains can interact with the API.
+
+### 🔑 Implementing OAuth 2.0 for Authentication
+
+For authentication, we'll use **OAuth 2.0** with the **Authorization Code Grant** flow, which is ideal for server-to-server communication and ensures **secure token exchange**.
+
+```bash
+npm install express passport passport-oauth2 express-session
+```
+
+#### 📌 OAuth 2.0 Setup in Express.js
+
+```javascript
+const express = require("express");
+const session = require("express-session");
+const passport = require("passport");
+const OAuth2Strategy = require("passport-oauth2");
+
+const app = express();
+
+app.use(
+  session({ secret: "your_secret_key", resave: false, saveUninitialized: true })
+);
+
+passport.use(
+  new OAuth2Strategy(
+    {
+      authorizationURL: "https://auth.example.com/oauth2/authorize",
+      tokenURL: "https://auth.example.com/oauth2/token",
+      clientID: "your_client_id",
+      clientSecret: "your_client_secret",
+      callbackURL: "http://localhost:3000/auth/callback",
+    },
+    (accessToken, refreshToken, profile, done) => {
+      return done(null, profile);
+    }
+  )
+);
+
+app.get("/auth/login", passport.authenticate("oauth2"));
+
+app.get(
+  "/auth/callback",
+  passport.authenticate("oauth2", { failureRedirect: "/login" }),
+  (req, res) => {
+    res.redirect("/");
+  }
+);
+```
+
+In this setup:
+
+- **passport-oauth2** is used for OAuth 2.0 authentication.
+- The **Authorization Code Grant** flow is configured with **authorization** and **token URLs**.
+- A callback URL is set to handle the authentication response.
+
+### 🔑 Using JWTs for Authorization of Protected Routes
+
+Once authenticated, the API uses **JWTs** to authorize users for specific actions. JWTs contain user data and permissions, ensuring only authorized users access protected endpoints.
+
+```bash
+npm install jsonwebtoken
+```
+
+#### 🧮 JWT Validation Middleware in Express.js
+
+```javascript
+const jwt = require("jsonwebtoken");
+
+const authenticateJWT = (req, res, next) => {
+  const token = req.header("Authorization")?.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+  jwt.verify(token, "your_jwt_secret", (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+    req.user = user;
+    next();
+  });
+};
+
+// Example protected route
+app.get("/api/user", authenticateJWT, (req, res) => {
+  res.json({ message: "Protected user data", user: req.user });
+});
+```
+
+In this example:
+
+- The **authenticateJWT** middleware verifies JWTs using the **jsonwebtoken** package.
+- If the token is valid, the request proceeds to the protected route.
+- Unauthorized requests are **rejected** with appropriate **HTTP status codes**.
+
+### 📏 Adding Rate Limiting to Prevent Abuse
+
+Rate limiting helps protect the API from **DDoS attacks** and ensures **fair usage** among clients.
+
+```bash
+npm install express-rate-limit
+```
+
+#### ⚙ Setting Up Rate Limiting with express-rate-limit
+
+```javascript
+const rateLimit = require("express-rate-limit");
+
+// Limit to 100 requests per hour per IP
+const limiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 100,
+  message: { message: "Rate limit exceeded. Try again later." },
+});
+
+// Apply rate limiting to all API routes
+app.use("/api/", limiter);
+```
+
+- This setup restricts clients to **100 requests per hour**.
+- When the **limit is exceeded**, the API returns a **429 status code** with an appropriate message.
+
+### 🌐 Configuring CORS for Secure API Interaction
+
+CORS ensures that only **trusted domains** can interact with your API, protecting it from **cross-origin attacks**.
+
+```bash
+npm install cors
+```
+
+#### 🌍 Setting Up CORS in Express.js
+
+```javascript
+const cors = require("cors");
+
+const corsOptions = {
+  origin: ["https://yourfrontend.com"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Authorization", "Content-Type"],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+```
+
+- **Allowed Origins:** Restrict API access to specific frontend domains.
+- **Allowed Methods and Headers:** Define which methods and headers are permitted.
+
+### 💻 Combining All Security Layers in a Complete API Setup
+
+Below is a **comprehensive example** that integrates **OAuth**, **JWT**, **rate limiting**, and **CORS** into a **Node.js** application:
+
+```javascript
+const express = require("express");
+const session = require("express-session");
+const passport = require("passport");
+const OAuth2Strategy = require("passport-oauth2");
+const jwt = require("jsonwebtoken");
+const rateLimit = require("express-rate-limit");
+const cors = require("cors");
+
+const app = express();
+
+// OAuth 2.0 Configuration
+passport.use(
+  new OAuth2Strategy(
+    {
+      authorizationURL: "https://auth.example.com/oauth2/authorize",
+      tokenURL: "https://auth.example.com/oauth2/token",
+      clientID: "your_client_id",
+      clientSecret: "your_client_secret",
+      callbackURL: "http://localhost:3000/auth/callback",
+    },
+    (accessToken, refreshToken, profile, done) => done(null, profile)
+  )
+);
+
+app.use(
+  session({ secret: "your_secret_key", resave: false, saveUninitialized: true })
+);
+
+// JWT Authentication Middleware
+const authenticateJWT = (req, res, next) => {
+  const token = req.header("Authorization")?.split(" ")[1];
+  if (!token)
+    return res.status(401).json({ message: "Authentication required" });
+  jwt.verify(token, "your_jwt_secret", (err, user) => {
+    if (err) return res.status(403).json({ message: "Invalid token" });
+    req.user = user;
+    next();
+  });
+};
+
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 100,
+  message: { message: "Rate limit exceeded. Try again later." },
+});
+app.use("/api/", limiter);
+
+// CORS Configuration
+const corsOptions = {
+  origin: ["https://yourfrontend.com"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Authorization", "Content-Type"],
+  credentials: true,
+};
+app.use(cors(corsOptions));
+
+// Protected API Endpoint
+app.get("/api/user", authenticateJWT, (req, res) => {
+  res.json({ message: "Protected user data", user: req.user });
+});
+
+// Start Server
+app.listen(3000, () => {
+  console.log("Server running on http://localhost:3000");
+});
+```
+
+This code demonstrates:
+
+- **End-to-end security** using **OAuth**, **JWT**, **rate limiting**, and **CORS**.
+- How to configure **Express.js** to handle authentication and authorization securely.
+- How to protect public APIs from abuse and unauthorized access.
+
+Combining these security measures creates a **multi-layered defense strategy** that ensures only **authenticated** and **authorized users** can access protected resources, while preventing **API abuse** and maintaining **high performance**.
