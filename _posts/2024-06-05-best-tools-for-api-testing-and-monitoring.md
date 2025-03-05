@@ -309,3 +309,133 @@ expect(response.body).toContainEqual({ id: 1, name: "John Doe" });
 - **Jest + Supertest:** Best suited for automated testing within Node.js applications, particularly useful for CI/CD environments where regression testing is critical.
 
 These tools, when used effectively, can significantly enhance the quality and reliability of your APIs, providing both manual and automated testing capabilities that cater to different stages of the development lifecycle.
+
+## 🤝 Contract Testing: Ensuring API Compatibility
+
+When building APIs, maintaining compatibility with consumers—whether they are front-end applications, external clients, or microservices—is a critical priority. This is where **contract testing** comes in. Unlike traditional testing methods that focus on responses, contract testing verifies that an API behaves as expected according to a pre-defined contract. This approach is particularly effective in avoiding breaking changes and ensuring seamless communication between services, especially in microservices and third-party integrations.
+
+### 📑 What is Contract Testing?
+
+#### 🔍 Understanding API Contracts
+
+An **API contract** is a formal agreement between an API provider and its consumers. It defines:
+
+- **Request structure:** Expected endpoints, methods, parameters, and headers.
+- **Response format:** Structure of the returned data, including status codes and payload schemas.
+- **Validation rules:** Expected data types, optional/required fields, and response behavior under different conditions.
+
+For example, a contract for a `/users` endpoint might specify that a `GET` request should return a list of user objects with fields such as `id`, `name`, and `email`. Any deviation from this expected format could lead to issues in consuming applications.
+
+#### 🛡️ Consumer-Driven Contracts
+
+A **consumer-driven contract (CDC)** is a testing pattern where the expectations of API consumers drive the contract specifications. In this model:
+
+- **API consumers** define their expectations of the API behavior.
+- **API providers** run contract tests to ensure they meet these expectations.
+
+This approach is particularly valuable in **microservices architectures**, where independent teams may manage APIs and consumers. Using CDCs ensures that updates to the API do not break downstream services.
+
+#### 🎯 How Contract Testing Ensures Backward Compatibility
+
+Contract testing helps maintain **backward compatibility** by verifying that new versions of an API still meet the requirements of existing consumers. Before deploying changes, contract tests run to confirm that:
+
+- **No expected fields are removed or renamed.**
+- **Existing endpoints maintain their behavior.**
+- **New features do not alter the expected output for established use cases.**
+
+If a breaking change is detected, the test fails, signaling the development team to address the compatibility issue before releasing the update.
+
+### 🛠 Pact: The Tool for Contract Testing
+
+**Pact** is a widely used framework for implementing consumer-driven contract testing. It allows you to:
+
+- Define contracts as **Pacts**, which are JSON files outlining expected interactions.
+- Generate mock servers to simulate API behavior for consumers.
+- Verify API responses against these contracts to ensure compliance.
+
+#### 🔧 Setting Up Pact for Contract Testing
+
+To get started with Pact in a **Node.js** environment, follow these steps:
+
+```bash
+npm install @pact-foundation/pact --save-dev
+```
+
+Create a simple Pact contract test for an API that returns a list of users:
+
+```javascript
+const { Pact } = require("@pact-foundation/pact");
+const path = require("path");
+const axios = require("axios");
+
+// Define the mock provider
+const provider = new Pact({
+  consumer: "UserConsumer",
+  provider: "UserProvider",
+  port: 1234,
+  log: path.resolve(process.cwd(), "logs", "pact.log"),
+  dir: path.resolve(process.cwd(), "pacts"),
+  spec: 2,
+});
+
+// Pact test setup
+describe("Pact with User API", () => {
+  beforeAll(() => provider.setup());
+
+  afterEach(() => provider.verify());
+
+  afterAll(() => provider.finalize());
+
+  it("should return a list of users", async () => {
+    // Define the expected interaction
+    await provider.addInteraction({
+      state: "a list of users exists",
+      uponReceiving: "a request for users",
+      withRequest: {
+        method: "GET",
+        path: "/users",
+        headers: { Accept: "application/json" },
+      },
+      willRespondWith: {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+        body: [{ id: 1, name: "John Doe" }],
+      },
+    });
+
+    // Make an actual request to the mock server
+    const response = await axios.get("http://localhost:1234/users");
+    expect(response.status).toBe(200);
+    expect(response.data).toEqual([{ id: 1, name: "John Doe" }]);
+  });
+});
+```
+
+#### 🧪 Writing Contract Tests to Verify API Behavior
+
+In the example above:
+
+1. **Provider Setup:** The mock server is created using the `Pact` constructor.
+2. **Defining Interactions:** The `addInteraction` method specifies the expected request and the response the mock server should return.
+3. **Running Tests:** The `axios` request is tested against the mock server, verifying compliance with the contract.
+
+Pact will automatically generate a **Pact file** (in JSON format) if the test passes. This file can be shared with API providers to validate that their API meets the contract.
+
+### 🌍 Real-World Example: Preventing Breaking Changes During API Updates
+
+A practical use case for contract testing involves **e-commerce platforms**. Imagine an order management service (API consumer) relying on a product catalog service (API provider).
+
+1. The order service specifies a contract requiring the product API to return products with `id`, `name`, and `price`.
+2. During an API update, a developer changes the `price` field to `cost`.
+3. The contract test immediately fails, highlighting the breaking change.
+4. The development team reverts or adapts the change, avoiding potential disruptions in the order processing system.
+
+This scenario demonstrates how contract testing can proactively catch issues, reducing the risk of introducing bugs or breaking functionality when APIs are updated.
+
+### 🚦 When to Use Contract Testing in Your API Development Process
+
+- **Before releasing new API versions:** Ensure backward compatibility with existing clients.
+- **During CI/CD pipelines:** Automate contract tests to validate changes in staging environments.
+- **In multi-service architectures:** Maintain reliable communication between microservices and external clients.
+
+By incorporating **Pact** or similar contract testing tools into your development workflow, you can enhance the **reliability** and **stability** of your APIs, offering confidence to both internal and external developers using your services.
