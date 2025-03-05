@@ -579,3 +579,140 @@ The generated HTML report provides a detailed breakdown of **latency**, **throug
 | Best Use Case       | High load and stress scenarios | Simulating complex user scenarios    |
 
 **k6** is ideal for **performance testing** with a focus on **high-load scenarios**, while **Artillery** excels in **simulating real-world user behavior** with **complex scenarios**. Depending on your testing needs, both tools can play an essential role in ensuring your API performs well under stress.
+
+## 📊 API Monitoring and Health Checks
+
+Effective API monitoring and health checks are critical for maintaining reliable and high-performing applications. Monitoring tools provide real-time insights into API performance, while health check endpoints enable automatic detection of failures and performance issues. Let's dive into the best tools and techniques for keeping your API running smoothly.
+
+### 🚦 Real-Time Monitoring Tools
+
+Real-time monitoring tools help track API performance, detect anomalies, and provide detailed analytics on API behavior. Some of the most popular tools for API monitoring include **New Relic**, **Datadog**, and **SwaggerHub**.
+
+#### 🌟 New Relic: Performance Analytics and Transaction Tracing
+
+**New Relic** is a robust application performance monitoring (APM) tool that offers deep insights into API performance, including:
+
+- **Transaction Tracing:** Analyze individual API requests and track their flow through your application.
+- **Real-Time Metrics:** Monitor request times, error rates, and throughput.
+- **Custom Dashboards:** Visualize API metrics with customizable widgets and alerts.
+
+##### 🚀 Setting Up API Monitoring in New Relic
+
+1. **Install New Relic in Node.js Application**
+
+```bash
+npm install newrelic
+```
+
+2. **Configure New Relic with API Key**
+
+```js
+// newrelic.js
+exports.config = {
+  app_name: ["My API Service"],
+  license_key: "YOUR_NEW_RELIC_LICENSE_KEY",
+  logging: {
+    level: "info",
+  },
+};
+```
+
+3. **Monitor API Performance**
+
+Integrate the New Relic SDK in your application to start tracking API performance and transaction data.
+
+#### 📈 Datadog: Monitoring API Metrics, Logs, and Traces
+
+**Datadog** provides comprehensive monitoring and observability for APIs, including:
+
+- **Metrics Monitoring:** Track latency, error rates, and request counts.
+- **Log Management:** Aggregate logs and search through them with advanced filtering.
+- **Distributed Tracing:** Visualize how requests travel through microservices and APIs.
+
+##### ⚙ Using Datadog with Node.js
+
+1. **Install Datadog Agent**
+
+```bash
+npm install dd-trace
+```
+
+2. **Initialize Datadog in Your Application**
+
+```js
+// app.js
+const tracer = require("dd-trace").init({
+  service: "api-service",
+  env: "production",
+});
+```
+
+3. **Set Up Monitoring Dashboards**
+
+Create custom dashboards in the Datadog UI to visualize API performance metrics and set up automated alerts.
+
+#### 🔍 SwaggerHub: Ensuring API Contract Adherence
+
+**SwaggerHub** is not just for documentation; it also helps maintain API contract compliance in production:
+
+- **Contract Testing:** Validate that your API responses match the defined **OpenAPI (Swagger)** specifications.
+- **API Governance:** Enforce standards and best practices across API development teams.
+- **Version Control:** Manage API changes and keep documentation synchronized with the latest version.
+
+### 🆘 Health Check Endpoints and Alerts
+
+Health check endpoints are lightweight API endpoints that indicate the status of your application. Combined with monitoring tools, they enable automated alerts when something goes wrong.
+
+#### 🚦 Why Health Check Endpoints Are Important
+
+- **Proactive Monitoring:** Quickly detect when an API goes down.
+- **Automation Ready:** Integrate with load balancers and monitoring tools to trigger alerts.
+- **Performance Insights:** Basic health checks can also provide information about dependencies and service health.
+
+#### 📑 Creating Health Check Endpoints in Node.js
+
+A health check endpoint is a simple route that returns a **200 OK** status when the API is functioning correctly.
+
+```js
+// healthCheck.js
+const express = require("express");
+const router = express.Router();
+
+router.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "OK",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+module.exports = router;
+```
+
+#### 📲 Automating Alerts for API Issues
+
+1. **Set Up Alerts in Monitoring Tools:** Create alert rules in New Relic or Datadog to notify you when:
+
+   - API latency exceeds a threshold.
+   - Error rates increase.
+   - The health check endpoint fails.
+
+2. **Integrate Alerts with Communication Channels:**
+
+   - Send notifications to **Slack**, **Email**, or **PagerDuty**.
+   - Trigger automatic actions using **Webhooks**.
+
+```yaml
+# Datadog Alert Example
+notify:
+  - type: email
+    name: "API Error Alert"
+    to: "devteam@example.com"
+    message: "High error rate detected in the API. Immediate attention required!"
+```
+
+### 💡 Pro Tip: Combining Monitoring and Health Checks
+
+- Use **health check endpoints** with **load balancers** (e.g., AWS ELB, NGINX) to automatically reroute traffic if the API is down.
+- Create a **monitoring dashboard** with aggregated data from the **health checks** and **performance metrics**, allowing you to visualize the health of your entire API ecosystem at a glance.
+
+By implementing robust monitoring tools and health check endpoints, you can proactively manage your API's performance, reliability, and security, ensuring a smooth experience for developers and end-users.
