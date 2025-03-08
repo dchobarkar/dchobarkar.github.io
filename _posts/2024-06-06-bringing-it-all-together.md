@@ -623,3 +623,164 @@ After setting up, visit `http://localhost:3000/api-docs` to explore the API docu
 2. **Keep Documentation in Sync:** Whenever the API changes, update the documentation immediately.
 3. **Use Automation Tools:** Swagger and OpenAPI allow dynamic documentation, reducing the risk of outdated docs.
 4. **Engage with Developers:** Use feedback mechanisms like forums or GitHub issues to improve both the API and its documentation.
+
+## 🔐 Securing the API with OAuth and JWT
+
+Security is a critical aspect of API development. It ensures that your application and its data remain protected from unauthorized access and abuse. In this section, we'll explore how to secure an API using **OAuth 2.0** for authentication, **JWT (JSON Web Tokens)** for authorization, and additional measures like **rate limiting** and **CORS (Cross-Origin Resource Sharing)** policies.
+
+### 🛡 Authentication and Authorization: The Core of API Security
+
+#### 🔐 OAuth 2.0: Enabling Secure Authentication
+
+OAuth 2.0 is an industry-standard protocol for **authorization**. It allows applications to access resources on behalf of a user without needing their password, promoting security and user privacy. OAuth 2.0 works through **grant types**, each suited to specific scenarios:
+
+1. **Authorization Code Grant:** Ideal for server-to-server communication.
+2. **Implicit Grant:** Used in single-page applications (SPAs) but with less security.
+3. **Client Credentials Grant:** For machine-to-machine authentication.
+4. **Password Grant:** Deprecated for public-facing APIs due to security risks.
+
+##### 🌐 Example: Setting Up OAuth 2.0 with Passport.js
+
+**Passport.js** is a popular authentication middleware for **Node.js** that supports **OAuth 2.0**.
+
+```javascript
+const passport = require("passport");
+const OAuth2Strategy = require("passport-oauth2");
+
+// Configure the OAuth2 strategy
+passport.use(
+  new OAuth2Strategy(
+    {
+      authorizationURL: "https://example.com/auth",
+      tokenURL: "https://example.com/token",
+      clientID: "CLIENT_ID",
+      clientSecret: "CLIENT_SECRET",
+      callbackURL: "http://localhost:3000/auth/callback",
+    },
+    function (accessToken, refreshToken, profile, cb) {
+      User.findOrCreate({ exampleId: profile.id }, function (err, user) {
+        return cb(err, user);
+      });
+    }
+  )
+);
+
+// Express route for authentication
+app.get("/auth/example", passport.authenticate("oauth2"));
+
+app.get(
+  "/auth/callback",
+  passport.authenticate("oauth2", { failureRedirect: "/" }),
+  function (req, res) {
+    res.redirect("/");
+  }
+);
+```
+
+- **Authorization URL:** The initial step where the user grants permission.
+- **Token Exchange:** Once authenticated, the app exchanges a code for an **access token**.
+- **Secure Callback:** Redirects to a secure route after successful authentication.
+
+#### 🛡 JWT (JSON Web Tokens): Protecting API Endpoints
+
+**JWT** is a compact, URL-safe token that allows **stateless authentication** between clients and servers. A **JWT** consists of three parts:
+
+1. **Header:** Specifies the type of token (`JWT`) and the signing algorithm (`HS256`, `RS256`).
+2. **Payload:** Contains the token's data, such as user information and permissions.
+3. **Signature:** Verifies the token's integrity and authenticity.
+
+##### 💻 Code Snippet: JWT Middleware in Express.js
+
+```javascript
+const jwt = require("jsonwebtoken");
+
+// Middleware to validate JWT
+function authenticateJWT(req, res, next) {
+  const token = req.header("Authorization")?.split(" ")[1];
+
+  if (!token) {
+    return res
+      .status(401)
+      .json({ message: "Access denied, no token provided." });
+  }
+
+  jwt.verify(token, "SECRET_KEY", (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token." });
+    }
+    req.user = user;
+    next();
+  });
+}
+
+// Protected route example
+app.get("/protected", authenticateJWT, (req, res) => {
+  res.json({ message: "You are authorized", user: req.user });
+});
+```
+
+- **Token Validation:** Verifies the **JWT** using a secret key.
+- **Authorization Header:** Extracts the token from the `Authorization` header.
+- **Protected Route:** Only accessible if the **JWT** is valid.
+
+##### 🎯 Best Practices:
+
+- Always **expire tokens** and provide a **refresh token** strategy.
+- Use **strong signing algorithms** like `HS256` or `RS256`.
+- Store tokens securely in **HTTP-only cookies** or **local storage** (with caution).
+
+### 🔑 Implementing Rate Limiting and CORS Policies
+
+APIs are often exposed to the public, making them susceptible to abuse and **DDoS (Distributed Denial of Service)** attacks. Implementing **rate limiting** and **CORS** policies enhances security and maintains API stability.
+
+#### 📏 Rate Limiting with express-rate-limit
+
+Rate limiting helps protect APIs from overuse by setting limits on the number of requests a client can make within a specific timeframe. The **express-rate-limit** middleware is a powerful tool for this purpose.
+
+```javascript
+const rateLimit = require("express-rate-limit");
+
+// Define rate limit rule: 100 requests per 15 minutes
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: { message: "Too many requests, please try again later." },
+});
+
+// Apply rate limiting to all requests
+app.use("/api/", apiLimiter);
+```
+
+- **Preventing Abuse:** Stops malicious users from sending too many requests.
+- **Fair Usage:** Ensures that resources are evenly distributed among all users.
+
+#### 🌐 CORS (Cross-Origin Resource Sharing): Securing API Access
+
+**CORS** is a security feature implemented by browsers to prevent **cross-origin HTTP requests** unless explicitly allowed by the server. It's especially important when APIs are accessed from different domains.
+
+##### 🔧 Configuring CORS in Express.js
+
+```javascript
+const cors = require("cors");
+
+// Define CORS options
+const corsOptions = {
+  origin: "https://trusted-website.com",
+  methods: "GET,POST,PUT,DELETE",
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+// Enable CORS with specific options
+app.use(cors(corsOptions));
+```
+
+- **Allowed Origins:** Restrict access to trusted domains.
+- **HTTP Methods:** Specify which methods are permitted (`GET`, `POST`, etc.).
+- **Headers:** Control which headers are acceptable in API requests.
+
+### 🔍 Key Takeaways for Securing APIs:
+
+1. **Use OAuth 2.0** for secure, third-party authentication without exposing user credentials.
+2. **JWTs** provide a robust, stateless method for protecting API endpoints.
+3. **Rate Limiting** prevents abuse and ensures stable performance under high load.
+4. **CORS Policies** protect against unauthorized cross-origin requests, maintaining API security.
