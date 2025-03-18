@@ -157,3 +157,182 @@ contract.on("Transfer", (from, to, amount) => {
 | Web3 Gaming Platforms      | **Web3.js**         |
 | Enterprise Blockchain Apps | **Web3.js**         |
 | Gas-Efficient Transactions | **Ethers.js**       |
+
+## 🚀 Setting Up a Web3-Enabled Frontend
+
+### 🏗 Project Setup: Installing Web3.js and Ethers.js in a React App
+
+Developing a **Web3-enabled frontend** requires configuring a modern JavaScript framework such as **React** and integrating blockchain connectivity using **Web3.js** or **Ethers.js**. This section details the step-by-step process of establishing a React development environment, installing dependencies, and setting up environment variables for secure blockchain interactions.
+
+#### 1️⃣ Setting Up a React Development Environment
+
+To begin, we need to create a **React application** using either `create-react-app` or `Vite` (for better performance and faster builds).
+
+##### Using create-react-app (CRA):
+
+```bash
+npx create-react-app web3-frontend
+cd web3-frontend
+npm start
+```
+
+##### Using Vite (Recommended for Web3 Apps):
+
+```bash
+npm create vite@latest web3-frontend --template react
+cd web3-frontend
+npm install
+npm run dev
+```
+
+Once the project is set up, navigate to the directory and install Web3 dependencies.
+
+#### 2️⃣ Installing Web3.js and Ethers.js via npm/yarn
+
+Web3.js and Ethers.js provide essential tools for interacting with blockchain networks. Installing both libraries allows flexibility in choosing the best tool for different functionalities.
+
+```bash
+npm install web3 ethers dotenv
+```
+
+Or using **yarn:**
+
+```bash
+yarn add web3 ethers dotenv
+```
+
+#### 3️⃣ Configuring Environment Variables (RPC, Private Keys)
+
+For security purposes, sensitive data like **private keys, RPC URLs, and API keys** should be stored in a `.env` file.
+
+##### Create a `.env` file in the root directory:
+
+```plaintext
+REACT_APP_INFURA_URL=https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID
+REACT_APP_ALCHEMY_URL=https://eth-mainnet.alchemyapi.io/v2/YOUR_ALCHEMY_API_KEY
+REACT_APP_PRIVATE_KEY=YOUR_PRIVATE_KEY  # Never expose this publicly!
+```
+
+##### Access environment variables in React:
+
+```javascript
+const INFURA_URL = process.env.REACT_APP_INFURA_URL;
+const ALCHEMY_URL = process.env.REACT_APP_ALCHEMY_URL;
+```
+
+### 🔌 Connecting the Frontend to a Blockchain
+
+A Web3-enabled application requires a **Web3 provider** to communicate with the blockchain network. This section covers different provider types and authentication methods using wallets like **MetaMask and WalletConnect**.
+
+#### 1️⃣ What is a Web3 Provider?
+
+A **Web3 provider** is a gateway that enables **frontend applications to send transactions and query blockchain data**. It connects the dApp to an Ethereum node and facilitates interaction with smart contracts.
+
+#### 2️⃣ Types of Web3 Providers
+
+Web3 providers can be classified into different types based on how they connect to the blockchain:
+
+| Provider Type            | Description                                                               |
+| ------------------------ | ------------------------------------------------------------------------- |
+| **HTTP Provider**        | Uses an RPC endpoint for blockchain communication (e.g., Infura, Alchemy) |
+| **WebSocket Provider**   | Provides real-time blockchain event listening                             |
+| **Injected Provider**    | Wallet-based providers injected by browser extensions (e.g., MetaMask)    |
+| **Custom Node Provider** | Connects to a self-hosted Ethereum node for full control                  |
+
+#### 3️⃣ Setting Up MetaMask & WalletConnect
+
+##### A. Connecting MetaMask to a React App
+
+MetaMask is the most widely used **Ethereum wallet browser extension**. It injects a Web3 provider into the global window object.
+
+###### Detecting MetaMask in React:
+
+```javascript
+import { useEffect, useState } from "react";
+
+const [account, setAccount] = useState(null);
+
+useEffect(() => {
+  if (window.ethereum) {
+    window.ethereum
+      .request({ method: "eth_requestAccounts" })
+      .then((accounts) => setAccount(accounts[0]))
+      .catch((error) => console.error("User denied account access", error));
+  } else {
+    console.log("MetaMask not detected");
+  }
+}, []);
+```
+
+###### Connecting MetaMask to Web3.js:
+
+```javascript
+import Web3 from "web3";
+
+const web3 = new Web3(window.ethereum);
+```
+
+###### Connecting MetaMask to Ethers.js:
+
+```javascript
+import { ethers } from "ethers";
+
+const provider = new ethers.BrowserProvider(window.ethereum);
+const signer = await provider.getSigner();
+console.log("Connected account:", await signer.getAddress());
+```
+
+##### B. Implementing WalletConnect for Multi-Wallet Support
+
+WalletConnect allows users to connect mobile wallets to dApps without requiring a browser extension.
+
+###### Installing WalletConnect:
+
+```bash
+npm install @walletconnect/web3-provider
+```
+
+###### Connecting to WalletConnect in React:
+
+```javascript
+import WalletConnectProvider from "@walletconnect/web3-provider";
+import Web3 from "web3";
+
+const provider = new WalletConnectProvider({
+  rpc: { 1: "https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID" },
+});
+
+await provider.enable();
+const web3 = new Web3(provider);
+```
+
+### 4️⃣ Handling Network Switching & Chain ID Detection
+
+#### A. Detecting and Switching Networks
+
+Ethereum has multiple networks (e.g., **Mainnet, Ropsten, Goerli, Polygon, Binance Smart Chain**). Users must be on the correct network to interact with deployed contracts.
+
+###### Checking the User’s Current Network:
+
+```javascript
+const getNetwork = async () => {
+  const chainId = await window.ethereum.request({ method: "eth_chainId" });
+  console.log("Connected Chain ID:", parseInt(chainId, 16));
+};
+getNetwork();
+```
+
+###### Switching Networks Programmatically:
+
+```javascript
+const switchNetwork = async () => {
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: "0x89" }], // Polygon Mainnet (137 in decimal)
+    });
+  } catch (error) {
+    console.error("Error switching network:", error);
+  }
+};
+```
