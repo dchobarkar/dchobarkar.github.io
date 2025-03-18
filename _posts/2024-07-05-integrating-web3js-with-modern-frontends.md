@@ -336,3 +336,168 @@ const switchNetwork = async () => {
   }
 };
 ```
+
+## 🔑 Managing User Accounts & Wallet Interactions
+
+The integration of **cryptographic wallets** into decentralized applications (dApps) is fundamental to enabling **secure user authentication, transaction execution, and digital identity verification**. This section explores how to **establish wallet connections, manage account switching, persist user sessions, and implement authentication mechanisms using blockchain-based cryptography**.
+
+### 1️⃣ Handling Wallet Connections Securely
+
+A Web3-enabled application must be able to **detect, connect, and manage blockchain wallets** to facilitate seamless user experiences. This requires an understanding of how **wallet providers (e.g., MetaMask, WalletConnect) interact with frontend applications**.
+
+#### 📌 Detecting Wallet Connection Status in the UI
+
+Before interacting with the blockchain, a dApp must verify if a user has a connected wallet and whether the correct network is selected.
+
+##### 🔍 Detecting MetaMask & Wallet Connection
+
+```javascript
+import { useEffect, useState } from "react";
+
+const [account, setAccount] = useState(null);
+
+useEffect(() => {
+  if (window.ethereum) {
+    window.ethereum
+      .request({ method: "eth_accounts" })
+      .then((accounts) => {
+        if (accounts.length > 0) setAccount(accounts[0]);
+      })
+      .catch((error) => console.error("Error fetching accounts:", error));
+  } else {
+    console.log("No Web3 provider detected");
+  }
+}, []);
+```
+
+If the user is **not connected**, prompt them to **connect their wallet**.
+
+##### 🔗 Prompting the User to Connect
+
+```javascript
+const connectWallet = async () => {
+  if (window.ethereum) {
+    try {
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      setAccount(accounts[0]);
+      console.log("Connected account:", accounts[0]);
+    } catch (error) {
+      console.error("User denied wallet connection:", error);
+    }
+  } else {
+    alert("Please install MetaMask or use WalletConnect.");
+  }
+};
+```
+
+#### 📌 Handling Account Switching & Network Changes
+
+Users may switch accounts or change networks while interacting with a dApp. Developers must listen for these changes and update the UI accordingly.
+
+##### 🔄 Detecting Account Changes
+
+```javascript
+window.ethereum.on("accountsChanged", (accounts) => {
+  if (accounts.length > 0) {
+    setAccount(accounts[0]);
+    console.log("Switched account to:", accounts[0]);
+  } else {
+    console.log("Wallet disconnected");
+  }
+});
+```
+
+##### 🌐 Detecting Network Changes
+
+```javascript
+window.ethereum.on("chainChanged", (chainId) => {
+  console.log("Switched to network:", parseInt(chainId, 16));
+  window.location.reload(); // Refresh UI when the network changes
+});
+```
+
+#### 📌 Enabling Persistent User Sessions
+
+Maintaining session persistence prevents users from having to reconnect their wallet every time they refresh the page.
+
+##### 💾 Storing Wallet Address in Local Storage
+
+```javascript
+useEffect(() => {
+  const storedAccount = localStorage.getItem("walletAddress");
+  if (storedAccount) {
+    setAccount(storedAccount);
+  }
+}, []);
+
+const connectWallet = async () => {
+  if (window.ethereum) {
+    const accounts = await window.ethereum.request({
+      method: "eth_requestAccounts",
+    });
+    setAccount(accounts[0]);
+    localStorage.setItem("walletAddress", accounts[0]);
+  }
+};
+```
+
+### 2️⃣ User Authentication with Blockchain
+
+A **decentralized authentication system** leverages blockchain cryptography to **secure logins without passwords** and verify digital identities.
+
+#### 📌 Signing Messages for Secure Login (EIP-712)
+
+EIP-712 enables **off-chain authentication** by signing a cryptographic message, reducing the need for third-party authentication services.
+
+##### 📝 Signing a Login Message
+
+```javascript
+const signMessage = async () => {
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  const signer = await provider.getSigner();
+  const message = "Sign this message to verify your identity.";
+  const signature = await signer.signMessage(message);
+  console.log("Signature:", signature);
+};
+```
+
+#### 📌 Verifying Digital Signatures on the Backend
+
+A backend server can verify a user's signed message to authenticate them securely.
+
+##### 🔐 Backend Verification (Node.js & ethers.js)
+
+```javascript
+const { ethers } = require("ethers");
+
+const verifySignature = (message, signature, address) => {
+  const recoveredAddress = ethers.verifyMessage(message, signature);
+  return recoveredAddress.toLowerCase() === address.toLowerCase();
+};
+```
+
+#### 📌 Decentralized Identity Solutions (DID & ENS Integration)
+
+Decentralized Identity (DID) solutions and **Ethereum Name Service (ENS)** provide human-readable blockchain addresses and verifiable identity credentials.
+
+##### 🔗 Fetching ENS Name from an Ethereum Address
+
+```javascript
+const provider = new ethers.JsonRpcProvider(
+  "https://mainnet.infura.io/v3/YOUR_INFURA_KEY"
+);
+
+const getENSName = async (address) => {
+  const ensName = await provider.lookupAddress(address);
+  console.log("ENS Name:", ensName || "No ENS registered");
+};
+getENSName("0xYourEthereumAddress");
+```
+
+##### 🆔 Using Self-Sovereign Identity (SSI) Protocols
+
+- **DID (Decentralized Identifiers):** Identity verification without centralized control.
+- **Verifiable Credentials:** Signed attestations that authenticate users.
+- **Ethereum Attestation Service (EAS):** Blockchain-based reputation systems.
