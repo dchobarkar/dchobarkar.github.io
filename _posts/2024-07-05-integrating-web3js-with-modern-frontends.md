@@ -501,3 +501,191 @@ getENSName("0xYourEthereumAddress");
 - **DID (Decentralized Identifiers):** Identity verification without centralized control.
 - **Verifiable Credentials:** Signed attestations that authenticate users.
 - **Ethereum Attestation Service (EAS):** Blockchain-based reputation systems.
+
+## 📡 Fetching & Displaying Blockchain Data
+
+Efficiently retrieving and displaying blockchain data is a fundamental aspect of decentralized application (dApp) development. This section explores how to **fetch user balances, query smart contracts, monitor blockchain events, and integrate indexed data** into Web3-enabled frontends. Additionally, we examine **transaction analysis, block retrieval, and real-time blockchain visualization** using React.
+
+### 1️⃣ Retrieving On-Chain Data Using Web3.js & Ethers.js
+
+Blockchain data is stored in a decentralized ledger, and querying it requires specialized tools such as **Web3.js** and **Ethers.js**. These libraries enable dApps to retrieve **account balances, token allowances, smart contract states, and event logs**.
+
+#### 📌 Fetching User Balances & Token Allowances
+
+To display user balances, we need to query the blockchain for **native cryptocurrency holdings (e.g., ETH, MATIC)** and token balances using **ERC-20 standards**.
+
+##### 🔍 Fetching Native Token Balance
+
+###### Using Web3.js:
+
+```javascript
+const Web3 = require("web3");
+const web3 = new Web3("https://mainnet.infura.io/v3/YOUR_INFURA_KEY");
+
+async function getBalance(address) {
+  const balance = await web3.eth.getBalance(address);
+  console.log("Balance:", web3.utils.fromWei(balance, "ether"), "ETH");
+}
+getBalance("0xYourEthereumAddress");
+```
+
+###### Using Ethers.js:
+
+```javascript
+const { ethers } = require("ethers");
+const provider = new ethers.JsonRpcProvider(
+  "https://mainnet.infura.io/v3/YOUR_INFURA_KEY"
+);
+
+async function getBalance(address) {
+  const balance = await provider.getBalance(address);
+  console.log("Balance:", ethers.formatEther(balance), "ETH");
+}
+getBalance("0xYourEthereumAddress");
+```
+
+##### 🔗 Retrieving ERC-20 Token Balance
+
+ERC-20 tokens require querying a **contract’s `balanceOf()` function**.
+
+###### Using Ethers.js for ERC-20 Balance:
+
+```javascript
+const abi = ["function balanceOf(address owner) view returns (uint256)"];
+const contractAddress = "0xYourTokenAddress";
+const contract = new ethers.Contract(contractAddress, abi, provider);
+
+async function getTokenBalance(address) {
+  const balance = await contract.balanceOf(address);
+  console.log("Token Balance:", ethers.formatUnits(balance, 18));
+}
+getTokenBalance("0xYourEthereumAddress");
+```
+
+#### 📌 Querying Smart Contracts Using `call()` and `view` Functions
+
+Smart contracts expose `view` functions to retrieve data **without gas fees**.
+
+##### 🔍 Fetching Data from a Smart Contract
+
+```javascript
+const abi = ["function totalSupply() view returns (uint256)"];
+const contract = new ethers.Contract(contractAddress, abi, provider);
+
+async function getTotalSupply() {
+  const supply = await contract.totalSupply();
+  console.log("Total Supply:", ethers.formatUnits(supply, 18));
+}
+getTotalSupply();
+```
+
+#### 📌 Subscribing to Blockchain Events & Logs
+
+Blockchain emits **events** when specific transactions occur (e.g., transfers, approvals, contract executions). We can subscribe to these using **Web3.js or Ethers.js**.
+
+##### 🔍 Listening for Transfer Events
+
+```javascript
+contract.on("Transfer", (from, to, value) => {
+  console.log(`Transfer from ${from} to ${to}:`, ethers.formatUnits(value, 18));
+});
+```
+
+#### 📌 Handling Indexed Data with The Graph Protocol
+
+Since querying on-chain data directly can be inefficient, **The Graph Protocol** allows developers to **index and query blockchain data efficiently**.
+
+##### 🔍 Fetching Indexed Data from The Graph
+
+```graphql
+query {
+  transfers(first: 5) {
+    id
+    from
+    to
+    value
+  }
+}
+```
+
+Using The Graph enables dApps to fetch **filtered and indexed blockchain data** without relying on expensive RPC calls.
+
+### 2️⃣ Working with Transactions & Blocks
+
+#### 📌 Fetching Recent Transactions & Block Details
+
+Each transaction in the blockchain is recorded within a **block**. Fetching recent transactions involves querying **blocks and transaction hashes**.
+
+##### 🔍 Getting the Latest Block
+
+```javascript
+const block = await provider.getBlock("latest");
+console.log("Latest Block Number:", block.number);
+```
+
+##### 🔍 Retrieving a Transaction by Hash
+
+```javascript
+const txHash = "0xYourTransactionHash";
+const transaction = await provider.getTransaction(txHash);
+console.log("Transaction Details:", transaction);
+```
+
+#### 📌 Querying Gas Prices & Estimating Costs
+
+Estimating **gas fees** is critical for transaction optimization.
+
+##### 🔍 Fetching Current Gas Prices
+
+```javascript
+const gasPrice = await provider.getFeeData();
+console.log(
+  "Gas Price:",
+  ethers.formatUnits(gasPrice.gasPrice, "gwei"),
+  "Gwei"
+);
+```
+
+##### 🔍 Estimating Gas for a Transaction
+
+```javascript
+const gasEstimate = await provider.estimateGas({
+  to: "0xRecipientAddress",
+  value: ethers.parseEther("0.1"),
+});
+console.log("Estimated Gas:", gasEstimate.toString());
+```
+
+#### 📌 Implementing a Real-Time Blockchain Explorer in React
+
+A **blockchain explorer** visualizes transactions and blocks in real time.
+
+##### 🔍 Fetching & Displaying Live Blockchain Data
+
+```javascript
+import { useEffect, useState } from "react";
+
+const provider = new ethers.JsonRpcProvider(
+  "https://mainnet.infura.io/v3/YOUR_INFURA_KEY"
+);
+
+function BlockchainExplorer() {
+  const [block, setBlock] = useState(null);
+
+  useEffect(() => {
+    provider.on("block", async (blockNumber) => {
+      const latestBlock = await provider.getBlock(blockNumber);
+      setBlock(latestBlock);
+    });
+  }, []);
+
+  return (
+    <div>
+      <h2>Latest Block:</h2>
+      {block ? <pre>{JSON.stringify(block, null, 2)}</pre> : <p>Loading...</p>}
+    </div>
+  );
+}
+```
+
+This React component listens for new blocks and updates the UI dynamically, providing a **real-time blockchain explorer** experience.
