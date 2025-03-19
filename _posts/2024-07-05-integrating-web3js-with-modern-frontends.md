@@ -689,3 +689,129 @@ function BlockchainExplorer() {
 ```
 
 This React component listens for new blocks and updates the UI dynamically, providing a **real-time blockchain explorer** experience.
+
+## 🚀 Executing Smart Contract Functions from the Frontend
+
+Interacting with smart contracts from a **Web3-enabled frontend** involves executing **state-changing transactions** on the blockchain. This section explores how to **send transactions using Web3.js and Ethers.js**, handle **user authentication with wallets**, monitor transaction statuses, and debug common errors.
+
+### 1️⃣ Writing Data to the Blockchain
+
+Unlike reading data, writing transactions modifies the blockchain state and **requires gas fees**. Users must sign transactions via a **wallet provider (MetaMask, WalletConnect, etc.)**.
+
+#### 📌 Sending Transactions Using Web3.js & Ethers.js
+
+Transactions involve sending native cryptocurrency (e.g., **ETH, MATIC**) or invoking **smart contract functions**.
+
+##### 🔍 Sending Native Token Transactions
+
+###### Using Web3.js:
+
+```javascript
+const Web3 = require("web3");
+const web3 = new Web3(window.ethereum);
+
+async function sendTransaction(to, amount) {
+  const accounts = await web3.eth.getAccounts();
+  await web3.eth.sendTransaction({
+    from: accounts[0],
+    to,
+    value: web3.utils.toWei(amount, "ether"),
+    gas: 21000,
+  });
+  console.log("Transaction Sent!");
+}
+sendTransaction("0xRecipientAddress", "0.1");
+```
+
+###### Using Ethers.js:
+
+```javascript
+import { ethers } from "ethers";
+const provider = new ethers.BrowserProvider(window.ethereum);
+
+async function sendTransaction(to, amount) {
+  const signer = await provider.getSigner();
+  const tx = await signer.sendTransaction({
+    to,
+    value: ethers.parseEther(amount),
+  });
+  console.log("Transaction Hash:", tx.hash);
+}
+sendTransaction("0xRecipientAddress", "0.1");
+```
+
+#### 📌 Handling User Prompts & MetaMask Confirmations
+
+When initiating a transaction, the user must **approve** the operation via their wallet.
+
+##### 🔹 Detecting Wallet Prompts & Approval
+
+```javascript
+window.ethereum
+  .request({ method: "eth_sendTransaction", params: [txData] })
+  .then((txHash) => console.log("Transaction submitted:", txHash))
+  .catch((error) => console.error("Transaction rejected by user", error));
+```
+
+#### 📌 Tracking Transaction Status & Confirmations
+
+After sending a transaction, developers must **monitor its status** to ensure successful execution.
+
+##### 🔍 Checking Transaction Receipt
+
+```javascript
+async function checkTransactionStatus(txHash) {
+  const receipt = await provider.getTransactionReceipt(txHash);
+  if (receipt && receipt.confirmations > 0) {
+    console.log("Transaction confirmed in block:", receipt.blockNumber);
+  } else {
+    console.log("Transaction pending...");
+  }
+}
+checkTransactionStatus("0xTransactionHash");
+```
+
+### 2️⃣ Error Handling & Debugging Transactions
+
+Transaction failures occur due to **insufficient gas, reverts, or network congestion**. Understanding common errors helps improve user experience.
+
+#### 📌 Common Web3 Errors & Their Solutions
+
+| Error Message                    | Cause                     | Solution                             |
+| -------------------------------- | ------------------------- | ------------------------------------ |
+| `gas required exceeds allowance` | Insufficient gas          | Increase gas limit                   |
+| `transaction underpriced`        | Gas fee too low           | Adjust gas price dynamically         |
+| `insufficient funds`             | User has low balance      | Display error message before signing |
+| `revert`                         | Contract execution failed | Debug using Hardhat & Ganache        |
+
+#### 📌 Handling Reverted Transactions & Insufficient Gas Issues
+
+Smart contract **reverts** indicate a failure in execution logic. The solution involves **checking error messages** before signing.
+
+##### 🔹 Detecting Revert Errors
+
+```javascript
+try {
+  await contract.someFunction();
+} catch (error) {
+  if (error.message.includes("revert")) {
+    console.error("Transaction failed: ", error.reason);
+  }
+}
+```
+
+#### 📌 Using Hardhat & Ganache for Local Debugging
+
+To simulate transactions without spending real gas, use **Hardhat** or **Ganache**.
+
+##### 🔍 Setting Up a Local Hardhat Node
+
+```bash
+npx hardhat node
+```
+
+##### 🔍 Running Transactions on Local Testnet
+
+```javascript
+const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+```
