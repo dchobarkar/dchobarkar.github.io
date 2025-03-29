@@ -334,3 +334,93 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 | **hardhat-deploy** | Structured, repeatable deployment processes |
 
 Choose the tool that fits your **team’s workflow**, project complexity, and **network targets**.
+
+## 🚀 Best Practices for Mainnet Launch
+
+Launching on mainnet is a milestone—but it’s also a **point of no return** for many projects. To ensure your dApp performs safely and smoothly in the wild, it’s essential to follow **battle-tested deployment practices** that reduce risk and build user trust 🧠🛡️
+
+### 🧪 Use Staging Environments
+
+Before you even think of mainnet, deploy to a **staging environment** that mirrors your production setup as closely as possible.
+
+#### 🧾 Options:
+
+- **Public Testnets**: Sepolia, Goerli, Optimism Goerli
+- **Shadow Mainnet Forks**: Fork mainnet locally (via Hardhat or Anvil) and test against live data
+
+💡 Run your deployment scripts, check token balances, and simulate complex flows using impersonation or forked state.
+
+### 🤖 Simulate User Flows Using Scripts or Bots
+
+You can’t test what you don’t automate. Use bots or test scripts to simulate:
+
+- Wallet connection and approval flows
+- Token minting, swaps, or staking
+- Governance actions (e.g., proposals, votes)
+- Edge cases (max gas, unexpected input)
+
+#### Example:
+
+```javascript
+await contract.connect(user).mint({ value: mintPrice });
+await expect(contract.connect(bot).burn(999)).to.be.reverted;
+```
+
+🔁 Automate this process in CI to ensure **repeatability and regression coverage**.
+
+### 🏷️ Version Contracts with Git Tags and Deployment IDs
+
+Maintain **tight version control** over your deployments:
+
+- Tag releases in Git (e.g., `v1.0.0-mainnet`)
+- Include **deployment metadata** like:
+  - Contract addresses
+  - Block numbers
+  - Network IDs
+  - ABI hashes
+
+💡 Store this in `deployments/` or `versions.json` to support upgrades, audits, and community transparency.
+
+### ✅ Verify Contracts on Etherscan / Blockscout
+
+Contract verification allows users, dApps, and security auditors to **see your source code on-chain**.
+
+#### Tools:
+
+- `hardhat-verify` plugin for Etherscan
+- Truffle’s `truffle-plugin-verify`
+- Manual verification on **Blockscout** for sidechains
+
+```bash
+npx hardhat verify --network mainnet DEPLOYED_ADDRESS ARG1 ARG2
+```
+
+💡 Bonus: Verified contracts get **better support from tools** like Tenderly, Dune, and The Graph.
+
+### ⛔ Add Time-Locks and Safety Switches
+
+Security mechanisms can save your protocol in case of bugs or attacks:
+
+#### 🛡️ Key Contracts from OpenZeppelin:
+
+- `Pausable`: Add emergency circuit breakers
+- `TimelockController`: Delay sensitive actions (e.g., upgrades, fund transfers)
+- `AccessControl`: Modular permission systems
+
+```solidity
+function emergencyPause() external onlyRole(PAUSER_ROLE) {
+    _pause();
+}
+```
+
+💡 Make sure emergency actions are **transparent, auditable, and minimal**.
+
+### 🔁 Enable Proxy Upgradability Cautiously
+
+If your dApp supports upgrades, do it safely:
+
+- Use OpenZeppelin’s `TransparentUpgradeableProxy` or `UUPS`
+- Protect `upgradeTo()` functions with `onlyAdmin`
+- Never store logic in the proxy contract itself
+
+💡 Always **simulate upgrades on testnets**, and consider a **multi-sig for upgrades** on mainnet.
