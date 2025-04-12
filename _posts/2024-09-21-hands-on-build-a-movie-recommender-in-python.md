@@ -233,3 +233,111 @@ These genre vectors enable similarity calculations between movies (via cosine si
 - **Feature Hashing**: Ideal for encoding high-cardinality variables like cast or keywords.
 
 With the preprocessing pipeline complete, our dataset is significantly more refined, structurally aligned, and analytically tractable. The cleaned and transformed interaction matrix now facilitates a spectrum of algorithms, from classical matrix factorization to hybrid deep learning models. In the following section, we’ll begin algorithmic modeling by implementing matrix factorization and similarity-based approaches. 🧠
+
+## 🧠 Building the Recommendation Engine: Advanced Techniques in Collaborative and Content-Based Filtering
+
+Following extensive data preprocessing and schema normalization, we now shift our attention to the most pivotal computational module in the recommender system pipeline: the **recommendation engine**. This component encapsulates the core intelligence that interprets historical interaction data and item-level features to forecast user preferences and generate personalized item rankings. In this section, we present two cornerstone paradigms widely adopted in both academic and industrial settings—**collaborative filtering via matrix factorization** and **content-based filtering using cosine similarity**.
+
+These approaches represent distinct yet complementary strategies. Collaborative filtering infers hidden patterns by leveraging collective user behaviors, while content-based filtering focuses on item attributes to drive similarity-driven recommendations. Each method brings unique benefits, and when combined, can yield a hybrid model that capitalizes on their respective strengths. Below, we walk through both approaches with code implementations, evaluation metrics, and practical considerations.
+
+### ⚙️ Option A: Matrix Factorization Using Singular Value Decomposition (SVD)
+
+Matrix factorization, especially using SVD, is an effective collaborative filtering method for uncovering latent features that govern user-item interactions. By decomposing the interaction matrix into two low-rank matrices—representing user and item latent spaces—we can predict unobserved ratings through the dot product of these vector representations.
+
+#### Implementation with the `Surprise` Library
+
+The `Surprise` library offers a modular and extensible framework for prototyping recommender models. It supports various algorithms, including SVD, KNN, and NMF, with built-in utilities for evaluation and dataset handling.
+
+##### Model Setup and Training:
+
+```python
+from surprise import SVD, Dataset, Reader
+from surprise.model_selection import train_test_split
+from surprise import accuracy
+
+reader = Reader(rating_scale=(1, 5))
+data = Dataset.load_from_df(ratings[['userId', 'movieId', 'rating']], reader)
+trainset, testset = train_test_split(data, test_size=0.2)
+
+model = SVD()
+model.fit(trainset)
+predictions = model.test(testset)
+```
+
+##### Evaluation Metrics:
+
+```python
+print("RMSE:", accuracy.rmse(predictions))
+print("MAE:", accuracy.mae(predictions))
+```
+
+We use **Root Mean Square Error (RMSE)** and **Mean Absolute Error (MAE)** to quantify prediction accuracy. RMSE penalizes larger deviations more heavily, while MAE provides a straightforward measure of average error. These metrics are particularly effective when evaluating explicit feedback systems.
+
+##### Generating Top-N Personalized Recommendations:
+
+```python
+from collections import defaultdict
+
+def get_top_n(predictions, n=10):
+    top_n = defaultdict(list)
+    for uid, iid, true_r, est, _ in predictions:
+        top_n[uid].append((iid, est))
+    for uid, user_ratings in top_n.items():
+        user_ratings.sort(key=lambda x: x[1], reverse=True)
+        top_n[uid] = user_ratings[:n]
+    return top_n
+
+top_n = get_top_n(predictions, n=5)
+```
+
+This function produces a dictionary of top-N recommended items per user, ranked by estimated rating. These outputs can be integrated into user interfaces or marketing workflows.
+
+### 🔍 Option B: Content-Based Filtering via Cosine Similarity
+
+Content-based filtering recommends items by evaluating the similarity between item features, rather than leveraging user interaction data. It is especially useful in cold-start scenarios or domains where user engagement is limited. By representing items as numerical vectors, we can apply similarity measures to identify and rank comparable items.
+
+#### Vectorization of Item Metadata with TF-IDF
+
+We utilize **Term Frequency–Inverse Document Frequency (TF-IDF)** to convert genre labels into high-dimensional vector representations, where uncommon genre combinations receive greater weight.
+
+```python
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+# Concatenate genre labels into strings
+genre_columns = ['Action', 'Comedy', 'Drama', 'Sci-Fi', 'Romance', 'Thriller']
+movies['genres_str'] = movies[genre_columns].apply(lambda x: ' '.join(x.index[x == 1]), axis=1)
+tfidf = TfidfVectorizer()
+tfidf_matrix = tfidf.fit_transform(movies['genres_str'])
+```
+
+This transformation yields a sparse matrix, where each row corresponds to an item’s TF-IDF representation.
+
+#### Computing Cosine Similarity Between Movies:
+
+```python
+cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
+```
+
+Cosine similarity captures the angular distance between two vectors, allowing us to quantify semantic similarity in a scale-invariant and sparse-aware manner.
+
+#### Querying Similar Items:
+
+```python
+def get_similar_movies(title, top_n=5):
+    idx = movies[movies['title'] == title].index[0]
+    sim_scores = list(enumerate(cosine_sim[idx]))
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+    movie_indices = [i[0] for i in sim_scores[1:top_n+1]]
+    return movies.iloc[movie_indices][['title']]
+
+get_similar_movies("Star Wars", top_n=5)
+```
+
+This function returns a list of the top-N most similar items to a given title based on genre similarity. Unlike collaborative filtering, this technique relies solely on content descriptors, offering a transparent and interpretable recommendation rationale.
+
+### 🧩 Synthesis and Future Direction
+
+Each of the strategies discussed above serves a distinct role in the recommendation landscape. **Matrix factorization** is powerful when sufficient interaction data is available, revealing hidden affinities across user populations. **Content-based filtering**, on the other hand, excels in explaining why items are related and is well-suited for environments where item metadata is rich but user activity is limited.
+
+Importantly, these methods are not mutually exclusive. In practice, many production-grade systems incorporate elements of both to form **hybrid recommenders** that leverage collaborative signals, metadata richness, and contextual information. In the next section, we will explore how these paradigms can be combined to build more robust, adaptive, and scalable recommendation architectures. 🚀
