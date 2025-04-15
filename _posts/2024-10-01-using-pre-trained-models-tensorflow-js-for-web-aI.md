@@ -136,3 +136,88 @@ TensorFlow.js provides a curated suite of pre-trained models, engineered for opt
 Each model is maintained under the `@tensorflow-models` namespace, with standardized APIs, cross-browser compatibility, and well-documented implementation guidelines.
 
 In conclusion, pre-trained models offer a powerful conduit between state-of-the-art machine learning research and real-world application development. They significantly reduce the infrastructure burden required to deploy AI, enable rapid prototyping, and promote sustainable development practices. As we will explore in the next section, deploying MobileNet in-browser for real-time image classification exemplifies how these models bring advanced AI capabilities directly to users—executed entirely at the edge. 🖼️
+
+## 🖼️ Image Classification in the Browser
+
+The rise of in-browser machine learning, facilitated by powerful JavaScript frameworks such as TensorFlow.js, signals a transformative shift in how computational intelligence is embedded into modern web ecosystems. This technological evolution reassigns the traditionally server-side responsibility of model inference to the client-side—empowering developers to deploy performant, interactive AI experiences that operate entirely within the browser. Among the most illustrative use cases of this trend is **image classification**, a core task in computer vision where images are automatically assigned descriptive categorical labels based on learned visual features.
+
+Leveraging MobileNet—a family of lightweight convolutional neural networks (CNNs) engineered for efficiency on mobile and embedded platforms—developers can implement real-time classification pipelines that are both memory-efficient and responsive. MobileNet utilizes architectural strategies such as depthwise separable convolutions to minimize the number of parameters and operations required, making it particularly suited for browser-based deployments. Through TensorFlow.js, this model can be loaded and executed directly in the frontend, classifying visual input into over 1,000 ImageNet-derived categories.
+
+### 🔍 Use Case Contextualization: Client-Side Real-Time Inference
+
+Client-side inference provides numerous benefits that address limitations inherent to server-dependent architectures:
+
+- **Latency Reduction**: Eliminates reliance on external APIs and network round-trips, allowing sub-100ms response times on modern hardware.
+- **Privacy Preservation**: Ensures that sensitive visual data remains local to the user's machine, reducing exposure and enhancing data sovereignty.
+- **Offline Capability**: Enables AI functionality in low-connectivity or fully offline contexts, making it ideal for PWAs and mobile-first experiences.
+- **Cross-Platform Accessibility**: JavaScript’s omnipresence in modern browsers ensures that such applications are broadly deployable across devices and operating systems.
+
+Target applications include:
+
+- Visual learning platforms for students and hobbyists.
+- Accessibility-focused tools such as object narrators or assistive recognizers.
+- In-the-field inspection utilities for agriculture, healthcare, or maintenance.
+- Creative digital art and augmented reality (AR) experiences that require live vision-based input.
+
+### ⚙️ Implementation: TensorFlow.js + MobileNet Inference Pipeline
+
+#### HTML Markup for Image Input and Classification Output
+
+```html
+<input type="file" id="upload" accept="image/*" />
+<img id="preview" width="224" />
+<div id="results"></div>
+```
+
+This minimal HTML structure provides an image file selector, a preview region, and a dynamic results container for model predictions.
+
+#### JavaScript Code for Model Handling and Prediction
+
+```js
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+<script>
+let model;
+
+async function loadModel() {
+  model = await mobilenet.load();
+  console.log("Model loaded successfully.");
+}
+
+document.getElementById('upload').addEventListener('change', async (event) => {
+  const file = event.target.files[0];
+  const img = document.getElementById('preview');
+  img.src = URL.createObjectURL(file);
+  img.onload = async () => {
+    const predictions = await model.classify(img);
+    document.getElementById('results').innerHTML = predictions
+      .map(p => `${p.className}: ${Math.round(p.probability * 100)}%`)
+      .join('<br>');
+  };
+});
+
+loadModel();
+</script>
+```
+
+The script includes:
+
+- Asynchronous loading of the MobileNet model from a CDN.
+- Image preview rendering upon user file upload.
+- Classification of the image using MobileNet’s `classify()` method.
+- Display of class names and confidence scores within the DOM.
+
+The modular design also allows seamless expansion—such as the integration of webcam streams, drag-and-drop functionality, or real-time preprocessing pipelines for enhanced performance.
+
+### 🧪 Demonstrative Scenario: Upload-Based Classification Workflow
+
+This architecture serves as a foundational blueprint for more advanced use cases, including:
+
+- Content management tools that auto-tag uploaded assets.
+- Client-side transfer learning environments where models can be fine-tuned on the fly.
+- Interactive feedback loops enabling users to validate or correct predictions.
+
+With the model footprint averaging ~17MB and loaded via CDN, latency remains negligible thanks to browser caching. Prediction times on average consumer hardware range between 20–60 milliseconds, supporting truly interactive workflows even without GPU acceleration. Performance is further optimized through model quantization and memory-aware input handling.
+
+The deployment of pre-trained models like MobileNet in the browser demonstrates the maturation of edge intelligence and the growing fusion of machine learning with frontend engineering. These architectures allow developers to embed perception capabilities directly into the UI layer, fundamentally rethinking the web as not just a display surface but an active computational agent. In the following section, we will further contextualize these advances within broader UX patterns, tooling infrastructure, and real-time ML system design. ⚡
