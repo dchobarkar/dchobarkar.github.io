@@ -385,3 +385,69 @@ In such cases, hybrid solutions are advisable. A typical architecture might:
 This approach balances privacy and performance while still empowering users to contribute training signals and maintain ownership of their data.
 
 In conclusion, browser-based transfer learning is a robust tool for developing adaptive, privacy-conscious, and interactive machine learning applications. It empowers developers to deliver on-device intelligence that evolves with user behavior and context—all without sacrificing control or responsiveness. Whether applied as a standalone client-side solution or integrated into a broader edge-cloud continuum, transfer learning in the browser exemplifies the future of personalized AI at scale. In the next section, we’ll explore deployment strategies that integrate client-side inference with backend orchestration for full-stack machine learning systems. ☁️
+
+## 🧠 Other Notable Models in TensorFlow.js
+
+TensorFlow.js plays a central role in the advancement of decentralized machine learning by enabling real-time, intelligent computation within the browser. This paradigm eliminates the need for dedicated backend infrastructure while aligning with critical priorities in edge computing—such as user privacy, latency minimization, bandwidth conservation, and platform-neutral deployment. While MobileNet has long been the foundational model for in-browser image classification, the broader TensorFlow.js suite includes a robust collection of pre-trained, task-specific models across multiple AI domains. These include object detection, human pose estimation, facial landmark tracking, and natural language moderation. Each model has been designed and optimized with the browser runtime in mind, balancing the trade-offs between inference accuracy, computational complexity, and model size.
+
+### 📦 Object Detection with COCO-SSD
+
+The **COCO-SSD** model, based on the Single Shot MultiBox Detector architecture, is trained on the COCO dataset and supports simultaneous detection and classification of over 90 distinct object classes. It performs inference through a single forward pass, returning bounding boxes and class predictions with real-time confidence metrics.
+
+**Applicable scenarios include:**
+
+- On-device surveillance and anomaly detection systems
+- Augmented reality experiences that require spatial awareness of real-world entities
+- Browser-native content filtering for livestream and video platforms
+
+Its computational efficiency and cross-platform compatibility enable smooth deployment across both mobile and desktop environments.
+
+```js
+const model = await cocoSsd.load();
+const predictions = await model.detect(imgElement);
+```
+
+Its seamless integration and performance reliability position COCO-SSD as a staple for real-time computer vision in browser-based applications.
+
+### 🕺 Pose Estimation with PoseNet and BlazePose
+
+**PoseNet** and **BlazePose** are specialized models for real-time human pose estimation. PoseNet identifies 17 keypoints including joints and facial references, optimized for responsiveness in browser contexts. BlazePose, derived from Google’s MediaPipe, extends the anatomical resolution with over 30 high-fidelity body landmarks, supporting more detailed skeletal modeling.
+
+**Use cases span:**
+
+- Gesture-driven interface design for accessibility, gaming, and immersive interaction
+- Real-time fitness and physiotherapy analytics
+- Animation control in XR (extended reality) and avatar systems
+
+These models allow in-browser systems to interpret human motion as an input modality, creating opportunities for embodied computing paradigms that transcend traditional mouse and touch interfaces.
+
+### 👁️ Facial Geometry Estimation with FaceMesh
+
+**FaceMesh** is a high-resolution facial landmark detection model that maps 468 distinct points on the human face using a single image. It enables extraction of precise geometry for facial contours including the eyes, mouth, eyebrows, nasal structure, and jawline.
+
+**Use cases include:**
+
+- Biometric identity verification through facial pattern analysis
+- Affect detection and emotion modeling for human-computer interaction
+- Real-time augmented overlays such as masks, makeup filters, and gaze tracking
+
+Its ability to run within the browser environment—without external sensors or hardware accelerators—makes it a practical solution for accessible, responsive facial analysis at scale.
+
+### 💬 Toxicity Classification for NLP-Based Moderation
+
+The **Toxicity** model, built from a distilled version of BERT, provides real-time natural language classification for detecting abusive, offensive, or harmful content. It supports multi-label outputs that categorize text into overlapping toxicity dimensions including threats, identity-based attacks, and profane language.
+
+**Primary application areas include:**
+
+- Chat and comment moderation in live web platforms
+- Safe space enforcement in educational and youth-facing applications
+- Sentiment-aware UX components for adaptive interaction
+
+```js
+const model = await toxicity.load(threshold);
+const results = await model.classify(["Example input text"]);
+```
+
+Its ability to operate entirely client-side ensures data sovereignty while maintaining system responsiveness.
+
+Together, these models exemplify the growing maturity and diversity of the TensorFlow.js ecosystem. They illustrate the browser’s transformation from a passive rendering agent into a context-aware, AI-enhanced runtime capable of handling perceptual tasks previously confined to native or server-side systems. By abstracting model architecture and inference logistics into modular APIs, TensorFlow.js empowers developers to build production-grade, intelligent web applications with unprecedented ease and flexibility. In the next section, we will explore strategies for optimizing these models for deployment, covering topics such as code splitting, quantization, caching, and performance monitoring. 🚀
