@@ -106,3 +106,60 @@ Exploratory data analysis serves as the analytical foundation for time series mo
 When executed rigorously, EDA enables the construction of informed priors, justifies preprocessing decisions (e.g., differencing, transformation), and lays the groundwork for developing statistically sound and operationally viable forecasting models.
 
 In the next section, we transition from exploratory methods to formalized modeling strategies. We will begin with classical approaches—namely, ARIMA, exponential smoothing, and state space models—before advancing to the architecture and implementation of deep learning methods specifically designed for temporal inference.
+
+## 📉 Classical Models for Time Series Forecasting
+
+Classical statistical models continue to play a vital role in the field of time series forecasting, despite the increasing dominance of deep learning methods. Their enduring utility is rooted in a unique combination of theoretical clarity, computational efficiency, and interpretability. These models excel in scenarios characterized by relatively stable temporal dynamics, limited data availability, and environments that demand transparency—such as regulated industries or academic research. This section presents a scholarly overview of two principal classes of classical time series models—ARIMA and seasonal decomposition—and delineates conditions under which these approaches may outperform more sophisticated machine learning techniques.
+
+### 🔁 ARIMA: Autoregressive Integrated Moving Average
+
+ARIMA (Autoregressive Integrated Moving Average) remains one of the most canonical models in univariate time series forecasting. It provides a flexible framework that models time series data using three core operations:
+
+- **Autoregression (AR):** Captures linear dependence on previous time steps, expressing the current value as a function of past observations.
+- **Integration (I):** Implements differencing to remove trends or unit roots, ensuring the series exhibits stationarity—an essential assumption for many time series models.
+- **Moving Average (MA):** Models the error term as a function of previous forecasting errors, smoothing irregularities in the residuals.
+
+The model is typically represented as ARIMA(p, d, q), where:
+
+- **p** denotes the order of the autoregressive component,
+- **d** specifies the degree of differencing,
+- **q** represents the order of the moving average component.
+
+Model building involves several methodical steps:
+
+- Visualization and transformation (e.g., logarithmic or Box-Cox transformation);
+- Stationarity assessment using unit root tests such as the Augmented Dickey-Fuller (ADF), KPSS, or Phillips-Perron;
+- Autocorrelation and partial autocorrelation analysis (ACF and PACF) to inform parameter selection;
+- Selection of optimal model using criteria like AIC and BIC;
+- Residual diagnostics to verify assumptions of white noise and absence of serial correlation.
+
+#### ARIMA Extensions
+
+- **SARIMA:** Incorporates seasonal autoregressive, differencing, and moving average terms, parameterized as ARIMA(p, d, q)(P, D, Q)\_s.
+- **ARIMAX:** Enhances ARIMA by introducing exogenous covariates for conditional modeling.
+
+ARIMA and its variants are particularly effective for short-term forecasting tasks in domains such as finance, economics, and environmental science, where model interpretability and rigorous statistical inference are paramount.
+
+### 📈 Seasonal Decomposition Techniques
+
+Seasonal decomposition methods aim to disentangle a time series into interpretable sub-components, typically trend, seasonality, and residual (irregular) elements. This decomposition enhances interpretability, supports preprocessing, and informs model specification.
+
+#### Major Decomposition Techniques
+
+- **Classical Decomposition:** Based on moving averages, this method assumes additive or multiplicative structure and works best with regular seasonality.
+- **STL (Seasonal-Trend decomposition via Loess):** A robust and flexible method using locally weighted regression, ideal for handling non-linear trends and complex seasonality.
+- **X-13ARIMA-SEATS:** A powerful method for seasonal adjustment, developed by the U.S. Census Bureau, which integrates ARIMA modeling with regression-based decomposition.
+
+Decomposition is valuable for isolating underlying components of interest, facilitating anomaly detection, improving feature engineering, and enabling hybrid modeling strategies.
+
+### 🔍 When Classical Models Excel Over Deep Learning
+
+Although deep learning methods such as recurrent neural networks (RNNs), temporal convolutional networks (TCNs), and attention-based transformers offer superior capacity for modeling complex, high-dimensional, and nonlinear systems, classical models retain competitive advantages in specific contexts:
+
+- **Limited Data Availability:** Classical models like ARIMA can be effectively trained on small datasets, whereas neural networks typically require extensive data for generalization.
+- **Short-Term Forecasting:** For low-horizon predictions, classical models frequently yield accurate forecasts with minimal computational overhead.
+- **Stable or Stationary Processes:** In settings characterized by linearly evolving dynamics, classical models often perform as well as or better than deep models with less complexity.
+- **Explainability Requirements:** In domains such as healthcare, finance, and legal systems, model transparency is not only preferred but often mandated.
+- **Efficiency and Prototyping:** Classical models are easy to implement, fast to train, and highly suitable for rapid experimentation or resource-constrained environments.
+
+In sum, classical methods serve not only as foundational models and robust baselines but also as practical solutions in many real-world applications. Their transparent structure, minimal hyperparameter tuning, and ability to yield statistically rigorous forecasts make them indispensable in the modern forecasting arsenal. In the following section, we explore how deep learning models enhance forecasting capabilities by overcoming the structural assumptions and limitations inherent in classical techniques.
