@@ -99,3 +99,89 @@ Despite their limitations, rule-based bots still have a place today:
 - When control and safety are more important than flexibility
 
 But as soon as you want a bot to understand variations, ask follow-up questions, or handle real conversations? You’ll quickly hit the ceiling. That’s when it’s time to level up to retrieval or generative architectures — which we’ll explore next 🚀
+
+## Retrieval-Based Chatbots: Smarter but Static
+
+As developers hit the limitations of rule-based bots — brittle logic, no generalization, and tedious maintenance — the natural next step was retrieval-based systems 🧠
+
+These chatbots don’t generate responses. Instead, they **retrieve** the most appropriate answer from a pre-defined dataset, often using vector similarity or basic search algorithms. Think of them like smart FAQs: the bot doesn’t _understand_, but it’s really good at _finding_ what matches your input.
+
+### 🧩 How They Work
+
+The typical retrieval-based chatbot architecture includes:
+
+- A **user query**
+- A **knowledge base** of potential responses (docs, FAQs, product info, etc.)
+- A **retriever**, which ranks documents or chunks based on similarity to the query
+- A selected response, usually the top match
+
+#### Basic Retrieval Pipeline
+
+1. Preprocess your documents (clean, chunk, embed)
+2. Convert the user query into an embedding
+3. Use vector similarity (e.g. cosine similarity) to find nearest match
+4. Return the corresponding answer
+
+Before transformer models, systems used TF-IDF or BM25 (like ElasticSearch). These relied on word frequency and overlap. But now, we can embed text using models like OpenAI’s `text-embedding-ada-002` to represent both questions and answers as high-dimensional vectors.
+
+### 🔍 Example: Using LangChain for Retrieval
+
+Let’s walk through a simple LangChain setup in Python that retrieves a relevant FAQ answer.
+
+```python
+from langchain.vectorstores import FAISS
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.document_loaders import TextLoader
+from langchain.chains import RetrievalQA
+from langchain.llms import OpenAI
+
+# Load and embed documents
+loader = TextLoader("./faq.txt")
+docs = loader.load()
+embeddings = OpenAIEmbeddings()
+vectorstore = FAISS.from_documents(docs, embeddings)
+
+# Create the retrieval chain
+qa = RetrievalQA.from_chain_type(
+    llm=OpenAI(),
+    retriever=vectorstore.as_retriever(),
+)
+
+# Ask a question
+query = "How do I reset my password?"
+result = qa.run(query)
+print(result)
+```
+
+In this hybrid example, the bot **retrieves** the right chunk and optionally passes it to an LLM (like GPT-4) to clean up or paraphrase the response.
+
+### 🎯 Benefits
+
+- Grounded in real data — avoids hallucination
+- Easier to control and audit
+- Excellent for static knowledge like policies, docs, SOPs
+- Efficient and scalable
+
+### ⚠️ Limitations
+
+- Still lacks true understanding
+- Can misfire if question is out-of-distribution
+- Doesn’t support dynamic flows (e.g. API calls, logic branches)
+- No learning or adaptation unless manually updated
+
+### 🧠 Popular Use Cases
+
+- Internal documentation bots (like Notion/Confluence Q\&A)
+- Product support on SaaS dashboards
+- Healthcare compliance bots
+- Legal or finance lookup tools
+
+### 🧰 Tools and Frameworks
+
+- **LangChain** – abstracts retrieval, chains, agents
+- **FAISS** – lightweight in-memory vector DB
+- **Weaviate / Pinecone / Qdrant** – managed vector DBs
+- **OpenAI / HuggingFace** – for generating embeddings
+- **Haystack, Vespa, ElasticSearch** – for search-heavy apps
+
+Retrieval-based bots introduced a new paradigm: instead of teaching the bot how to respond, you **give it knowledge** and teach it how to find answers. But while they’re great for factual recall, they don’t generate insights. For that, you’ll need the next evolution — **generative AI** — where things get a whole lot more powerful 🔥
