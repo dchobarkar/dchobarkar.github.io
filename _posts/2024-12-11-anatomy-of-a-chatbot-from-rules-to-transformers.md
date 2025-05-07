@@ -377,3 +377,103 @@ This pattern ensures that GPT always has **relevant, up-to-date info**, even if 
 With RAG, your chatbot becomes both a search engine and a storyteller — grounded in fact, but fluent in response. It’s quickly becoming the _default architecture_ for production-grade AI agents.
 
 Next up: how to manage **memory and context** across multi-turn conversations — because one-shot prompts can only take you so far 💬🔄
+
+## Memory and Context: Beyond Stateless Conversations
+
+A truly intelligent chatbot doesn’t just answer — it remembers 🧠💬
+
+Generative and retrieval bots are powerful, but by default they’re **stateless**. Every query is treated in isolation. For a richer, more human-like experience, we need to manage **memory** — so the bot can track context across turns, remember what’s been said, and respond accordingly.
+
+This is especially crucial for:
+
+- Multi-turn support interactions
+- Personal assistants or coaching bots
+- Form-filling or onboarding workflows
+- Role-playing or dialogue-based applications
+
+### 🧩 Types of Memory in Chatbots
+
+LangChain and similar frameworks offer multiple ways to implement memory:
+
+1. **Buffer Memory**
+
+   - Stores the full conversation history verbatim
+   - Best for short conversations or debugging
+   - Quick example:
+
+   ```python
+   from langchain.memory import ConversationBufferMemory
+   memory = ConversationBufferMemory()
+   ```
+
+2. **Token Buffer Memory**
+
+   - Similar to buffer, but trims history based on token count
+   - Helps stay within context window of GPT-4
+
+3. **Summary Memory**
+
+   - Summarizes past interactions instead of storing raw logs
+   - Useful for long convos — especially when memory needs to scale
+
+   ```python
+   from langchain.memory import ConversationSummaryMemory
+   memory = ConversationSummaryMemory(
+       llm=OpenAI(),
+       memory_key="chat_history"
+   )
+   ```
+
+4. **Entity Memory**
+
+   - Tracks specific facts/entities mentioned
+   - E.g. "Darshan is a developer" → remembered as a fact
+
+### 🧠 Architecting Stateful Conversations
+
+To use memory in LangChain, you connect it to your chain like this:
+
+```python
+from langchain.chains import ConversationChain
+from langchain.llms import OpenAI
+from langchain.memory import ConversationBufferMemory
+
+memory = ConversationBufferMemory()
+conversation = ConversationChain(
+    llm=OpenAI(),
+    memory=memory,
+    verbose=True
+)
+
+conversation.predict(input="Hi, I'm Darshan.")
+conversation.predict(input="What did I just say?")
+```
+
+The model will correctly say: "You said your name is Darshan."
+
+You can customize memory to be file-based, Redis-backed, or stored in vector DBs for long-term retention.
+
+### 🔍 Memory Use Cases
+
+- **Support bots**: Remember order numbers or case IDs
+- **AI therapists**: Track client sessions over time
+- **Sales bots**: Personalize follow-ups based on past interactions
+- **Coding agents**: Recall user preferences (language, editor, style)
+
+### ⚠️ Memory Gotchas
+
+- **Context window limits**: Even GPT-4 has a max (e.g., 128k tokens)
+- **Information decay**: Summary memory may forget nuance
+- **Security**: Sensitive memory should be encrypted or user-bound
+- **Personalization trade-offs**: When to remember vs forget?
+
+### 🛠️ Tools for Memory Management
+
+- **LangChain Memory Modules** (Buffer, Token, Summary, Entity)
+- **Redis / SQLite** for persistent stores
+- **Supabase / Qdrant** for vectorized memory
+- **Helicone + LangServe** for observability and replay
+
+Context-aware bots don’t just make conversations more natural — they unlock entire new UX patterns. You can onboard users in stages, remember their product tiers, track frustration levels, or even hand off context to human agents seamlessly.
+
+Coming up next: how rule-based, retrieval, and generative architectures compare — and how to pick the right one for your stack and use case ⚖️📊
