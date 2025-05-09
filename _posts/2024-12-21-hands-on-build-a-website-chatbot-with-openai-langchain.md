@@ -286,3 +286,116 @@ With this, your chatbot backend is fully functional. You now have:
 - A clean project foundation to expand on
 
 Next, we’ll look into improving context awareness by expanding how memory works in LangChain 🧠
+
+## 🧠 Adding Memory with LangChain: Context Awareness
+
+Most real conversations rely on memory. Without it, every new message would feel like talking to a goldfish 🐟. In this section, we’ll make our chatbot context-aware using **LangChain’s memory modules**.
+
+By the end of this section, your bot will:
+
+- Understand follow-up questions
+- Refer back to previous user messages
+- Feel more natural and intelligent 🤖
+
+### 🔍 What is BufferMemory?
+
+`BufferMemory` is one of LangChain’s simplest memory classes. It keeps a running history of the chat in memory. This is suitable for most short-lived chatbot sessions.
+
+It stores conversation as a list of alternating messages (user → bot → user → bot...) and passes the entire history into the prompt every time. No database needed.
+
+### 🧩 Step 1: Refactor the LangChain Setup
+
+Let’s update `server/llm/langchain.js` to make memory a bit more dynamic.
+
+```js
+// server/llm/langchain.js
+import { ChatOpenAI } from "langchain/chat_models/openai";
+import { ConversationChain } from "langchain/chains";
+import { BufferMemory } from "langchain/memory";
+
+// 🧠 Create memory per session/user
+const memoryStore = new Map();
+
+function getChain(sessionId) {
+  if (!memoryStore.has(sessionId)) {
+    const memory = new BufferMemory();
+    const model = new ChatOpenAI({
+      temperature: 0.7,
+      openAIApiKey: process.env.OPENAI_API_KEY,
+    });
+    const chain = new ConversationChain({ llm: model, memory });
+    memoryStore.set(sessionId, chain);
+  }
+  return memoryStore.get(sessionId);
+}
+
+export async function runChat(input, sessionId = "default") {
+  const chain = getChain(sessionId);
+  const result = await chain.call({ input });
+  return result.response;
+}
+```
+
+**🧠 Explanation:**
+
+- We use a simple `Map` object to track memory by `sessionId`
+- Each session gets its own `ConversationChain` and `BufferMemory`
+- You can eventually replace this with Redis or DB-backed memory for production
+
+### 🛠️ Step 2: Update the Chat Route to Use Sessions
+
+Update `server/routes/chat.js` to accept a session ID:
+
+```js
+// server/routes/chat.js
+import express from "express";
+import { runChat } from "../llm/langchain.js";
+
+const router = express.Router();
+
+router.post("/", async (req, res) => {
+  const { message, sessionId } = req.body;
+  if (!message) {
+    return res.status(400).json({ error: "Message is required" });
+  }
+  try {
+    const response = await runChat(message, sessionId);
+    res.json({ response });
+  } catch (err) {
+    console.error("Chat error:", err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+export default router;
+```
+
+Now, the API can track multiple conversations at once by passing different `sessionId`s.
+
+You can test it like this:
+
+```bash
+curl -X POST http://localhost:3001/chat \
+     -H "Content-Type: application/json" \
+     -d '{"message": "Hello, who are you?", "sessionId": "abc123"}'
+```
+
+### 🔍 Debugging Memory State
+
+Want to peek under the hood? Log the memory content by modifying `runChat()`:
+
+```js
+console.log("\n--- Chat History ---\n", memory.chatHistory);
+```
+
+This will help you debug and understand how memory evolves.
+
+### ✅ Result: Multi-Turn Chatbot
+
+You’ve now built a chatbot that:
+
+- Tracks conversation per session
+- Supports multiple concurrent users
+- Handles context like a pro
+
+In the next section, we’ll switch gears and build a beautiful **frontend interface in React** to talk to our bot 💬
