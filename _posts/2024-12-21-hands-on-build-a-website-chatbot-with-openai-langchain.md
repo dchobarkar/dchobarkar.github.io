@@ -553,3 +553,89 @@ You now have a frontend that:
 - Shows loading feedback
 
 In the next part, we’ll deploy this using Vercel and Railway so others can use your chatbot online 🚀
+
+## 🚀 Free Deployment: Vercel (Frontend) + Railway (Backend)
+
+Now that your chatbot works locally, let’s take it live — for free! We’ll use **Vercel** to host the frontend and **Railway** to host the backend. Both have generous free tiers and integrate smoothly with GitHub.
+
+You’ll end up with:
+
+- A live website for your chatbot UI (Vercel)
+- A live API server that handles LangChain + OpenAI logic (Railway)
+
+### 🧩 Step 1: Push Your Code to GitHub
+
+First, commit and push your project to a GitHub repo:
+
+```bash
+git init
+git add .
+git commit -m "Initial chatbot app"
+git remote add origin https://github.com/yourusername/chatbot-openai-langchain-starter.git
+git push -u origin main
+```
+
+### 🛠️ Step 2: Deploy Backend to Railway
+
+1. Go to [https://railway.app](https://railway.app)
+2. Click **New Project → Deploy from GitHub Repo**
+3. Select your repo and choose the `server/` directory as root
+
+#### 📁 Railway Settings
+
+- **Root Directory**: `server`
+- **Start Command**: `node index.js`
+
+#### 🔐 Add Environment Variables
+
+- Key: `OPENAI_API_KEY`
+- Value: your OpenAI key
+
+Railway will detect Express and auto-deploy it. After deployment, you’ll get a public URL like:
+
+```plaintext
+https://chatbot-api-production.up.railway.app
+```
+
+### 🎨 Step 3: Deploy Frontend to Vercel
+
+1. Go to [https://vercel.com](https://vercel.com)
+2. Click **Add New Project** and select your GitHub repo
+3. Choose the `client/` folder as the project root
+
+#### 🛠 Vercel Build Settings
+
+- **Framework Preset**: Vite
+- **Output Directory**: `dist`
+
+#### 🔌 Add Environment Variable (Optional)
+
+If you’re proxying API URLs, you can set:
+
+- `VITE_API_URL=https://your-backend-url/chat`
+
+### ⚙️ Optional: Fix CORS on Backend
+
+If your frontend can’t reach your backend, you might need to tweak CORS:
+
+```js
+// server/index.js
+app.use(cors({ origin: "https://your-frontend.vercel.app" }));
+```
+
+Or allow all (for testing only):
+
+```js
+app.use(cors());
+```
+
+### 🌐 Result: Public Chatbot App
+
+You now have:
+
+- Live frontend at `https://your-chatbot.vercel.app`
+- Live backend API at `https://your-chatbot-api.railway.app`
+
+Test it in the browser, share with friends, or embed it in your portfolio!
+
+Next up: we’ll add optional file upload + document Q&A using Retrieval-Augmented Generation 📄🧠
