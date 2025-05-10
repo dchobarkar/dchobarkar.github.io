@@ -639,3 +639,155 @@ You now have:
 Test it in the browser, share with friends, or embed it in your portfolio!
 
 Next up: we’ll add optional file upload + document Q&A using Retrieval-Augmented Generation 📄🧠
+
+## 📄 Optional: Add File Upload + RAG (Retrieval-Augmented Generation)
+
+Want your chatbot to answer questions based on a **user-uploaded PDF**? This is where **RAG (Retrieval-Augmented Generation)** comes in.
+
+We’ll enable:
+
+- Uploading a PDF
+- Parsing its text
+- Embedding with OpenAI or Hugging Face
+- Storing + searching in a local Chroma vector store
+- Querying the doc contextually
+
+All of this works on a **local, free setup** — no paid vector DBs needed! 🧠
+
+---
+
+### 📦 Step 1: Install Additional Dependencies
+
+In your `server/` folder:
+
+```bash
+npm install multer pdf-parse
+```
+
+These packages handle file uploads and PDF parsing.
+
+---
+
+### 📁 Step 2: Add Upload Endpoint
+
+Create `server/routes/upload.js`:
+
+```js
+import express from "express";
+import multer from "multer";
+import pdf from "pdf-parse";
+import fs from "fs";
+import path from "path";
+
+const upload = multer({ dest: "uploads/" });
+const router = express.Router();
+
+router.post("/", upload.single("file"), async (req, res) => {
+  const filePath = req.file.path;
+  try {
+    const dataBuffer = fs.readFileSync(filePath);
+    const parsed = await pdf(dataBuffer);
+    fs.unlinkSync(filePath); // delete uploaded file
+
+    res.json({ text: parsed.text });
+  } catch (err) {
+    console.error("PDF parse error:", err);
+    res.status(500).json({ error: "Failed to parse PDF" });
+  }
+});
+
+export default router;
+```
+
+In `index.js`:
+
+```js
+import uploadRoute from "./routes/upload.js";
+app.use("/upload", uploadRoute);
+```
+
+---
+
+### 🧠 Step 3: Create Vector Store + QA Chain
+
+Create `server/llm/retriever.js`:
+
+```js
+import { OpenAIEmbeddings } from "langchain/embeddings/openai";
+import { Chroma } from "langchain/vectorstores/chroma";
+import { RetrievalQAChain } from "langchain/chains";
+import { ChatOpenAI } from "langchain/chat_models/openai";
+import { TextLoader } from "langchain/document_loaders/fs/text";
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import fs from "fs";
+
+let vectorStore;
+
+export async function createKnowledgeBase(text) {
+  fs.writeFileSync("uploads/docs.txt", text);
+
+  const loader = new TextLoader("uploads/docs.txt");
+  const docs = await loader.load();
+
+  const splitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 1000,
+    chunkOverlap: 200,
+  });
+  const chunks = await splitter.splitDocuments(docs);
+
+  const embeddings = new OpenAIEmbeddings();
+  vectorStore = await Chroma.fromDocuments(chunks, embeddings);
+}
+
+export async function askDocQuestion(query) {
+  if (!vectorStore) throw new Error("No knowledge base loaded");
+  const model = new ChatOpenAI();
+  const chain = RetrievalQAChain.fromLLM(model, vectorStore.asRetriever());
+  const result = await chain.call({ query });
+  return result.text;
+}
+```
+
+---
+
+### 🔌 Step 4: Create Chat Route for RAG
+
+In `server/routes/chat-doc.js`:
+
+```js
+import express from "express";
+import { askDocQuestion } from "../llm/retriever.js";
+
+const router = express.Router();
+
+router.post("/", async (req, res) => {
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: "Message required" });
+  try {
+    const response = await askDocQuestion(message);
+    res.json({ response });
+  } catch (err) {
+    console.error("RAG chat error:", err);
+    res.status(500).json({ error: "RAG failed" });
+  }
+});
+
+export default router;
+```
+
+Add this to `index.js`:
+
+```js
+import chatDocRoute from "./routes/chat-doc.js";
+app.use("/chat-doc", chatDocRoute);
+```
+
+---
+
+### ✅ Final Flow
+
+1. Upload PDF → Extract + embed text
+2. Store in Chroma (in-memory vector DB)
+3. Ask questions → Retrieve relevant chunks → LLM answers based on them
+
+Next, we’ll polish UX with reset, typing indicators, and error boundaries 💬✨
