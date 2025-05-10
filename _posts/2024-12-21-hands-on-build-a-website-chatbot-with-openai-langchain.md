@@ -399,3 +399,157 @@ You’ve now built a chatbot that:
 - Handles context like a pro
 
 In the next section, we’ll switch gears and build a beautiful **frontend interface in React** to talk to our bot 💬
+
+## 💬 Building the React Frontend Chat Interface
+
+With the backend running smoothly, it’s time to give our chatbot a face! In this section, we’ll build a sleek and responsive **React + TailwindCSS** frontend that connects to our Express + LangChain backend.
+
+By the end, you’ll have a fully functional chat UI with:
+
+- Chat history
+- Message input box
+- Bot typing indicator
+- API integration
+
+### 🧩 Step 1: Create React App with Vite
+
+Navigate to the project root and scaffold your frontend:
+
+```bash
+cd ..
+npm create vite@latest client -- --template react
+cd client
+npm install
+```
+
+Then install Tailwind CSS:
+
+```bash
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+```
+
+Update `tailwind.config.js`:
+
+```js
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+};
+```
+
+In `index.css`, replace with:
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+### 🛠️ Step 2: Build the Chat UI
+
+Create a clean layout in `src/App.jsx`:
+
+```jsx
+import { useState } from "react";
+
+function App() {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const sessionId = "demo-session";
+
+  const sendMessage = async () => {
+    if (!input.trim()) return;
+    const userMessage = { sender: "user", text: input };
+    setMessages([...messages, userMessage]);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("http://localhost:3001/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: input, sessionId }),
+      });
+      const data = await res.json();
+      const botMessage = { sender: "bot", text: data.response };
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (err) {
+      alert("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") sendMessage();
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-xl bg-white rounded-xl shadow p-4 space-y-4">
+        <div className="overflow-y-auto h-96 border p-3 rounded">
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`mb-2 ${
+                msg.sender === "user" ? "text-right" : "text-left"
+              }`}
+            >
+              <span
+                className={`inline-block px-3 py-2 rounded-lg ${
+                  msg.sender === "user" ? "bg-blue-200" : "bg-gray-200"
+                }`}
+              >
+                {msg.text}
+              </span>
+            </div>
+          ))}
+          {loading && (
+            <div className="text-sm italic text-gray-500">Bot is typing...</div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            className="flex-1 border rounded px-3 py-2"
+            placeholder="Type a message..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyPress}
+          />
+          <button
+            onClick={sendMessage}
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+          >
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;
+```
+
+### 🔌 Step 3: Connect to Backend API
+
+Make sure your backend (`localhost:3001`) is running when you test this. We use the `fetch()` API to send the message and receive a response.
+
+**💡 Dev tip**: You can use Vite proxy for CORS-free development by updating `vite.config.js` later.
+
+### ✅ Result: Interactive Chat UI
+
+You now have a frontend that:
+
+- Tracks messages in React state
+- Sends input to your chatbot API
+- Displays both user and bot replies
+- Shows loading feedback
+
+In the next part, we’ll deploy this using Vercel and Railway so others can use your chatbot online 🚀
