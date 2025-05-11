@@ -869,3 +869,127 @@ With these enhancements:
 - Errors are caught and communicated clearly
 
 In the final article sections, we’ll look at **prompt engineering**, **LangChain debugging**, and wrap up the repo and deployment ✨
+
+## 🧪 Bonus Tips: LangChain Debugging + Prompt Engineering
+
+To truly master chatbot development, you need two extra skills:
+
+- 🛠 **Debugging LangChain chains**
+- 🎨 **Crafting effective prompts**
+
+These skills can help you build more reliable, intelligent, and tailored bots — especially when handling tricky customer use-cases.
+
+---
+
+### 🧭 Step 1: Enable LangChain Debug Mode
+
+LangChain can print out internal chain activity using a built-in global flag.
+
+Add this to your entry point (e.g. `index.js`):
+
+```js
+process.env.LANGCHAIN_HANDLER = "console";
+```
+
+Alternatively, in code:
+
+```js
+import { setHandler } from "langchain/callbacks";
+setHandler("console");
+```
+
+Now when you run your bot, you’ll see:
+
+- Prompts being generated
+- Token counts
+- LLM call/response timings
+
+Super useful for tracing what went wrong or tuning performance.
+
+---
+
+### ✍️ Step 2: Use Prompt Templates
+
+LangChain lets you define reusable, fill-in-the-blank prompts.
+
+Here’s how you could rewrite `langchain.js` using a custom system prompt:
+
+```js
+import { PromptTemplate } from "langchain/prompts";
+import { LLMChain } from "langchain/chains";
+import { ChatOpenAI } from "langchain/chat_models/openai";
+import { BufferMemory } from "langchain/memory";
+
+const prompt = PromptTemplate.fromTemplate(`
+You are a helpful website assistant. Always answer clearly.
+
+Conversation so far:
+{history}
+
+User: {input}
+Assistant:
+`);
+
+const memory = new BufferMemory();
+const llm = new ChatOpenAI({
+  temperature: 0.7,
+  openAIApiKey: process.env.OPENAI_API_KEY,
+});
+
+const chain = new LLMChain({ prompt, llm, memory });
+
+export async function runChat(input) {
+  const result = await chain.call({ input });
+  return result.text;
+}
+```
+
+This gives you much more control over:
+
+- Personality
+- Format
+- Tone
+
+---
+
+### 👤 Step 3: Try Persona Prompts
+
+Make your assistant adopt a role, like:
+
+```text
+You are a sarcastic AI assistant who gives witty answers.
+You remember the user's favorite color and always mention it.
+```
+
+Or for serious use cases:
+
+```text
+You are a financial assistant who gives concise and factual answers.
+If unsure, say "I don't know".
+```
+
+Use `PromptTemplate.fromTemplate(...)` to inject these styles into your chain.
+
+---
+
+### 🧠 Step 4: Mix with Memory
+
+When using `BufferMemory`, LangChain automatically fills `{history}` with past turns. So your prompt templates can smoothly incorporate context-aware behavior.
+
+If you want more control, you can manually access memory too:
+
+```js
+console.log(await memory.loadMemoryVariables());
+```
+
+---
+
+### ✅ Takeaway
+
+With debugging and prompt design:
+
+- You can spot problems faster
+- Customize behavior precisely
+- Optimize tokens and cost
+
+In the final section, we’ll wrap up the project and share the GitHub repo 🎉
