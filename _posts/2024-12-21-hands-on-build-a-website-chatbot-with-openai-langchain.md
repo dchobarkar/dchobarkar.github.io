@@ -654,8 +654,6 @@ We’ll enable:
 
 All of this works on a **local, free setup** — no paid vector DBs needed! 🧠
 
----
-
 ### 📦 Step 1: Install Additional Dependencies
 
 In your `server/` folder:
@@ -665,8 +663,6 @@ npm install multer pdf-parse
 ```
 
 These packages handle file uploads and PDF parsing.
-
----
 
 ### 📁 Step 2: Add Upload Endpoint
 
@@ -705,8 +701,6 @@ In `index.js`:
 import uploadRoute from "./routes/upload.js";
 app.use("/upload", uploadRoute);
 ```
-
----
 
 ### 🧠 Step 3: Create Vector Store + QA Chain
 
@@ -748,8 +742,6 @@ export async function askDocQuestion(query) {
 }
 ```
 
----
-
 ### 🔌 Step 4: Create Chat Route for RAG
 
 In `server/routes/chat-doc.js`:
@@ -782,8 +774,6 @@ import chatDocRoute from "./routes/chat-doc.js";
 app.use("/chat-doc", chatDocRoute);
 ```
 
----
-
 ### ✅ Final Flow
 
 1. Upload PDF → Extract + embed text
@@ -791,3 +781,91 @@ app.use("/chat-doc", chatDocRoute);
 3. Ask questions → Retrieve relevant chunks → LLM answers based on them
 
 Next, we’ll polish UX with reset, typing indicators, and error boundaries 💬✨
+
+## ✨ UX Polish: Typing Indicators, Reset Button, and Error Handling
+
+Now that our chatbot is feature-rich, let’s take care of the **user experience (UX)** — the part that makes it feel truly alive.
+
+We’ll improve:
+
+- ✅ Visual feedback ("Bot is typing…")
+- 🗑️ Reset chat option
+- 🚨 Error messages
+
+These polish points might seem small, but they dramatically enhance usability and make your bot feel professional.
+
+### 🎨 Step 1: Add Typing Indicator
+
+Update `src/App.jsx` to show a message while the bot is generating a response.
+
+Here’s the modified React logic:
+
+```jsx
+// src/App.jsx
+const [loading, setLoading] = useState(false);
+
+...
+
+{messages.map((msg, i) => (
+  <div key={i} className={`mb-2 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
+    <span className={`inline-block px-3 py-2 rounded-lg ${msg.sender === 'user' ? 'bg-blue-200' : 'bg-gray-200'}`}>
+      {msg.text}
+    </span>
+  </div>
+))}
+{loading && <div className="text-left text-sm italic text-gray-500">Bot is typing...</div>}
+```
+
+Now every time you send a message, the UI gives immediate feedback that something’s happening.
+
+### 🔄 Step 2: Add Reset Button
+
+Let’s allow users to clear the chat history:
+
+```jsx
+// Inside return()
+<button
+  onClick={() => setMessages([])}
+  className="text-sm text-red-500 underline ml-auto block mt-1"
+>
+  Clear Chat
+</button>
+```
+
+Add this just below the chat history container. It simply resets the `messages` array.
+
+### 🧯 Step 3: Add Error Handling
+
+Wrap your `fetch()` call in a `try/catch`, and show alerts or inline error messages:
+
+```jsx
+try {
+  const res = await fetch("http://localhost:3001/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: input, sessionId }),
+  });
+  if (!res.ok) throw new Error("API failed");
+  const data = await res.json();
+  const botMessage = { sender: "bot", text: data.response };
+  setMessages((prev) => [...prev, botMessage]);
+} catch (err) {
+  console.error(err);
+  setMessages((prev) => [
+    ...prev,
+    { sender: "bot", text: "⚠️ Something went wrong. Please try again." },
+  ]);
+}
+```
+
+This way, even if something breaks, the user isn’t left staring at a frozen screen.
+
+### 💄 Result: A Smooth, Polished UX
+
+With these enhancements:
+
+- The bot feels responsive
+- Users can reset the chat any time
+- Errors are caught and communicated clearly
+
+In the final article sections, we’ll look at **prompt engineering**, **LangChain debugging**, and wrap up the repo and deployment ✨
