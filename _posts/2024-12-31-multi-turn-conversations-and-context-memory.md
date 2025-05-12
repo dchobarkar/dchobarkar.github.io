@@ -230,3 +230,148 @@ else if (needsPersistentRecall) use(VectorStoreMemory);
 ```
 
 Up next, we’ll modify our existing website chatbot to use `ConversationBufferMemory` and see it handle back-and-forth context with ease 💬
+
+## 💬 Integrating `ConversationBufferMemory` into Our Web Chatbot
+
+In this section, we’ll enhance the chatbot we built in Article 3 by giving it memory — specifically, `ConversationBufferMemory` from LangChain. This will allow our chatbot to remember past messages during a session and respond with continuity. 🧠
+
+We’ll update both the **backend** (LangChain logic) and the **frontend** (Next.js chat UI).
+
+### 🛠 Backend: Enhancing the Chat API Route
+
+Let’s say we already have an API route at `pages/api/chat.ts` or in an Express backend.
+
+#### ✅ Updated Code for Chat API with Memory
+
+```ts
+// lib/chatWithMemory.ts
+import { ChatOpenAI } from "langchain/chat_models/openai";
+import { ConversationChain } from "langchain/chains";
+import { ConversationBufferMemory } from "langchain/memory";
+
+const memoryMap = new Map<string, ConversationChain>();
+
+export const getChainForSession = (sessionId: string) => {
+  if (memoryMap.has(sessionId)) return memoryMap.get(sessionId)!;
+
+  const memory = new ConversationBufferMemory();
+
+  const model = new ChatOpenAI({
+    openAIApiKey: process.env.OPENAI_API_KEY!,
+    temperature: 0.7,
+  });
+
+  const chain = new ConversationChain({ llm: model, memory });
+  memoryMap.set(sessionId, chain);
+
+  return chain;
+};
+```
+
+Now let’s use it in the API route:
+
+```ts
+// pages/api/chat.ts
+import { NextApiRequest, NextApiResponse } from "next";
+import { getChainForSession } from "../../lib/chatWithMemory";
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  const { input, sessionId } = req.body;
+
+  if (!input || !sessionId)
+    return res.status(400).json({ error: "Missing input or sessionId" });
+
+  try {
+    const chain = getChainForSession(sessionId);
+    const response = await chain.call({ input });
+    res.status(200).json({ response: response.response });
+  } catch (error) {
+    console.error("Chat error:", error);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+}
+```
+
+🔁 Here, we’re storing one `ConversationChain` per `sessionId` in a memory map (works well for dev). For production, this can be stored in Redis, a database, or a serverless memory layer.
+
+### 🧑‍🎤 Frontend: Keeping Track of Session ID and Chat History
+
+On the client-side, we need to persist a `sessionId` across the chat session.
+
+```ts
+// utils/session.ts
+export const getSessionId = () => {
+  let id = localStorage.getItem("chat_session_id");
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem("chat_session_id", id);
+  }
+  return id;
+};
+```
+
+Then use this in your frontend chat component:
+
+```ts
+// components/ChatBox.tsx
+import { useState, useEffect } from "react";
+import { getSessionId } from "../utils/session";
+
+const ChatBox = () => {
+  const [messages, setMessages] = useState<string[]>([]);
+  const [input, setInput] = useState("");
+  const sessionId = getSessionId();
+
+  const sendMessage = async () => {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ input, sessionId }),
+    });
+
+    const data = await res.json();
+    setMessages((msgs) => [...msgs, `You: ${input}`, `Bot: ${data.response}`]);
+    setInput("");
+  };
+
+  return (
+    <div>
+      <div className="chat-window">
+        {messages.map((msg, idx) => (
+          <p key={idx}>{msg}</p>
+        ))}
+      </div>
+      <input value={input} onChange={(e) => setInput(e.target.value)} />
+      <button onClick={sendMessage}>Send</button>
+    </div>
+  );
+};
+
+export default ChatBox;
+```
+
+### 🎯 What You Achieve
+
+With this setup:
+
+- Each user has a unique session that remembers their past inputs
+- Your backend maintains context automatically with `ConversationBufferMemory`
+- The bot will now respond like:
+
+```txt
+User: Hi, I’m Darshan.
+Bot: Hi Darshan! How can I help you today?
+User: What’s my name?
+Bot: You said your name is Darshan.
+```
+
+### 🚨 Limitations of `ConversationBufferMemory`
+
+- The full chat history gets appended to every prompt — token limits become a concern
+- No summarization or pruning built-in
+- Great for short-lived sessions (like live chat), not for persistent memory
+
+Up next, we’ll explore `SummaryMemory` — a smarter way to compress context and scale conversations without losing track 💡
