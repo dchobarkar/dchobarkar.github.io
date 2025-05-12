@@ -79,3 +79,154 @@ Who am I?   → I don't know        → You're Darshan
 In the upcoming sections, we’ll plug memory into our existing chatbot project. No more dumb replies. We’ll teach it to remember user names, summarize prior chats, and even recall vectorized memories from Supabase — all with LangChain’s free tooling.
 
 Let’s start by exploring the **different types of memory** we can integrate — and when to use which.
+
+## 🧩 Types of Memory in LangChain (Free & Practical)
+
+LangChain offers several built-in memory modules — each designed for a different flavor of "context". The best part? They're **free to use**, built into the open-source LangChain core, and work seamlessly with OpenAI’s free-tier API access (as long as you're within token limits).
+
+Let’s go through them one by one.
+
+### 1. 🧠 `ConversationBufferMemory`
+
+This is the simplest memory type: it stores the **entire conversation history** as a plain buffer and injects it into the prompt with every turn.
+
+#### ✅ Use When
+
+- Your conversations are short
+- You want full transparency into the chat history
+
+#### ❌ Avoid When
+
+- The conversation gets long (token limit issues)
+
+#### Code Example (Node.js + LangChain)
+
+```ts
+import { ChatOpenAI } from "langchain/chat_models/openai";
+import { ConversationChain } from "langchain/chains";
+import { ConversationBufferMemory } from "langchain/memory";
+
+const model = new ChatOpenAI({
+  temperature: 0.7,
+  openAIApiKey: process.env.OPENAI_API_KEY,
+});
+
+const memory = new ConversationBufferMemory();
+
+const chain = new ConversationChain({
+  llm: model,
+  memory,
+});
+
+const res1 = await chain.call({ input: "Hi, I'm Darshan." });
+console.log(res1);
+
+const res2 = await chain.call({ input: "What did I just say?" });
+console.log(res2);
+```
+
+👉 This will result in a conversation where the model knows the entire prior history, just like a real human would.
+
+### 2. 🧾 `ConversationSummaryMemory`
+
+Instead of passing the entire history, this memory keeps a **running summary**. It summarizes the conversation every few messages and passes only that to the LLM.
+
+#### ✅ Use When
+
+- Conversations are long or detailed
+- You need to stay under token limits
+
+#### Code Example
+
+```ts
+import { ConversationSummaryMemory } from "langchain/memory";
+
+const memory = new ConversationSummaryMemory({
+  llm: model,
+});
+
+const chain = new ConversationChain({
+  llm: model,
+  memory,
+});
+```
+
+You can inspect the summary like this:
+
+```ts
+console.log(await memory.loadMemoryVariables());
+```
+
+This will show the auto-generated summary being passed as context.
+
+### 3. 🧍‍♂️ `EntityMemory`
+
+This type of memory tracks **specific entities** mentioned in the conversation — like names, places, dates, and custom terms.
+
+#### ✅ Use When
+
+- You need to remember structured data from the user
+- Building something like a booking or assistant bot
+
+#### Code Example
+
+```ts
+import { ConversationEntityMemory } from "langchain/memory";
+
+const memory = new ConversationEntityMemory({
+  llm: model,
+  entityTypes: ["name", "location"], // optional
+});
+
+const chain = new ConversationChain({
+  llm: model,
+  memory,
+});
+```
+
+This memory will automatically track entity mentions and reuse them when needed.
+
+### 4. 📦 Vector Store Memory (Long-Term)
+
+This is where things get powerful. Instead of relying on short-term memory, you can store past interactions as **embeddings** and perform semantic searches over them. Great for FAQs, past sessions, or support transcripts.
+
+We’ll cover the full implementation in Topic 6, but here’s a preview using `Chroma` (free + local):
+
+#### Code Preview
+
+```ts
+import { MemoryVectorStore } from "langchain/memory";
+import { Chroma } from "langchain/vectorstores/chroma";
+
+const vectorStore = await Chroma.fromTexts(
+  ["User likes dark mode", "User bought sneakers last time"],
+  embeddings
+);
+
+const memory = new MemoryVectorStore({
+  vectorStore,
+  memoryKey: "long_term_memory",
+});
+```
+
+This lets you retrieve semantically similar conversations or preferences without explicitly recalling them.
+
+### 🧠 Quick Comparison Table
+
+| Memory Type           | Strengths                     | Weaknesses               |
+| --------------------- | ----------------------------- | ------------------------ |
+| `BufferMemory`        | Full history, easy to debug   | Token bloat              |
+| `SummaryMemory`       | Token-efficient, readable     | Can lose nuance          |
+| `EntityMemory`        | Great for structured info     | Needs prompt tuning      |
+| `Vector Store Memory` | Scalable, long-term, semantic | Requires embedding setup |
+
+### 🤔 When to Use What
+
+```ts
+if (session.isShort) use(ConversationBufferMemory);
+else if (session.isLong && compressible) use(ConversationSummaryMemory);
+else if (needsStructuredData) use(EntityMemory);
+else if (needsPersistentRecall) use(VectorStoreMemory);
+```
+
+Up next, we’ll modify our existing website chatbot to use `ConversationBufferMemory` and see it handle back-and-forth context with ease 💬
