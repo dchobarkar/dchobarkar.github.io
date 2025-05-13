@@ -489,3 +489,131 @@ const hybridMemory = new BufferWindowMemory({
 And wrap it with summary after a few turns. We'll cover hybrid models in further topic.
 
 Next up: let’s teach our bot how to **remember names, places, and structured info** using `EntityMemory` 🏷️
+
+## 🏷️ Adding `EntityMemory`: Remembering Names, Dates, and More
+
+If you want your chatbot to remember **structured information** like a user’s name, favorite color, travel destinations, or booked dates — `EntityMemory` is the way to go. This memory type allows your bot to extract and retain entities from the conversation, giving it the illusion of “filling slots” like classic rule-based assistants — but powered by LLMs.
+
+In this section, we’ll upgrade our chatbot to recognize and recall entities with `ConversationEntityMemory`. 💡
+
+### 🧠 What is `EntityMemory` in LangChain?
+
+LangChain’s `ConversationEntityMemory` uses the LLM to identify and store named entities automatically during a conversation. It creates a key-value store (under the hood) that persists structured information per session.
+
+### 🛠 Backend: Integrate `EntityMemory`
+
+Let’s update our `lib/chatWithMemory.ts` to use `ConversationEntityMemory`.
+
+#### Step 1: Install dependency (if needed)
+
+This comes with core LangChain, no extra package required.
+
+#### Step 2: Import and Initialize Entity Memory
+
+```ts
+import { ConversationEntityMemory } from "langchain/memory";
+```
+
+#### Step 3: Modify `getChainForSession`
+
+```ts
+export const getChainForSession = (sessionId: string) => {
+  if (memoryMap.has(sessionId)) return memoryMap.get(sessionId)!;
+
+  const model = new ChatOpenAI({
+    openAIApiKey: process.env.OPENAI_API_KEY!,
+    temperature: 0.7,
+  });
+
+  const memory = new ConversationEntityMemory({
+    llm: model,
+    memoryKey: "chat_history",
+    returnMessages: true,
+  });
+
+  const chain = new ConversationChain({
+    llm: model,
+    memory,
+  });
+
+  memoryMap.set(sessionId, chain);
+  return chain;
+};
+```
+
+This memory will now track entities like `name`, `destination`, `date`, etc., and inject them into prompts.
+
+### 🧪 Test the Entity Extraction
+
+Let’s test the memory with:
+
+```txt
+User: My name is Darshan.
+Bot: Nice to meet you, Darshan.
+User: What’s my name?
+Bot: You said your name is Darshan.
+```
+
+Or:
+
+```txt
+User: I want to fly from Mumbai to Goa on May 18.
+Bot: Got it. Booking a flight from Mumbai to Goa on May 18.
+User: Remind me where I’m going.
+Bot: You’re flying from Mumbai to Goa.
+```
+
+### 🧼 Inspecting Stored Entities
+
+Want to see what’s stored? Just inspect:
+
+```ts
+const variables = await memory.loadMemoryVariables();
+console.log("Entities:", variables);
+```
+
+It will look like:
+
+```json
+{
+  chat_history: [ ... ],
+  entities: {
+    name: "Darshan",
+    origin: "Mumbai",
+    destination: "Goa",
+    date: "May 18"
+  }
+}
+```
+
+### 🧩 Use Case: Travel Assistant Bot
+
+With `EntityMemory`, your bot can:
+
+- Ask for missing entities (“Where are you flying to?”)
+- Reuse filled slots (“You’re heading to Goa on May 18”)
+- Clarify ambiguous turns (“Did you mean this May or next?”)
+
+This makes `EntityMemory` a great fit for:
+
+- Booking flows (flights, hotels, events)
+- Appointment scheduling
+- Preference tracking (e.g., favorite genres)
+
+### 🧠 Memory Comparison
+
+| Feature         | BufferMemory   | SummaryMemory   | EntityMemory         |
+| --------------- | -------------- | --------------- | -------------------- |
+| Retains history | Full text      | Compressed text | Key-value entities   |
+| Token usage     | High           | Low             | Minimal              |
+| Best for        | Back-and-forth | Long chats      | Structured info bots |
+
+### 🛑 Limitations
+
+- Entity extraction depends on the LLM’s accuracy
+- You may need to guide it with instructions (few-shot prompts)
+- Entities are overwritten unless you manually merge
+
+### 🧭 Next: Long-Term Memory with Vector Embeddings
+
+So far, all memory types are session-based. In the next topic, we’ll explore how to create **persistent memory** using a free vector store like Supabase — so your bot can recall past chats, FAQs, and even support cases. 🚀
