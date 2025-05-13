@@ -375,3 +375,117 @@ Bot: You said your name is Darshan.
 - Great for short-lived sessions (like live chat), not for persistent memory
 
 Up next, we’ll explore `SummaryMemory` — a smarter way to compress context and scale conversations without losing track 💡
+
+## 🧾 Upgrading to `SummaryMemory`: Scalable Context Compression
+
+As your chatbot’s conversations grow, `ConversationBufferMemory` quickly hits limitations. Every message is included in the prompt, bloating token usage and slowing down responses. That's where `ConversationSummaryMemory` comes in — it compresses past exchanges into a concise summary 🧠📄.
+
+This section walks you through swapping out `BufferMemory` with `SummaryMemory` in your LangChain chatbot.
+
+### 🤖 What is `ConversationSummaryMemory`?
+
+It’s a memory class that uses the LLM to summarize the chat history periodically. Instead of dumping all past messages, it keeps a **dynamic, evolving summary** that gets injected into each prompt.
+
+You can think of it as giving your bot the ability to **“keep notes”** instead of remembering every word.
+
+### 🔧 Backend: Refactor to Use Summary Memory
+
+Let’s update our memory module in `lib/chatWithMemory.ts`.
+
+#### Step 1: Import `ConversationSummaryMemory`
+
+```ts
+import { ConversationSummaryMemory } from "langchain/memory";
+```
+
+#### Step 2: Replace Memory Creation Logic
+
+```ts
+export const getChainForSession = (sessionId: string) => {
+  if (memoryMap.has(sessionId)) return memoryMap.get(sessionId)!;
+
+  const model = new ChatOpenAI({
+    openAIApiKey: process.env.OPENAI_API_KEY!,
+    temperature: 0.7,
+    modelName: "gpt-3.5-turbo",
+  });
+
+  const memory = new ConversationSummaryMemory({
+    llm: model,
+    memoryKey: "chat_history",
+    returnMessages: true,
+  });
+
+  const chain = new ConversationChain({ llm: model, memory });
+  memoryMap.set(sessionId, chain);
+  return chain;
+};
+```
+
+📌 Note: We use the same model (`gpt-3.5-turbo`) to generate summaries, so it stays within the free tier as long as you control message volume.
+
+### 🧪 Debug: View the Evolving Summary
+
+To see what your bot “remembers”:
+
+```ts
+const variables = await memory.loadMemoryVariables();
+console.log("Summary:", variables.chat_history);
+```
+
+You’ll get output like:
+
+```txt
+"The user introduced themselves as Darshan. They asked about chatbot memory."
+```
+
+This is what gets sent as context in future prompts!
+
+### 🧠 Prompt Inspection Example
+
+LangChain internally injects this summary as:
+
+```txt
+Previous conversation summary:
+The user introduced themselves as Darshan. They asked about chatbot memory.
+Current input:
+What should I use for long-term recall?
+```
+
+This is lean, efficient, and ideal for longer conversations or slower clients (like WhatsApp bots).
+
+### ✅ Benefits
+
+- Reduces token usage dramatically
+- Makes context scalable
+- Provides human-readable memory
+
+### ⚠️ Limitations
+
+- The summarization is lossy — details might be omitted
+- Requires good prompt tuning for accuracy
+- Can be biased toward early conversation turns
+
+### 🧭 When to Use
+
+Use `SummaryMemory` when:
+
+- Your bot needs to support long or meandering sessions
+- You want efficient, compressible state
+- Token costs or latency are becoming a concern
+
+### 🔄 Optional: Fallback to Buffer for First Few Turns
+
+To give summaries some initial substance, you can combine both:
+
+```ts
+const hybridMemory = new BufferWindowMemory({
+  k: 5,
+  returnMessages: true,
+  memoryKey: "chat_history",
+});
+```
+
+And wrap it with summary after a few turns. We'll cover hybrid models in further topic.
+
+Next up: let’s teach our bot how to **remember names, places, and structured info** using `EntityMemory` 🏷️
