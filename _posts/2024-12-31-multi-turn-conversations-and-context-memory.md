@@ -617,3 +617,131 @@ This makes `EntityMemory` a great fit for:
 ### 🧭 Next: Long-Term Memory with Vector Embeddings
 
 So far, all memory types are session-based. In the next topic, we’ll explore how to create **persistent memory** using a free vector store like Supabase — so your bot can recall past chats, FAQs, and even support cases. 🚀
+
+## 🧠 Storing Long-Term Memory with Supabase Vector Store
+
+So far, our chatbot has been storing context **in-memory**, scoped to a session. But what if we want it to remember things **across sessions** — like a user’s past chats, preferences, or support tickets? That’s where **vector stores** come in. 🧬
+
+In this topic, we’ll integrate **Supabase** (free tier) with LangChain to store and retrieve long-term semantic memory using vector embeddings.
+
+### 🧬 What is Vector Memory?
+
+Instead of storing plain text, we convert each message or interaction into a vector (embedding) and store it. Later, we can **semantically search** that data:
+
+> “Show me what the user talked about last time” → retrieves relevant past message based on meaning.
+
+Perfect for:
+
+- Remembering user preferences across sessions
+- Recalling FAQs or help topics
+- Building personal assistants that evolve over time
+
+### 🧰 Tools We’ll Use
+
+- LangChain (JavaScript/TypeScript)
+- Supabase (PostgreSQL with pgvector)
+- `@supabase/supabase-js` + `langchain/vectorstores/supabase`
+- OpenAI for embeddings (or use `open-source models` later)
+
+### 🛠 Step-by-Step Setup
+
+#### Step 1: Set Up Supabase with pgvector
+
+1. Go to [supabase.com](https://supabase.com), create a free project
+2. In the SQL editor, run:
+
+   ```sql
+   create extension if not exists vector;
+   ```
+
+3. Then create the table:
+
+   ```sql
+   create table documents (
+     id uuid default uuid_generate_v4() primary key,
+     content text,
+     embedding vector(1536)
+   );
+   ```
+
+#### Step 2: Install Dependencies
+
+```bash
+npm install @supabase/supabase-js langchain openai
+```
+
+#### Step 3: Initialize Supabase Client
+
+```ts
+// lib/supabaseClient.ts
+import { createClient } from "@supabase/supabase-js";
+
+export const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_ANON_KEY!
+);
+```
+
+#### Step 4: Setup Vector Store with LangChain
+
+```ts
+// lib/vectorStore.ts
+import { SupabaseVectorStore } from "langchain/vectorstores/supabase";
+import { OpenAIEmbeddings } from "langchain/embeddings/openai";
+import { supabase } from "./supabaseClient";
+
+export const initVectorStore = async () => {
+  return await SupabaseVectorStore.fromExistingIndex(new OpenAIEmbeddings(), {
+    client: supabase,
+    tableName: "documents",
+    queryName: "match_documents",
+  });
+};
+```
+
+#### Step 5: Store and Query Embeddings
+
+```ts
+import { initVectorStore } from "./vectorStore";
+
+const store = await initVectorStore();
+
+// To store
+await store.addDocuments([{ pageContent: "User likes minimal UI" }]);
+
+// To query
+const results = await store.similaritySearch("What UI does the user like?", 1);
+console.log(results);
+```
+
+### 🧑‍💻 Use Case in Chatbot
+
+Imagine you want your chatbot to recall previous chats:
+
+```ts
+const pastMemories = await store.similaritySearch(userQuery, 3);
+const context = pastMemories.map((doc) => doc.pageContent).join("\n");
+
+const chain = new ConversationChain({
+  llm: model,
+  prompt: `Previously you said: \n${context}\nNow respond to: {input}`,
+});
+```
+
+This lets the bot personalize responses based on prior conversations, even weeks later. 🧠✨
+
+### 📌 Tips for Vector Memory
+
+- Use it **with** short-term memory for best results (hybrid model)
+- Clean or compress stored messages to reduce cost
+- You can add metadata (userId, timestamp) in Supabase rows
+
+### 🛑 Limitations
+
+- Embedding queries are semantic, not exact (results are approximate)
+- Vector size must match model output (e.g., 1536 for OpenAI)
+- Free Supabase tier has some limits on storage/querying speed
+
+### 🧭 What’s Next
+
+Now that we have short-term, entity, and long-term memory working, the next step is to **combine these memory types intelligently**. We’ll do that in **Topic 7: Combining Multiple Memories in One Bot** 🤖🔀
