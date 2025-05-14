@@ -928,3 +928,168 @@ Use pruning and weight your prompt sections based on recency/importance.
 ### 🧭 What’s Next
 
 You now have a **multi-memory intelligent bot** — congrats! 🧠💡 Next, we’ll learn how to **debug and inspect memory** live to ensure things work correctly. That’s up next in **Topic 8: Debugging and Visualizing Memory** 🔍
+
+## 🔍 Debugging and Visualizing Memory in Your Chatbot
+
+Once you’ve wired in multiple memory modules, it becomes critical to know **what your bot remembers** — and what it doesn’t. Otherwise, you’re stuck in the dark when it hallucinates, forgets something, or repeats itself.
+
+In this section, we’ll:
+
+- Inspect memory states in real time
+- Create developer tools to visualize memory
+- Catch common bugs like memory overwrite and token bloat
+
+### 🧪 View Memory Internals with LangChain
+
+Each memory class supports `loadMemoryVariables()` to show its current state.
+
+#### Example: View Buffer Memory
+
+```ts
+const historyVars = await bufferMemory.loadMemoryVariables();
+console.log("Buffer Memory:", historyVars);
+```
+
+#### Example: View Entity Memory
+
+```ts
+const entityVars = await entityMemory.loadMemoryVariables();
+console.log("Entity Memory:", entityVars);
+```
+
+#### Example: View Vector Matches
+
+```ts
+const pastMemories = await vectorStore.similaritySearch("What do I prefer?", 3);
+pastMemories.forEach((doc) => console.log("Vector Match:", doc.pageContent));
+```
+
+These allow you to see what’s being injected into the prompt — a crucial step for testing.
+
+### 🖥️ Build a Developer Debug Panel (Optional UI)
+
+You can expose memory data in the frontend for live debugging.
+
+```ts
+// pages/api/debug.ts
+export default async function handler(req, res) {
+  const { sessionId } = req.query;
+  const chain = getChainForSession(sessionId);
+
+  const buffer = await chain.memory.bufferMemory.loadMemoryVariables();
+  const entity = await chain.memory.entityMemory.loadMemoryVariables();
+
+  res.json({ buffer, entity });
+}
+```
+
+Then call it from your frontend:
+
+```ts
+const res = await fetch(`/api/debug?sessionId=${sessionId}`);
+const { buffer, entity } = await res.json();
+console.log("Buffer", buffer);
+console.log("Entity", entity);
+```
+
+Display it in a collapsible panel beside your chat UI for in-dev use only.
+
+### 🚨 Common Bugs and Fixes
+
+#### 1. 🧨 Memory Not Updating
+
+**Cause**: Forgot to call `saveContext()` manually when using custom memory.
+
+**Fix**:
+
+```ts
+await memory.saveContext({ input }, { response });
+```
+
+#### 2. 🌀 Token Explosion in Buffer
+
+**Cause**: `ConversationBufferMemory` grows too large
+
+**Fix**:
+
+- Switch to `ConversationSummaryMemory`
+- Or prune messages after N turns
+
+#### 3. 🧊 Entity Memory Overwriting
+
+**Cause**: The same entity name is extracted multiple times with different values
+
+**Fix**:
+
+- Add a review step in UI (“Is this correct?”)
+- Store old entities separately if needed
+
+#### 4. ⚖️ Conflicts Between Memories
+
+**Cause**: Vector and entity memory contradict
+
+**Fix**:
+
+- Prioritize one over the other in prompt
+- Log memory source per variable
+
+### 🧠 Logging Middleware (Node.js)
+
+Create a logging wrapper around the memory chain:
+
+```ts
+const memoryLogger = async (inputs, outputs, memory) => {
+  const state = await memory.loadMemoryVariables();
+  console.log("\n\n[DEBUG] Current Memory State:");
+  console.dir(state, { depth: null });
+  console.log("\nInput:", inputs.input);
+  console.log("Output:", outputs.response);
+};
+```
+
+Call this after every interaction for live inspection.
+
+### 🧼 Test Memory Persistence Across Sessions
+
+Use a test script to ensure:
+
+- Vector memory survives restarts
+- Entity memory doesn’t reset (if using external cache)
+
+```ts
+const session1 = getChainForSession("test123");
+await session1.call({ input: "My name is Darshan." });
+
+const session2 = getChainForSession("test123");
+const response = await session2.call({ input: "What's my name?" });
+console.log(response);
+```
+
+### 📦 Tip: Store Logs in Supabase for Review
+
+You can log each conversation, memory state, and LLM response into Supabase (or any DB) to create a debug dashboard.
+
+Table schema:
+
+```sql
+create table logs (
+  id uuid primary key default uuid_generate_v4(),
+  session_id text,
+  input text,
+  output text,
+  memory jsonb,
+  created_at timestamp default now()
+);
+```
+
+### ✅ Recap: Why Debugging Memory Matters
+
+Memory-driven bots behave **emergently**. A small bug in memory logic can:
+
+- Break personalization
+- Cause hallucinations
+- Lead to hard-to-track logic errors
+
+Always inspect and log memory — especially in production environments.
+
+Next up: we'll cover **best practices for memory hygiene**, privacy, pruning, and long-term strategies for production bots in **Topic 9** 🧽🧑‍⚖️
