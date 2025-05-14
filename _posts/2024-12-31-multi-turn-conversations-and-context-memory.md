@@ -745,3 +745,186 @@ This lets the bot personalize responses based on prior conversations, even weeks
 ### 🧭 What’s Next
 
 Now that we have short-term, entity, and long-term memory working, the next step is to **combine these memory types intelligently**. We’ll do that in **Topic 7: Combining Multiple Memories in One Bot** 🤖🔀
+
+## 🤖 Combining Multiple Memories in One Bot
+
+So far, we've used different memory types — buffer, summary, entity, and vector — each excelling in different contexts. But real-world bots often need to **blend multiple memory strategies together** for maximum intelligence.
+
+In this section, we’ll show how to:
+
+- Combine short-term memory (Buffer/Summary)
+- Track structured entities (EntityMemory)
+- Retrieve long-term data (Vector Store)
+- Route memory inputs efficiently 🧠➡️🛠️
+
+### 🎯 Why Combine Memories?
+
+Each memory solves a different problem:
+
+- **Buffer**: Keeps immediate history
+- **Summary**: Compresses context over time
+- **Entity**: Extracts structured info
+- **Vector**: Enables persistent, scalable recall
+
+Together, they can create a truly **contextual and personalized** bot.
+
+### 🛠 Full Example: Hybrid Memory Architecture
+
+We’ll build a chain that:
+
+1. Retrieves relevant vector memories
+2. Tracks structured entities
+3. Maintains recent chat history
+
+Let’s build the logic step-by-step ⤵️
+
+#### Step 1: Set Up All Memories
+
+```ts
+import { ChatOpenAI } from "langchain/chat_models/openai";
+import { ConversationChain } from "langchain/chains";
+import { ConversationBufferMemory } from "langchain/memory";
+import { ConversationEntityMemory } from "langchain/memory";
+import { SupabaseVectorStore } from "langchain/vectorstores/supabase";
+import { OpenAIEmbeddings } from "langchain/embeddings/openai";
+import { supabase } from "./supabaseClient";
+
+const model = new ChatOpenAI({
+  openAIApiKey: process.env.OPENAI_API_KEY!,
+  temperature: 0.7,
+});
+
+const bufferMemory = new ConversationBufferMemory({
+  memoryKey: "chat_history",
+  returnMessages: true,
+});
+
+const entityMemory = new ConversationEntityMemory({
+  llm: model,
+  memoryKey: "entities",
+  returnMessages: true,
+});
+
+const vectorStore = await SupabaseVectorStore.fromExistingIndex(
+  new OpenAIEmbeddings(),
+  {
+    client: supabase,
+    tableName: "documents",
+    queryName: "match_documents",
+  }
+);
+```
+
+#### Step 2: Define Hybrid Chain with Injected Memories
+
+We manually build a prompt that uses all memory types:
+
+```ts
+const vectorResults = await vectorStore.similaritySearch(
+  "what do you remember about me?",
+  3
+);
+const longTermContext = vectorResults.map((v) => v.pageContent).join("\n");
+
+const customPrompt = `
+Long-term memory:
+${longTermContext}
+
+Chat history:
+{chat_history}
+
+Known entities:
+{entities}
+
+User: {input}
+AI:`;
+
+const chain = new ConversationChain({
+  llm: model,
+  prompt: customPrompt,
+  memory: {
+    loadMemoryVariables: async (_) => {
+      const history = await bufferMemory.loadMemoryVariables();
+      const entities = await entityMemory.loadMemoryVariables();
+      return {
+        ...history,
+        ...entities,
+      };
+    },
+    saveContext: async (inputs, outputs) => {
+      await bufferMemory.saveContext(inputs, outputs);
+      await entityMemory.saveContext(inputs, outputs);
+    },
+    clear: async () => {
+      await bufferMemory.clear();
+      await entityMemory.clear();
+    },
+  },
+});
+```
+
+With this setup, your bot:
+
+- Looks up semantic memories from Supabase
+- Injects tracked user data like names, dates
+- Keeps recent turns handy
+
+### 🔄 Frontend Reminder: Persist Session ID
+
+Ensure your frontend sends a `sessionId` that stays consistent so you can associate memory with users.
+
+```ts
+// utils/session.ts
+export const getSessionId = () => {
+  let id = localStorage.getItem("chat_session_id");
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem("chat_session_id", id);
+  }
+  return id;
+};
+```
+
+Use this to tie vector memories to sessions or user IDs in Supabase metadata.
+
+### 🧠 Final Architecture Overview
+
+```txt
++-----------------------------+
+|        User Message         |
++-----------------------------+
+            |
+            v
++-----------------------------+
+|     Retrieve Long-Term      |
+|  (Supabase Vector Store)    |
++-----------------------------+
+            |
+            v
++-----------------------------+
+|  Load Buffer + Entity Mems  |
++-----------------------------+
+            |
+            v
++-----------------------------+
+|         Final Prompt        |
+|  Includes: history, facts   |
++-----------------------------+
+            |
+            v
++-----------------------------+
+|         GPT Response        |
++-----------------------------+
+```
+
+### 🛑 Pitfalls to Avoid
+
+- **Token explosion**: Too many memory sources can bloat prompts
+- **Redundancy**: Same info may appear in multiple memories
+- **Conflicts**: Entity memory may contradict vector recall
+
+Use pruning and weight your prompt sections based on recency/importance.
+
+### 🧭 What’s Next
+
+You now have a **multi-memory intelligent bot** — congrats! 🧠💡 Next, we’ll learn how to **debug and inspect memory** live to ensure things work correctly. That’s up next in **Topic 8: Debugging and Visualizing Memory** 🔍
