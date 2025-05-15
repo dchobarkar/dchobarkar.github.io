@@ -188,3 +188,149 @@ https://<your-ngrok-subdomain>.ngrok.io/whatsapp
 ```
 
 🎉 Congrats! Your basic server is ready and live. Next, we’ll build a more intelligent reply system, first using rule-based routing and then integrating OpenAI for dynamic responses.
+
+## Handling Incoming WhatsApp Messages with Webhooks
+
+Now that our server is running and Twilio is configured to forward WhatsApp messages to it, it’s time to build our webhook logic.
+
+In this section, we’ll:
+
+- Understand how Twilio sends data to our webhook
+- Parse and log the incoming message
+- Send back a dynamic reply
+- Add security with Twilio signature validation (optional but production-friendly)
+
+### 🧾 What Happens Under the Hood?
+
+When a user sends a message to your Twilio sandbox number, Twilio issues an **HTTP POST request** to your webhook endpoint. This request includes:
+
+- `Body`: the actual text message
+- `From`: the user's WhatsApp number
+- `ProfileName`: sender's name
+- Other metadata (timestamps, message SIDs, etc.)
+
+Here's a sample payload from Twilio:
+
+```json
+{
+  "SmsMessageSid": "SM1234567890",
+  "NumMedia": "0",
+  "SmsSid": "SM1234567890",
+  "SmsStatus": "received",
+  "Body": "Hello bot",
+  "To": "whatsapp:+14155238886",
+  "NumSegments": "1",
+  "MessageSid": "SM1234567890",
+  "AccountSid": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "From": "whatsapp:+919876543210",
+  "ApiVersion": "2010-04-01",
+  "ProfileName": "Darshan"
+}
+```
+
+### 🛠 Enhancing Our Webhook Logic
+
+Let’s update our webhook route to:
+
+- Extract message fields
+- Reply based on the message content
+- Send a fallback if the message is unknown
+
+#### 📄 `routes/whatsapp.js`
+
+```js
+const express = require("express");
+const router = express.Router();
+const MessagingResponse = require("twilio").twiml.MessagingResponse;
+
+router.post("/", (req, res) => {
+  const { Body, From, ProfileName } = req.body;
+  console.log(
+    `[Incoming] From: ${From}, Name: ${ProfileName}, Message: ${Body}`
+  );
+
+  const twiml = new MessagingResponse();
+  const msg = twiml.message();
+
+  const normalizedText = Body.trim().toLowerCase();
+
+  switch (normalizedText) {
+    case "hi":
+    case "hello":
+      msg.body(
+        `Hi ${
+          ProfileName || "there"
+        } 👋\nHow can I help you today? Type 'menu' to see options.`
+      );
+      break;
+    case "menu":
+      msg.body(
+        `Here’s what I can do:\n- 'help': Show usage info\n- 'pricing': View our plans\n- 'agent': Talk to a human`
+      );
+      break;
+    case "pricing":
+      msg.body(
+        "Our pricing starts at $9.99/month. Visit example.com/pricing for details."
+      );
+      break;
+    case "agent":
+      msg.body("Sure! I'll connect you to a support agent shortly. 🧑‍💼");
+      break;
+    default:
+      msg.body(
+        "Sorry, I didn’t understand that. 🤖\nType 'menu' to see what I can do."
+      );
+  }
+
+  res.writeHead(200, { "Content-Type": "text/xml" });
+  res.end(twiml.toString());
+});
+
+module.exports = router;
+```
+
+### 🔐 [Optional] Securing Your Webhook (Signature Validation)
+
+Twilio includes an `X-Twilio-Signature` header with each request. You can validate it to ensure the request genuinely came from Twilio.
+
+#### Install the validator
+
+```bash
+npm install twilio
+```
+
+#### Add validation middleware (before route)
+
+```js
+const twilio = require("twilio");
+const twilioSignature = require("twilio").validateRequest;
+
+function validateTwilioRequest(req, res, next) {
+  const signature = req.headers["x-twilio-signature"];
+  const url = `https://${req.headers.host}${req.originalUrl}`;
+  const params = req.body;
+
+  const isValid = twilio.validateRequest(
+    process.env.TWILIO_AUTH_TOKEN,
+    signature,
+    url,
+    params
+  );
+
+  if (!isValid) {
+    return res.status(403).send("Invalid Twilio request");
+  }
+
+  next();
+}
+```
+
+Then add this to your route:
+
+```js
+router.post('/', validateTwilioRequest, (req, res) => { ... });
+```
+
+> 🔐 This is especially important in production to prevent spoofed messages.
+
+With this, we’ve built a more interactive and slightly secure chatbot. In the next section, we’ll push this further with OpenAI-powered smart responses!
