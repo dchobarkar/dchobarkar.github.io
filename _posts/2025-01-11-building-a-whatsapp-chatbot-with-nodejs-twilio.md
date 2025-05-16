@@ -455,3 +455,125 @@ module.exports = router;
 - **Readability:** Your webhook logic stays clean and simple.
 
 With this refactor, your bot now has a **modular, extensible rule-based brain** — a perfect base to plug in OpenAI logic next. Let’s do that in the next section!
+
+## Integrating OpenAI for Dynamic Conversations
+
+Rule-based bots are simple but limited. They can’t handle unexpected input, slang, or natural conversation flows. This is where OpenAI comes in 🧠.
+
+In this section, we’ll:
+
+- Integrate the OpenAI API into our WhatsApp chatbot
+- Handle stateless queries (since WhatsApp doesn’t maintain session context)
+- Craft a good prompt strategy for short-form messaging
+- Ensure fallbacks if the AI fails
+
+### 🔑 Step 1: Add OpenAI SDK and API Key
+
+Install the SDK:
+
+```bash
+npm install openai
+```
+
+Create or update your `.env`:
+
+```env
+OPENAI_API_KEY=your_openai_api_key
+```
+
+### 📦 Step 2: OpenAI Client Utility (`utils/openaiClient.js`)
+
+```js
+const { OpenAI } = require("openai");
+require("dotenv").config();
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+async function getOpenAIReply(message, name = "") {
+  try {
+    const prompt = `You are a helpful WhatsApp bot for a small business. Keep responses under 100 words.\n\nUser (${name}): ${message}\nBot:`;
+
+    const completion = await openai.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: "You are a concise customer service bot for WhatsApp.",
+        },
+        { role: "user", content: prompt },
+      ],
+      model: "gpt-3.5-turbo",
+      max_tokens: 100,
+    });
+
+    return completion.choices[0].message.content.trim();
+  } catch (err) {
+    console.error("OpenAI Error:", err);
+    return "Sorry, I'm having trouble understanding that. Please try again later.";
+  }
+}
+
+module.exports = getOpenAIReply;
+```
+
+This function builds a prompt, sends it to OpenAI, and returns the response.
+
+### 🧠 Step 3: Add AI as a Fallback in Router (`utils/commandRouter.js`)
+
+Modify your command router to use OpenAI when no rule matches:
+
+```js
+const menu = require("../handlers/menu");
+const help = require("../handlers/help");
+const pricing = require("../handlers/pricing");
+const agent = require("../handlers/agent");
+const getOpenAIReply = require("./openaiClient");
+
+const commandRouter = async (input, profileName) => {
+  const text = input.trim().toLowerCase();
+
+  if (["menu"].includes(text)) return menu(profileName);
+  if (["help"].includes(text)) return help();
+  if (["pricing"].includes(text)) return pricing();
+  if (["agent"].includes(text)) return agent();
+
+  return await getOpenAIReply(input, profileName);
+};
+
+module.exports = commandRouter;
+```
+
+> 📌 The function is now async! Be sure to reflect this in your webhook.
+
+### ✨ Step 4: Update Webhook to Handle Promises (`routes/whatsapp.js`)
+
+Update your handler to use `await`:
+
+```js
+const express = require("express");
+const router = express.Router();
+const MessagingResponse = require("twilio").twiml.MessagingResponse;
+const commandRouter = require("../utils/commandRouter");
+
+router.post("/", async (req, res) => {
+  const { Body, ProfileName } = req.body;
+  const replyText = await commandRouter(Body, ProfileName);
+
+  const twiml = new MessagingResponse();
+  twiml.message(replyText);
+
+  res.writeHead(200, { "Content-Type": "text/xml" });
+  res.end(twiml.toString());
+});
+
+module.exports = router;
+```
+
+### 🤖 Smart, Flexible Bot Ready
+
+Your bot can now:
+
+- Handle known commands like `menu`, `pricing`, etc.
+- Fallback to OpenAI for everything else
+- Offer flexible, natural replies tailored to WhatsApp’s short-form style
+
+In the next section, we’ll **deploy this bot and connect it with Twilio’s webhook console for live testing!**
