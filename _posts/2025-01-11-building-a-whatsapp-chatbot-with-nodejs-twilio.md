@@ -334,3 +334,124 @@ router.post('/', validateTwilioRequest, (req, res) => { ... });
 > 🔐 This is especially important in production to prevent spoofed messages.
 
 With this, we’ve built a more interactive and slightly secure chatbot. In the next section, we’ll push this further with OpenAI-powered smart responses!
+
+## Creating a Basic Chatbot with Rule-Based Responses
+
+At this point, your bot can receive messages and respond with hardcoded replies. But what happens when your logic grows? You don’t want to stuff your entire routing logic inside a single `switch` block. 🧱
+
+Let’s now refactor our code to:
+
+- Build a clean command router structure
+- Organize logic per intent (e.g., `menu`, `help`, `pricing`)
+- Make it easy to extend and test
+
+### 📁 Updated Project Structure
+
+```structure
+whatsapp-chatbot/
+├── handlers/
+│   ├── agent.js
+│   ├── help.js
+│   ├── menu.js
+│   ├── pricing.js
+│   └── fallback.js
+├── routes/
+│   └── whatsapp.js
+└── utils/
+    └── commandRouter.js
+```
+
+### 1️⃣ Intent Handlers (e.g., `handlers/menu.js`)
+
+Each intent has its own module that returns a response string:
+
+#### `handlers/menu.js`
+
+```js
+module.exports = (name) =>
+  `Hi ${
+    name || "there"
+  }! Here’s what I can help with:\n\n- 'help': Show usage info\n- 'pricing': View our plans\n- 'agent': Talk to a human`;
+```
+
+#### `handlers/help.js`
+
+```js
+module.exports = () =>
+  `Type any of the following commands:\n- 'menu'\n- 'pricing'\n- 'agent'`;
+```
+
+#### `handlers/pricing.js`
+
+```js
+module.exports = () =>
+  `Our pricing plans start at $9.99/month. Learn more at https://example.com/pricing.`;
+```
+
+#### `handlers/agent.js`
+
+```js
+module.exports = () => `Connecting you to a human agent now. 👩‍💼 Please wait...`;
+```
+
+#### `handlers/fallback.js`
+
+```js
+module.exports = () =>
+  `I didn’t get that. 🤔 Type 'menu' to see available commands.`;
+```
+
+### 2️⃣ Command Router (`utils/commandRouter.js`)
+
+```js
+const menu = require("../handlers/menu");
+const help = require("../handlers/help");
+const pricing = require("../handlers/pricing");
+const agent = require("../handlers/agent");
+const fallback = require("../handlers/fallback");
+
+const commandRouter = (input, profileName) => {
+  const text = input.trim().toLowerCase();
+
+  if (["menu"].includes(text)) return menu(profileName);
+  if (["help"].includes(text)) return help();
+  if (["pricing"].includes(text)) return pricing();
+  if (["agent"].includes(text)) return agent();
+
+  return fallback();
+};
+
+module.exports = commandRouter;
+```
+
+### 3️⃣ Updating Webhook to Use the Router (`routes/whatsapp.js`)
+
+```js
+const express = require("express");
+const router = express.Router();
+const MessagingResponse = require("twilio").twiml.MessagingResponse;
+const commandRouter = require("../utils/commandRouter");
+
+router.post("/", (req, res) => {
+  const { Body, ProfileName } = req.body;
+
+  const replyText = commandRouter(Body, ProfileName);
+
+  const twiml = new MessagingResponse();
+  twiml.message(replyText);
+
+  res.writeHead(200, { "Content-Type": "text/xml" });
+  res.end(twiml.toString());
+});
+
+module.exports = router;
+```
+
+### 🤖 Why This Approach?
+
+- **Separation of concerns:** Each command is self-contained.
+- **Scalability:** New features = new file.
+- **Testing:** Each handler can be unit-tested in isolation.
+- **Readability:** Your webhook logic stays clean and simple.
+
+With this refactor, your bot now has a **modular, extensible rule-based brain** — a perfect base to plug in OpenAI logic next. Let’s do that in the next section!
