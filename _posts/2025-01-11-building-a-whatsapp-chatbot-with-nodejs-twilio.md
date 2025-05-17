@@ -658,3 +658,99 @@ Click **Save**.
 | Restart Required | Yes, after code edit | Automatic via Railway builds  |
 
 Now that our bot is live and reachable via WhatsApp, we’re ready to scale it — next stop: business verification and message templates!
+
+## From Demo to Real Bot — Approval, Templates, and Rollout
+
+Now that our chatbot works in Twilio’s sandbox and is deployed live, let’s make it production-ready. WhatsApp requires **business verification, template approvals**, and user **opt-ins** before you can use the API outside the sandbox.
+
+This section walks through:
+
+- Business verification with Meta
+- Requesting message templates in Twilio
+- Handling opt-in flows
+- Moving to a live WhatsApp Business number
+
+### 🏢 Step 1: Verify Your Business on Facebook
+
+You must have a **Facebook Business Manager** account linked to your Twilio project.
+
+1. Visit [https://business.facebook.com/settings](https://business.facebook.com/settings)
+2. Complete **Business Verification**: upload docs, verify domain, etc.
+3. Link your WhatsApp Business Account (WABA) to Twilio by following their guided onboarding in Twilio Console under **Messaging > Senders > WhatsApp Senders**
+
+Once verified, you’ll be allowed to request higher messaging tiers and use your own phone number.
+
+### ☎️ Step 2: Add a Real WhatsApp Number
+
+In the Twilio Console:
+
+1. Go to **Messaging > Senders > WhatsApp Senders**
+2. Click **Add a Sender**
+3. Follow the steps to register your real business number (it must be disconnected from the WhatsApp app)
+
+You’ll receive a 6-digit verification code on WhatsApp which you’ll enter during setup.
+
+### ✍️ Step 3: Submit Message Templates
+
+WhatsApp does not allow businesses to message users freely unless the user initiates the session. To send messages outside of the 24-hour window, you need **pre-approved message templates**.
+
+Examples:
+
+- Appointment reminders
+- Delivery updates
+- Promo alerts
+
+Submit templates in Twilio Console:
+
+1. Go to **Messaging > Content > WhatsApp Templates**
+2. Click **Create Template**
+3. Fill details: name, category, language, and content with placeholders
+
+Example template:
+
+```json
+{
+  "name": "appointment_reminder",
+  "language": "en",
+  "category": "TRANSACTIONAL",
+  "components": [
+    {
+      "type": "BODY",
+      "text": "Hi {{1}}, your appointment is scheduled for {{2}}."
+    }
+  ]
+}
+```
+
+Once approved (usually within minutes or hours), you can send this using Twilio’s API.
+
+### ✅ Step 4: Ensure User Opt-In
+
+WhatsApp’s policy requires **explicit user opt-in** before you message them outside the session window.
+
+Recommended opt-in channels:
+
+- Webforms with checkboxes
+- SMS/Email confirmation
+- In-app toggle or chatbot prompt
+
+Store their opt-in timestamp + context in your DB.
+
+### 🧪 Step 5: Test with Real Users
+
+Now that you’re out of sandbox:
+
+- Use your live number and approved templates to send messages
+- Make sure opt-in is captured and respected
+- Keep logs for compliance
+
+### 🚀 You’re Production Ready
+
+You now have:
+
+- A verified WhatsApp Business Account
+- A working bot on a real number
+- Template-based messaging support
+- Compliance-ready opt-in tracking
+
+Next, let’s enhance the experience with **rich media, quick replies, and multi-language support**!
