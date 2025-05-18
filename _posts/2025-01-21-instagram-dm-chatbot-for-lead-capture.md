@@ -68,3 +68,136 @@ By the end, you'll have:
 - A working conversation flow that captures leads
 
 Let's dive in — starting with how Meta's API works under the hood ✨
+
+## Meta’s Messaging API: Understanding the Tech Behind Instagram DM Bots
+
+Before we write a single line of code, it's crucial to understand how Meta's ecosystem works when it comes to enabling Instagram messaging for bots. Unlike most messaging platforms, Meta enforces strict permissions, account configurations, and API contracts. Let's break it all down 🤷‍♂️
+
+### 📂 Account Requirements: What You Need to Start
+
+To interact with Instagram DMs via the API, Meta requires a few things to be properly set up:
+
+#### 1. Facebook Developer Account
+
+- Go to [developers.facebook.com](https://developers.facebook.com/) and create a developer account.
+
+#### 2. Facebook App
+
+- Create a new app of type **Business**. This gives access to Instagram Graph and Messaging APIs.
+
+#### 3. Instagram Business Account
+
+- Your Instagram account must be a **Professional (Business)** account.
+- It must be connected to a Facebook Page.
+
+#### 4. Facebook Page
+
+- The connected Page acts as the container for the Instagram account.
+
+#### 5. App Permissions
+
+- Request and enable:
+
+  - `pages_show_list`
+  - `instagram_basic`
+  - `instagram_manage_messages`
+  - `pages_messaging`
+
+#### 6. Webhook Configuration
+
+- Set up a webhook to receive message events.
+- Subscribe to the `messages` and `messaging_postbacks` fields for both Page and Instagram.
+
+### 📊 API Flow: How the Instagram Messaging Lifecycle Works
+
+Understanding the message lifecycle helps you design proper flows:
+
+1. **User Sends Message**
+
+   - A user DMs your business on Instagram.
+
+2. **Meta Webhook Triggers**
+
+   - Your webhook receives an HTTP POST event.
+
+3. **Server Processes It**
+
+   - Your code parses the message and checks if it’s a new lead.
+
+4. **Bot Sends a Reply**
+
+   - You call the Instagram Messaging API to reply using the Page access token.
+
+### 🔑 Access Tokens and Authentication
+
+You’ll use a **Page Access Token** to authenticate API calls. During development:
+
+- Generate a **User Access Token** with `pages_show_list` permission
+- Use Graph API Explorer to request a **long-lived Page Token**
+
+Keep these tokens in `.env` files:
+
+```env
+PAGE_ACCESS_TOKEN=your_page_access_token_here
+VERIFY_TOKEN=your_custom_verify_token
+```
+
+Use the Page Token when calling the Messaging API:
+
+```bash
+curl -X POST "https://graph.facebook.com/v19.0/me/messages" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "recipient": {"id": "<PSID>"},
+    "message": {"text": "Hello from your bot!"},
+    "messaging_type": "RESPONSE",
+    "access_token": "<PAGE_ACCESS_TOKEN>"
+  }'
+```
+
+### 🛠️ Webhook Event Format (Instagram Message)
+
+Here’s what a typical webhook payload looks like when someone DMs your Instagram:
+
+```json
+{
+  "object": "instagram",
+  "entry": [
+    {
+      "id": "<page-id>",
+      "time": 1698888888,
+      "messaging": [
+        {
+          "sender": { "id": "<user-psid>" },
+          "recipient": { "id": "<page-id>" },
+          "timestamp": 1698888888,
+          "message": {
+            "mid": "<message-id>",
+            "text": "Hi, I’m interested!"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Your server needs to:
+
+- Verify the webhook signature
+- Parse this payload
+- Decide how to respond
+
+### 📖 API Docs to Bookmark
+
+Keep these Meta docs handy as we build:
+
+- [Instagram Messaging API Overview](https://developers.facebook.com/docs/instagram-api/guides/messaging/)
+- [Webhook Reference](https://developers.facebook.com/docs/graph-api/webhooks/)
+- [Graph API Explorer](https://developers.facebook.com/tools/explorer/)
+
+---
+
+Now that we understand how Meta's Instagram Messaging API works, we're ready to start building our backend!
+
+Next up: **setting up the Node.js + Express bot server** ✨
