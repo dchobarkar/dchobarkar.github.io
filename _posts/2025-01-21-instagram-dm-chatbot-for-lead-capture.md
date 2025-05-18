@@ -196,8 +196,146 @@ Keep these Meta docs handy as we build:
 - [Webhook Reference](https://developers.facebook.com/docs/graph-api/webhooks/)
 - [Graph API Explorer](https://developers.facebook.com/tools/explorer/)
 
----
-
 Now that we understand how Meta's Instagram Messaging API works, we're ready to start building our backend!
 
 Next up: **setting up the Node.js + Express bot server** ✨
+
+## Project Setup: Building the Bot Server with Node.js + Express
+
+With Meta's platform basics in place, it’s time to get our hands dirty and start building the actual Instagram DM bot backend ✨
+
+We’ll use **Node.js + Express** as the foundation for our server. This will handle:
+
+- Verifying Meta’s webhook
+- Receiving and responding to messages
+- Managing lead state and flow
+
+### 🔄 Step 1: Initialize the Project
+
+Create a new project folder:
+
+```bash
+mkdir insta-lead-bot && cd insta-lead-bot
+npm init -y
+```
+
+### 📁 Step 2: Install Dependencies
+
+We’ll need the following packages:
+
+```bash
+npm install express axios dotenv body-parser
+```
+
+**Breakdown:**
+
+- `express`: Core web framework
+- `axios`: For outbound API calls to Meta
+- `dotenv`: Loads env vars from `.env`
+- `body-parser`: Parses incoming webhook JSON
+
+### 🔧 Step 3: Project Structure
+
+Let’s organize our files for maintainability:
+
+```structure
+insta-lead-bot/
+├── controllers/
+│   └── messageController.js
+├── routes/
+│   └── webhook.js
+├── services/
+│   └── instagramService.js
+├── .env
+├── app.js
+└── server.js
+```
+
+This will help separate logic by responsibility.
+
+### 👁‍🗨️ Step 4: Create the Entry Point
+
+`server.js` will launch the app:
+
+```js
+// server.js
+const app = require("./app");
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Bot server running on port ${PORT}`);
+});
+```
+
+### ⚖️ Step 5: Setup Express in `app.js`
+
+```js
+// app.js
+const express = require("express");
+const bodyParser = require("body-parser");
+const dotenv = require("dotenv");
+const webhookRoutes = require("./routes/webhook");
+
+dotenv.config();
+
+const app = express();
+app.use(bodyParser.json());
+app.use("/webhook", webhookRoutes);
+
+module.exports = app;
+```
+
+### 🔒 Step 6: Create `.env` File
+
+```env
+PAGE_ACCESS_TOKEN=your_meta_page_token
+VERIFY_TOKEN=your_custom_verify_token
+```
+
+This keeps your secrets out of version control.
+
+### 🔍 Step 7: Webhook Route
+
+Create `routes/webhook.js`:
+
+```js
+const express = require("express");
+const router = express.Router();
+const messageController = require("../controllers/messageController");
+
+router.get("/", messageController.verifyWebhook);
+router.post("/", messageController.handleMessage);
+
+module.exports = router;
+```
+
+### 🤖 Step 8: Webhook Controller Stub
+
+Create `controllers/messageController.js`:
+
+```js
+exports.verifyWebhook = (req, res) => {
+  const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+
+  if (mode && token === VERIFY_TOKEN) {
+    console.log("Webhook verified");
+    return res.status(200).send(challenge);
+  } else {
+    return res.sendStatus(403);
+  }
+};
+
+exports.handleMessage = (req, res) => {
+  console.log("Incoming webhook:", JSON.stringify(req.body, null, 2));
+  res.sendStatus(200); // Acknowledge receipt to Meta
+};
+```
+
+This code handles webhook verification and logs incoming payloads.
+
+With this setup, your server is ready to receive Instagram DMs and respond to Meta’s webhook challenge.
+
+Next up: **Handling Webhook Verification + Message Reception** ✅
