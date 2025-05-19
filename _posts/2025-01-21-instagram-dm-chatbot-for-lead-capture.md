@@ -600,3 +600,137 @@ Then call these before sending a reply for a more human-like UX.
 At this point, your bot can receive and **reply to Instagram DMs** automatically ✨
 
 Next: Let’s build a **guided lead capture flow** that collects the user's name, email, and interest 📊
+
+## Building the Lead Capture Flow: Name, Email, and Interest
+
+With message handling and replies in place, it’s time to build the heart of our bot: a **structured, conversational lead capture flow**. Our goal is to collect three pieces of information:
+
+- User's **Name**
+- **Email Address** (validated)
+- Area of **Interest** (optional free text)
+
+We’ll maintain conversational context using a simple session-based memory and validate inputs step-by-step ✏️
+
+### 🧠 State Management: In-Memory Session Store
+
+To manage conversation state, we’ll track user progress in a simple object (or Redis in production).
+
+Create `sessionStore.js`:
+
+```js
+const sessions = {};
+
+function getSession(userId) {
+  if (!sessions[userId]) {
+    sessions[userId] = { step: 0, data: {} };
+  }
+  return sessions[userId];
+}
+
+function clearSession(userId) {
+  delete sessions[userId];
+}
+
+module.exports = { getSession, clearSession };
+```
+
+This will store:
+
+- `step`: Current conversation step
+- `data`: Collected name/email/interest
+
+### 🌐 Update Controller Logic
+
+Edit `controllers/messageController.js` to support flow logic:
+
+```js
+const { sendTextMessage } = require("../services/instagramService");
+const { getSession, clearSession } = require("../sessionStore");
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+exports.handleMessage = async (req, res) => {
+  const body = req.body;
+
+  if (body.object === "instagram") {
+    for (const entry of body.entry) {
+      const event = entry.messaging[0];
+      const senderId = event.sender.id;
+      const message = event.message?.text;
+
+      if (message) {
+        const session = getSession(senderId);
+
+        switch (session.step) {
+          case 0:
+            await sendTextMessage(senderId, "Hey! 👋 What's your name?");
+            session.step = 1;
+            break;
+
+          case 1:
+            session.data.name = message;
+            await sendTextMessage(
+              senderId,
+              `Nice to meet you, ${message}! What's your email? ✉️`
+            );
+            session.step = 2;
+            break;
+
+          case 2:
+            if (!emailRegex.test(message)) {
+              await sendTextMessage(
+                senderId,
+                "Hmm, that doesn't look like a valid email. Try again ✍️"
+              );
+            } else {
+              session.data.email = message;
+              await sendTextMessage(
+                senderId,
+                "Got it! Lastly, what are you interested in? 💡"
+              );
+              session.step = 3;
+            }
+            break;
+
+          case 3:
+            session.data.interest = message;
+            await sendTextMessage(
+              senderId,
+              "Awesome! Thanks for sharing. We'll be in touch soon. 🚀"
+            );
+            console.log("Captured lead:", session.data);
+            clearSession(senderId);
+            break;
+        }
+      }
+    }
+  }
+  res.sendStatus(200);
+};
+```
+
+### 🔎 What This Flow Does
+
+- Initiates only when a user sends a message
+- Asks for each field sequentially
+- Validates email using regex
+- Logs full lead data once captured
+
+You can extend this to:
+
+- Send data to Supabase (next section)
+- Add buttons or quick replies for predefined interest topics
+- Handle restarts and `/reset` commands
+
+### ℹ️ UX Notes
+
+Keep your messages friendly and conversational. Use emojis and confirmations to show progress.
+
+E.g., instead of:
+
+> "Email?"
+
+Say:
+
+> "Cool! Now I just need your email so we can reach you later. ✉️"
+
+Next up: We’ll **store the collected lead data in Supabase** so it doesn’t vanish when the server restarts 📂
