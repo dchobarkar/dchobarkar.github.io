@@ -465,3 +465,138 @@ At this point:
 - 🔎 You can inspect incoming DMs
 
 Next up: **Sending Replies to Instagram Messages using Meta’s API** 🚀
+
+## Sending Messages Back: The DM Reply Handler
+
+Receiving DMs is only half the job. To complete the loop, your bot needs to **reply to messages using the Instagram Messaging API.** Let's now implement the response logic so our bot can interact with users in real time 🚀
+
+### 🔄 The Send Message Flow
+
+When a DM arrives:
+
+1. Your webhook receives and parses the message
+2. Your server extracts the `sender.id`
+3. You make a `POST` request to Meta's Graph API
+4. Meta delivers your message to the user
+
+### 📝 Meta Messaging API Endpoint
+
+```url
+POST https://graph.facebook.com/v19.0/me/messages?access_token=<PAGE_ACCESS_TOKEN>
+```
+
+This API requires:
+
+- `recipient.id` (sender PSID from webhook)
+- `message.text` (or structured message payload)
+
+### 🛠️ Create Instagram Service
+
+In `services/instagramService.js`, add this:
+
+```js
+const axios = require("axios");
+
+const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
+
+async function sendTextMessage(recipientId, text) {
+  const url = `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
+
+  const payload = {
+    recipient: { id: recipientId },
+    message: { text: text },
+    messaging_type: "RESPONSE",
+  };
+
+  try {
+    const res = await axios.post(url, payload);
+    console.log("Message sent:", res.data);
+  } catch (err) {
+    console.error("Error sending message:", err.response?.data || err.message);
+  }
+}
+
+module.exports = {
+  sendTextMessage,
+};
+```
+
+This is your core DM response function.
+
+### 🤖 Use It in the Controller
+
+Update `controllers/messageController.js` to use the reply logic:
+
+```js
+const { sendTextMessage } = require("../services/instagramService");
+
+exports.handleMessage = async (req, res) => {
+  const body = req.body;
+
+  if (body.object === "instagram") {
+    for (const entry of body.entry) {
+      const event = entry.messaging[0];
+      const senderId = event.sender.id;
+      const message = event.message?.text;
+
+      if (message) {
+        console.log(`User says: ${message}`);
+        await sendTextMessage(
+          senderId,
+          "Hey! Thanks for messaging us. How can I help you today? 😊"
+        );
+      }
+    }
+  }
+  res.sendStatus(200);
+};
+```
+
+This sends a simple text reply for any incoming message.
+
+### 📞 Optional: Typing Indicators + Seen Status
+
+Instagram also allows:
+
+- `sender_action: typing_on`
+- `sender_action: mark_seen`
+
+Add these to show user feedback:
+
+```js
+async function markSeen(recipientId) {
+  const url = `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
+
+  await axios.post(url, {
+    recipient: { id: recipientId },
+    sender_action: "mark_seen",
+  });
+}
+
+async function showTyping(recipientId) {
+  const url = `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
+
+  await axios.post(url, {
+    recipient: { id: recipientId },
+    sender_action: "typing_on",
+  });
+}
+
+module.exports = {
+  sendTextMessage,
+  markSeen,
+  showTyping,
+};
+```
+
+Then call these before sending a reply for a more human-like UX.
+
+### 🚧 Debugging Tips
+
+- Check Meta logs for failed API requests
+- Make sure `PAGE_ACCESS_TOKEN` is current and has permissions
+- Log full error responses from Axios
+
+At this point, your bot can receive and **reply to Instagram DMs** automatically ✨
+
+Next: Let’s build a **guided lead capture flow** that collects the user's name, email, and interest 📊
