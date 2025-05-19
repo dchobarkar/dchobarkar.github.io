@@ -339,3 +339,129 @@ This code handles webhook verification and logs incoming payloads.
 With this setup, your server is ready to receive Instagram DMs and respond to Meta’s webhook challenge.
 
 Next up: **Handling Webhook Verification + Message Reception** ✅
+
+## Webhook Verification + Receiving Instagram Messages
+
+Now that our server is running and the routes are in place, the next step is to handle **Meta's webhook verification process** and start parsing real-time Instagram messages ✅
+
+### 📃 Step 1: Understanding Meta's Webhook Verification
+
+When you register your webhook URL in the Meta Developer Console, Meta sends a `GET` request with three query parameters:
+
+- `hub.mode`
+- `hub.verify_token`
+- `hub.challenge`
+
+You need to:
+
+- Check if the `verify_token` matches what you set
+- Respond with the `challenge` string if it does
+
+This verifies that you control the endpoint — a required step before Meta starts sending real message events.
+
+We already wrote the verification logic in our controller:
+
+```js
+exports.verifyWebhook = (req, res) => {
+  const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+
+  if (mode && token === VERIFY_TOKEN) {
+    console.log("Webhook verified");
+    return res.status(200).send(challenge);
+  } else {
+    return res.sendStatus(403);
+  }
+};
+```
+
+Test this with:
+
+```bash
+curl -X GET 'http://localhost:3000/webhook?hub.mode=subscribe&hub.verify_token=your_custom_verify_token&hub.challenge=1234'
+```
+
+### 📢 Step 2: Registering the Webhook with Meta
+
+In the [Meta Developer Console](https://developers.facebook.com/apps/):
+
+1. Go to your app > **Webhooks** section
+2. Choose **Instagram** or **Page** (based on setup)
+3. Enter your webhook URL, e.g. `https://yourdomain.com/webhook`
+4. Enter your `VERIFY_TOKEN`
+5. Subscribe to `messages`, `messaging_postbacks`
+
+You’ll see a success message if verification worked!
+
+### 📈 Step 3: Receiving Instagram DMs
+
+When a user sends a DM to your Instagram account, Meta sends a `POST` request to your webhook endpoint:
+
+Here's how we already log that:
+
+```js
+exports.handleMessage = (req, res) => {
+  console.log("Incoming webhook:", JSON.stringify(req.body, null, 2));
+  res.sendStatus(200);
+};
+```
+
+Example webhook payload:
+
+```json
+{
+  "object": "instagram",
+  "entry": [
+    {
+      "id": "<page-id>",
+      "time": 1698888888,
+      "messaging": [
+        {
+          "sender": { "id": "<user-id>" },
+          "recipient": { "id": "<page-id>" },
+          "timestamp": 1698888888,
+          "message": {
+            "mid": "<msg-id>",
+            "text": "Hi! I'm interested."
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+You can extract the relevant info like this:
+
+```js
+exports.handleMessage = (req, res) => {
+  const body = req.body;
+
+  if (body.object === "instagram") {
+    body.entry.forEach((entry) => {
+      const event = entry.messaging[0];
+      const senderId = event.sender.id;
+      const message = event.message.text;
+
+      console.log(`Message from ${senderId}: ${message}`);
+      // Later: Call your response function here
+    });
+  }
+  res.sendStatus(200);
+};
+```
+
+### ✉️ Testing Message Events
+
+Use a real Instagram account (with test user access) to DM the connected business profile.
+
+You can also simulate via `curl` or Postman (for raw webhook testing).
+
+At this point:
+
+- ✅ Your webhook URL is verified
+- 🔎 You can inspect incoming DMs
+
+Next up: **Sending Replies to Instagram Messages using Meta’s API** 🚀
