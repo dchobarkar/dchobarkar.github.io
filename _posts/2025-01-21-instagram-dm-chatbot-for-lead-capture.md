@@ -734,3 +734,111 @@ Say:
 > "Cool! Now I just need your email so we can reach you later. ✉️"
 
 Next up: We’ll **store the collected lead data in Supabase** so it doesn’t vanish when the server restarts 📂
+
+## Storing Leads: Connecting to Supabase (or Firebase)
+
+Capturing user data in-memory is fine for local testing, but in production we need to **persist lead data** to a proper database. For this, we’ll use **Supabase** — a serverless PostgreSQL platform with a slick API and dashboard that integrates perfectly with JavaScript.
+
+### 📂 Why Supabase?
+
+- Free and generous tier for small projects
+- RESTful + real-time + SQL access
+- Easy setup and JavaScript SDK
+- Auth, storage, and other tools if needed later
+
+### 📦 Step 1: Create a Supabase Project
+
+1. Go to [https://supabase.com](https://supabase.com)
+2. Sign in with GitHub and create a new project
+3. Name it `instagram-lead-bot`
+4. Set a strong password and choose a region
+
+Once provisioned:
+
+- Copy the **project URL** and **anon API key** from Project Settings > API
+
+### 🔍 Step 2: Define the Leads Table
+
+In the **Table Editor**, create a new table called `leads`:
+
+| Column     | Type        | Notes                      |
+| ---------- | ----------- | -------------------------- |
+| id         | uuid        | Primary key (default UUID) |
+| name       | text        | Name from the DM flow      |
+| email      | text        | Validated email address    |
+| interest   | text        | Freeform user input        |
+| source     | text        | Set to 'instagram'         |
+| created_at | timestamptz | Default: now()             |
+
+Enable **Row Level Security**, then add a policy:
+
+```sql
+CREATE POLICY "Allow all insert" ON public.leads
+FOR INSERT WITH CHECK (true);
+```
+
+### 🎓 Step 3: Install Supabase JS SDK
+
+```bash
+npm install @supabase/supabase-js
+```
+
+### 🔧 Step 4: Create Supabase Service
+
+Create `services/supabaseService.js`:
+
+```js
+const { createClient } = require("@supabase/supabase-js");
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
+
+async function storeLead({ name, email, interest }) {
+  const { data, error } = await supabase
+    .from("leads")
+    .insert([{ name, email, interest, source: "instagram" }]);
+
+  if (error) {
+    console.error("Error inserting lead:", error);
+  } else {
+    console.log("Lead stored successfully:", data);
+  }
+}
+
+module.exports = { storeLead };
+```
+
+### 🔐 Step 5: Add to `.env`
+
+```env
+SUPABASE_URL=https://xyzcompany.supabase.co
+SUPABASE_ANON_KEY=your_anon_key_here
+```
+
+### 📝 Step 6: Plug Into Flow
+
+Update `messageController.js` to import and call `storeLead`:
+
+```js
+const { storeLead } = require('../services/supabaseService');
+
+...
+case 3:
+  session.data.interest = message;
+  await sendTextMessage(senderId, "Awesome! Thanks for sharing. We'll be in touch soon. 🚀");
+  await storeLead(session.data);
+  clearSession(senderId);
+  break;
+```
+
+### 🧰 Production Tips
+
+- Sanitize input if handling raw text
+- Use Supabase Auth for restricted access later
+- Consider rate limiting to avoid spam/flooding
+
+Now your bot persists leads to a real-time PostgreSQL database via Supabase.
+
+Next: let’s **deploy the bot server and connect it with Meta’s live webhook config** ✨
