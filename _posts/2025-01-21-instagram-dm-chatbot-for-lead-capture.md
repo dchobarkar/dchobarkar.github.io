@@ -842,3 +842,98 @@ case 3:
 Now your bot persists leads to a real-time PostgreSQL database via Supabase.
 
 Next: let’s **deploy the bot server and connect it with Meta’s live webhook config** ✨
+
+## Deploying the Bot: Secure Hosting + Webhook Setup
+
+Once our bot is functional locally, it’s time to take it live — so Meta can send real webhook events and users can DM our Instagram account to trigger the flow.
+
+We’ll cover:
+
+- Hosting the Node.js server
+- Securing environment variables
+- Exposing a public URL
+- Configuring the webhook in Meta Developer Console
+
+### 🏢 Step 1: Choose a Hosting Provider
+
+Some great options for quick Node.js deployments:
+
+#### ✅ Railway (Recommended)
+
+- Free tier, instant deploy from GitHub
+- Built-in environment variable management
+- Good logs and CI/CD support
+
+Other options:
+
+- **Render** (also solid)
+- **Vercel + Serverless Functions** (for smaller projects)
+
+### ✈️ Step 2: Deploy to Railway
+
+1. Go to [https://railway.app](https://railway.app)
+2. Click **"Start a New Project" > Deploy from GitHub Repo**
+3. Connect your GitHub and pick the `insta-lead-bot` repo
+
+Set environment variables:
+
+```env
+PAGE_ACCESS_TOKEN=your_meta_token
+VERIFY_TOKEN=your_custom_token
+SUPABASE_URL=...
+SUPABASE_ANON_KEY=...
+```
+
+Railway will auto-detect Node.js and start your server 🚀
+
+### 📲 Step 3: Local Testing via Ngrok (Optional but Useful)
+
+To test locally before deployment:
+
+```bash
+npm install -g ngrok
+ngrok http 3000
+```
+
+Ngrok will output a public HTTPS URL like:
+
+```link
+https://a1b2c3.ngrok.io
+```
+
+Use this in Meta console temporarily for webhook testing.
+
+### 🚧 Step 4: Configure Webhook in Meta Console
+
+Go to [https://developers.facebook.com](https://developers.facebook.com):
+
+1. Go to your App > **Webhooks** section
+2. Choose **Instagram** (or **Page**, based on setup)
+3. Click **Subscribe to this object**
+4. Enter your webhook URL: `https://your-railway-url/webhook`
+5. Add your **VERIFY_TOKEN**
+6. Subscribe to these fields:
+
+   - `messages`
+   - `messaging_postbacks`
+
+Meta will call your `GET /webhook` endpoint to verify. If success, you’re live ✅
+
+### 🚀 Step 5: Go Live With Instagram Users
+
+- Add test users to your Instagram App in the **Roles** tab
+- Use those accounts to DM your connected IG business profile
+- Watch the logs to confirm the flow is working
+
+When ready to go public:
+
+- Submit for **App Review** to access production users
+
+### 🔒 Bonus: Securing Your Endpoint
+
+- Only accept webhook POSTs where `req.body.object === 'instagram'`
+- (Advanced) Use Meta X-Hub-Signature headers to verify source authenticity
+
+Your bot is now deployed, reachable by Meta, and actively processing Instagram messages ✨
+
+Next: we'll explore **testing workflows and debug techniques** to ensure the bot behaves correctly across scenarios.
