@@ -1048,3 +1048,115 @@ This lets you:
 With these tests, you can confidently validate your Instagram bot in multiple scenarios and ensure a smooth user experience 🚀
 
 Next: we’ll look at **how to submit your bot for Meta review and launch it live**!
+
+## Going Live: Submitting for Review and Launching
+
+Once your Instagram bot is tested and production-ready, it’s time to **submit it for Meta review** so you can serve real users beyond just testers. Meta uses a human-in-the-loop process to verify bots comply with their policies.
+
+Let’s walk through the final launch process step-by-step ✨
+
+### 🚀 Step 1: Prepare for App Review
+
+Before applying:
+
+- Test thoroughly with your test users
+- Clean up any debug logs or test flow artifacts
+- Ensure responses are clear, compliant, and valuable to users
+
+Meta reviewers will:
+
+- Test your Instagram bot flow manually
+- Verify responses make sense and don’t spam or mislead
+- Confirm data handling (especially around emails or PII)
+
+### 🔐 Step 2: Enable Required Permissions
+
+Go to your app in the [Meta Developer Console](https://developers.facebook.com/):
+
+1. Under **App Review > Permissions and Features**
+2. Request the following:
+
+   - `pages_messaging`
+   - `instagram_basic`
+   - `instagram_manage_messages`
+
+Each permission needs justification. For example:
+
+```text
+We use `instagram_manage_messages` to respond to DMs from users with lead generation questions. We guide them through a brief Q&A and store their contact info securely.
+```
+
+### 📃 Step 3: Add Screencast and Instructions
+
+Meta requires a **video walkthrough** of your bot in action. Include:
+
+- Starting the flow from Instagram DMs
+- Bot asking for name, email, interest
+- User completing flow and receiving confirmation
+
+Upload the video to Loom, YouTube (unlisted), or Google Drive (shared).
+
+Also add **written steps** like:
+
+```text
+1. Go to our Instagram profile: @mybusinesshandle
+2. Send "hi" to trigger the bot
+3. The bot will guide you through a 3-step form
+4. You’ll receive a thank-you message once complete
+```
+
+### 🔧 Step 4: Submit for Review
+
+Once your permissions and screencast are ready:
+
+1. Go to **App Review > Requests > Add items**
+2. Add the permissions mentioned above
+3. Fill in usage details + instructions
+4. Click **Submit for Review**
+
+Reviews typically take 3–7 days. If rejected:
+
+- You’ll get a reason and can fix + resubmit
+- Be clear, concise, and compliant with Meta's Messaging Policy
+
+### 🚫 Step 5: Remove Development Mode
+
+After approval:
+
+1. Go to **App Settings > Basic**
+2. Switch app mode from **Development** to **Live**
+3. All users can now DM your Instagram and trigger the bot
+
+Be sure to:
+
+- Monitor logs in production
+- Store leads securely
+- Respect data privacy (e.g., show opt-in messages if needed)
+
+### 📈 Final Checklist
+
+| Item                        | Status |
+| --------------------------- | ------ |
+| Webhook deployed + verified | ✅     |
+| Supabase storing leads      | ✅     |
+| Bot handles edge cases      | ✅     |
+| Permissions requested       | ✅     |
+| Screencast prepared         | ✅     |
+| Review instructions written | ✅     |
+| App switched to Live        | ✅     |
+
+Once your review is approved, you’re officially live — with a real Instagram DM bot generating real leads in real time 🚀
+
+Congrats on shipping your bot into production!
+
+Stay tuned for the next article where we plug this bot into **Shopify, WooCommerce, or a website** for seamless multi-platform lead generation 🛍️
+
+---
+
+**Hey, I’m Darshan Jitendra Chobarkar** — a freelance full-stack web developer surviving the caffeinated chaos of coding from Pune ☕💻 If you enjoyed this article (or even skimmed through while silently judging my code), you might like the rest of my tech adventures.
+
+🔗 Explore more writeups, walkthroughs, and side projects at [dchobarkar.github.io](https://dchobarkar.github.io/)  
+🔍 Curious where the debugging magic happens? Check out my commits at [github.com/dchobarkar](https://github.com/dchobarkar)  
+👔 Let’s connect professionally on [LinkedIn](https://www.linkedin.com/in/dchobarkar/)
+
+Thanks for reading — and if you’ve got thoughts, questions, or feedback, I’d genuinely love to hear from you. This blog’s not just a portfolio — it’s a conversation. Let’s keep it going 👋
