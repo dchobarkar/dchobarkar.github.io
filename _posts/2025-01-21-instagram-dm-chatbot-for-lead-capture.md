@@ -937,3 +937,114 @@ When ready to go public:
 Your bot is now deployed, reachable by Meta, and actively processing Instagram messages ✨
 
 Next: we'll explore **testing workflows and debug techniques** to ensure the bot behaves correctly across scenarios.
+
+## Testing Your Bot: DM Yourself, Use Test Users, and Monitor Logs
+
+Now that the bot is deployed and connected to Meta’s webhook system, it's time to ensure everything works as expected — by **testing real message flows, validating data collection**, and **debugging edge cases**.
+
+A well-tested chatbot can gracefully handle:
+
+- Unexpected input
+- Incomplete sessions
+- API errors or outages
+
+Let’s walk through a thorough testing process 🔎
+
+### 🙋 Step 1: Add Instagram Test Users
+
+In Meta Developer Console:
+
+1. Go to **Roles > Instagram Testers**
+2. Add your personal Instagram handle
+3. On Instagram, accept the tester invite (check your app settings)
+
+This gives you access to test the bot before public launch.
+
+### 💬 Step 2: Send a DM to Your Business Profile
+
+Open Instagram and DM something simple like:
+
+```text
+Hi there
+```
+
+You should see the bot reply:
+
+> "Hey! 👋 What's your name?"
+
+Walk through the full lead capture:
+
+- Name
+- Email (try invalid + valid)
+- Interest
+
+You should see the console log:
+
+```bash
+Captured lead: { name: ..., email: ..., interest: ... }
+```
+
+And in Supabase, a new row inserted.
+
+### 🔍 Step 3: Test for Edge Cases
+
+Try these inputs to test resilience:
+
+- Empty messages (`""`)
+- Emojis-only inputs
+- Invalid email formats
+- Starting mid-flow (simulate session loss)
+- Multiple users messaging at once
+
+Ensure your bot doesn’t crash and replies appropriately.
+
+### 📊 Step 4: Monitor Logs (in Railway)
+
+On Railway:
+
+1. Go to your project
+2. Click **Logs** tab
+3. Watch live webhook events and debug output
+
+This is crucial for:
+
+- Tracking what payloads Meta sends
+- Debugging why replies failed
+- Logging Supabase insertions
+
+### 🤖 Step 5: Use Postman or Curl for Manual Webhook Testing
+
+Simulate incoming DMs using raw HTTP requests:
+
+```bash
+curl -X POST https://your-server.com/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "object": "instagram",
+    "entry": [{
+      "id": "<page-id>",
+      "messaging": [{
+        "sender": { "id": "123456789" },
+        "message": { "text": "Hello" }
+      }]
+    }]
+  }'
+```
+
+This lets you:
+
+- Bypass Instagram UI
+- Automate QA scenarios
+
+### 🤔 Step 6: Common Issues and Fixes
+
+| Problem              | Likely Cause       | Fix                            |
+| -------------------- | ------------------ | ------------------------------ |
+| Bot not replying     | Wrong page token   | Regenerate via Graph Explorer  |
+| 403 error on webhook | Token mismatch     | Check `VERIFY_TOKEN` in `.env` |
+| No DM received       | Role not accepted  | Accept Instagram tester role   |
+| Data not saving      | Supabase RLS block | Confirm insert policy enabled  |
+
+With these tests, you can confidently validate your Instagram bot in multiple scenarios and ensure a smooth user experience 🚀
+
+Next: we’ll look at **how to submit your bot for Meta review and launch it live**!
