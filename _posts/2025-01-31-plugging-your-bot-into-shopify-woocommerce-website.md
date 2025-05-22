@@ -306,3 +306,131 @@ app.post("/webhooks/app/uninstalled", async (req, res) => {
 ```
 
 In the next section, we'll dive into **WooCommerce** and how to integrate the same bot using WordPress plugin hooks and shortcodes — perfect for PHP-based storefronts.
+
+## 🏦 WooCommerce Integration: Plugin + Shortcode Approach
+
+If you’re working with WooCommerce, the best way to integrate a chatbot is through WordPress-native mechanisms: **plugins**, **hooks**, and **shortcodes**. This lets you place bots contextually across your storefront while having access to WooCommerce user and order data.
+
+Let’s break down a practical approach.
+
+### 🎓 Strategy: Where and How to Insert the Bot
+
+With WordPress, you have several options:
+
+| Method          | Best For                                     |
+| --------------- | -------------------------------------------- |
+| `functions.php` | Quick local testing                          |
+| Custom Plugin   | Production-ready, portable integration       |
+| Shortcodes      | Dynamic insertion in posts/pages/widgets     |
+| Action Hooks    | Triggered injections (e.g., on product view) |
+
+We’ll build a **custom plugin** that:
+
+1. Injects chatbot JS globally or selectively (e.g., product pages)
+2. Passes WooCommerce context (user, cart, product)
+3. Supports `[chatbot_widget]` shortcode for manual placement
+
+### 📁 Step 1: Plugin Folder Structure
+
+```bash
+/wp-content/plugins/chatbot-integration/
+├── chatbot-integration.php
+├── assets/
+│   └── chatbot-widget.js   # Your bot script (hosted or inline)
+└── includes/
+    └── enqueue.php         # Enqueue scripts and context logic
+```
+
+### 🔧 Step 2: Plugin Main File
+
+```php
+<?php
+/*
+Plugin Name: Chatbot Integration for WooCommerce
+Description: Injects chatbot with WooCommerce context.
+Version: 1.0
+*/
+
+// Include script logic
+require_once plugin_dir_path(__FILE__) . 'includes/enqueue.php';
+
+// Shortcode for manual placement
+defined('ABSPATH') or die();
+function chatbot_shortcode() {
+    return '<div id="chatbot-widget"></div>';
+}
+add_shortcode('chatbot_widget', 'chatbot_shortcode');
+```
+
+### 🔗 Step 3: Script Enqueue with Context Awareness
+
+```php
+<?php
+// includes/enqueue.php
+add_action('wp_enqueue_scripts', function() {
+    wp_enqueue_script(
+        'chatbot-widget',
+        plugin_dir_url(__FILE__) . '../assets/chatbot-widget.js',
+        [],
+        '1.0',
+        true
+    );
+
+    // Pass WooCommerce + page context
+    $user_id = get_current_user_id();
+    $cart_total = WC()->cart->get_total();
+    $cart_items = WC()->cart->get_cart_contents();
+    $current_product = is_product() ? get_the_ID() : null;
+
+    wp_localize_script('chatbot-widget', 'chatbotContext', [
+        'userId' => $user_id,
+        'cartTotal' => $cart_total,
+        'cartItems' => $cart_items,
+        'productId' => $current_product,
+        'page' => get_the_title()
+    ]);
+});
+```
+
+### 💻 Step 4: Example chatbot-widget.js
+
+```js
+(function () {
+  const context = window.chatbotContext;
+  const container = document.getElementById("chatbot-widget");
+  if (!container) return;
+
+  const iframe = document.createElement("iframe");
+  iframe.src = `https://your-bot-host/chat?user=${context.userId}&cart=${context.cartTotal}`;
+  iframe.style = "width:100%;height:400px;border:none;";
+  container.appendChild(iframe);
+})();
+```
+
+This loads an external chatbot UI (could be GPT-based or LangChain) with context-rich query params.
+
+### 🚜 Deployment Tips
+
+- Upload plugin to `/wp-content/plugins/` and activate in admin
+- Test on staging first — ensure `WC()->cart` is available
+- Use `is_product()`, `is_checkout()`, `is_cart()` for page-specific logic
+- Use plugin versioning to handle cache busting (`?v=1.0.1`)
+- Make sure external chatbot host supports CORS for WordPress
+
+### ✅ Example Usage
+
+To manually insert the chatbot widget anywhere:
+
+```php
+[chatbot_widget]
+```
+
+Or inject automatically on product pages:
+
+```php
+add_action('woocommerce_after_single_product_summary', function() {
+    echo do_shortcode('[chatbot_widget]');
+});
+```
+
+Next, we’ll move on to **general website integration** using modern frontend frameworks like **React and Next.js**, where you have full UI control and dynamic context.
