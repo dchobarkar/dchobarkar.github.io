@@ -600,3 +600,169 @@ export default function MyApp({ Component, pageProps }) {
 ```
 
 In the next section, we’ll cover how to **handle sensitive data and authenticated flows** securely, especially when bots access personal orders or profile data.
+
+## 🛡️ Handling Sensitive Data and Authenticated Flows
+
+One of the most powerful features of an e-commerce chatbot is its ability to **serve logged-in users contextually**: checking order status, recommending based on purchase history, or resolving account-specific issues.
+
+But with great context comes great responsibility. Handling **PII (Personally Identifiable Information)** and **authenticated flows** requires a secure and thoughtful architecture.
+
+Let’s break down how to do it properly in Shopify, WooCommerce, and custom sites.
+
+### 🔐 What Kind of Data Are We Talking About?
+
+| Data Type        | Examples                    | Sensitivity Level |
+| ---------------- | --------------------------- | ----------------- |
+| Identity         | User ID, Email, Name        | High              |
+| Purchase History | Orders, Items, Amounts      | High              |
+| Cart Details     | Items in cart, prices       | Medium            |
+| Session Behavior | Time on site, pages visited | Low               |
+
+Your chatbot doesn’t need all of this by default. You should pass only **what’s needed per use case**.
+
+### 🚿 Strategy 1: Use Token-Based Auth Between Bot and Backend
+
+The most secure approach is to:
+
+1. Authenticate the user (via Shopify session, WooCommerce login, or JWT in custom site)
+2. Issue a signed token that includes user ID and scope
+3. Send this token in bot messages to your backend
+
+#### Example (Next.js / JWT)
+
+```ts
+import jwt from "jsonwebtoken";
+
+export function generateUserToken(userId: string) {
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "1h" });
+}
+
+export function verifyUserToken(token: string) {
+  return jwt.verify(token, process.env.JWT_SECRET);
+}
+```
+
+In your chatbot message payload:
+
+```json
+{
+  "message": "Where is my last order?",
+  "authToken": "eyJhbGciOi..."
+}
+```
+
+Your backend verifies the token and fetches order details securely.
+
+### 📝 Strategy 2: Server-Side Context Enrichment
+
+Instead of sending sensitive data from the frontend, enrich your bot query **on the server side**:
+
+#### Shopify (via Storefront API)
+
+```ts
+const orderData = await fetch(
+  `https://${shop}/admin/api/2023-10/orders.json?customer_id=123`,
+  {
+    headers: { "X-Shopify-Access-Token": process.env.SHOPIFY_TOKEN },
+  }
+);
+```
+
+#### WooCommerce
+
+```php
+$order = wc_get_customer_last_order($user_id);
+```
+
+You then include the result in the prompt:
+
+```ts
+const prompt = `Customer asked: ${message}. Their last order was: ${orderId} for $${amount}.`;
+```
+
+This keeps frontend clean and avoids leaking secrets.
+
+### 🔐 Strategy 3: Store Context in Secure Session
+
+For authenticated storefronts, keep user context in cookies or server-side session:
+
+#### Next.js (via Iron Session)
+
+```ts
+import { withIronSessionApiRoute } from "iron-session/next";
+
+export default withIronSessionApiRoute(handler, {
+  cookieName: "session",
+  password: process.env.SESSION_SECRET,
+  cookieOptions: { secure: true },
+});
+```
+
+You can now attach user context from session in your bot endpoint handler.
+
+### 🌐 Strategy 4: Shopify App Proxy Approach
+
+To securely expose server-side data to the frontend chatbot in Shopify, use App Proxy:
+
+```ts
+// Server-side: respond to proxy route
+app.get("/apps/mybot/orders", (req, res) => {
+  const customerId = req.query.customer_id;
+  const orders = getOrdersFromShopify(customerId); // server-side call
+  res.json(orders);
+});
+```
+
+The bot can now hit `/apps/mybot/orders` without exposing any API tokens.
+
+### 👥 Strategy 5: Role-Based Access to Bot Features
+
+Restrict sensitive bot functionality to specific user roles or tags:
+
+```ts
+if (!user.isAuthenticated || !user.tags.includes("premium")) {
+  return "You need to be logged in to access order history.";
+}
+```
+
+### 🧼 Strategy 6: Frontend-Backend Interaction Best Practices
+
+Sanitize and validate all messages before processing:
+
+```ts
+const cleanMessage = message.replace(/[<>]/g, "");
+```
+
+This protects against prompt injection or malicious payloads.
+
+### 🧩 Strategy 7: Context Isolation Per Session
+
+Tie bot context to the session ID to prevent cross-user leakage:
+
+```ts
+const contextKey = `user-${session.id}`;
+bot.storeContext(contextKey, { lastPrompt, recentOrders });
+```
+
+### 🛡️ Best Practices Checklist
+
+- [x] Never expose full order or account info in browser JS
+- [x] Use HTTPS and verify origins for API requests
+- [x] Tokenize user identity, don’t pass raw user IDs
+- [x] Validate message intents server-side before returning data
+- [x] Rate-limit backend API requests to prevent abuse
+
+### ✨ Bonus: User Feedback + Escalation
+
+If your bot handles sensitive info:
+
+- Always include a **feedback prompt** after response (e.g., thumbs up/down)
+- Escalate to human if bot gets 2 failed attempts or confidence drops
+
+```ts
+if (botConfidence < 0.6 || badResponses > 1) {
+  return "I’m escalating this to our support team now...";
+}
+```
+
+Next, we’ll look at how to **deploy and scale** these bots reliably, across storefronts and platforms.
