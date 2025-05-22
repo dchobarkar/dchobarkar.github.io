@@ -434,3 +434,169 @@ add_action('woocommerce_after_single_product_summary', function() {
 ```
 
 Next, we’ll move on to **general website integration** using modern frontend frameworks like **React and Next.js**, where you have full UI control and dynamic context.
+
+## 🌐 General Website Integration with Next.js
+
+For developers running a headless storefront or custom site, **Next.js + React** offers complete control over chatbot placement, styling, and logic. Unlike Shopify or WooCommerce, there's no plugin architecture — you're working directly in the DOM.
+
+Here’s how to embed a GPT or LangChain-powered chatbot as a dynamic, context-aware React component in your Next.js storefront.
+
+### 📁 Suggested Folder Structure
+
+```bash
+/components/
+├── ChatbotWidget.tsx         # Main chatbot UI logic
+/lib/
+├── useCartContext.ts         # Custom hook to read/store cart
+/pages/api/
+├── bot.ts                    # API route proxying OpenAI/LangChain
+/public/
+└── chatbot-loader.js         # Optional: lazy load script
+```
+
+### 🔧 Step 1: Building the Chatbot Widget Component
+
+```tsx
+// components/ChatbotWidget.tsx
+import { useEffect, useState } from "react";
+
+export default function ChatbotWidget() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { role: "bot", content: "Hi there! Need help shopping?" },
+  ]);
+
+  const sendMessage = async (msg: string) => {
+    const res = await fetch("/api/bot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: msg }),
+    });
+    const data = await res.json();
+    setMessages([
+      ...messages,
+      { role: "user", content: msg },
+      { role: "bot", content: data.reply },
+    ]);
+  };
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="bg-blue-600 text-white px-4 py-2 rounded-full shadow"
+      >
+        {isOpen ? "Close" : "Chat with us"}
+      </button>
+      {isOpen && (
+        <div className="w-80 h-96 bg-white border p-4 rounded-xl mt-2 shadow-xl overflow-y-auto">
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`my-1 ${
+                msg.role === "bot"
+                  ? "text-gray-700"
+                  : "text-right text-blue-600"
+              }`}
+            >
+              {msg.content}
+            </div>
+          ))}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const form = e.target as HTMLFormElement;
+              const input = form.message as HTMLInputElement;
+              sendMessage(input.value);
+              input.value = "";
+            }}
+          >
+            <input
+              name="message"
+              className="w-full border rounded p-2 mt-2"
+              placeholder="Ask something..."
+            />
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### 🚀 Step 2: Create API Route to Handle Messages
+
+```ts
+// pages/api/bot.ts
+import type { NextApiRequest, NextApiResponse } from "next";
+import { Configuration, OpenAIApi } from "openai";
+
+const config = new Configuration({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAIApi(config);
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  const { message } = req.body;
+
+  const completion = await openai.createChatCompletion({
+    model: "gpt-4",
+    messages: [
+      { role: "system", content: "You are a helpful shopping assistant." },
+      { role: "user", content: message },
+    ],
+  });
+
+  res.status(200).json({ reply: completion.data.choices[0].message?.content });
+}
+```
+
+### 📊 Step 3: Passing Cart Context (Optional)
+
+You can enrich chatbot context using a cart or product hook:
+
+```ts
+// lib/useCartContext.ts
+import { useEffect, useState } from "react";
+
+export default function useCartContext() {
+  const [cart, setCart] = useState([]);
+
+  useEffect(() => {
+    const localCart = localStorage.getItem("cart");
+    if (localCart) setCart(JSON.parse(localCart));
+  }, []);
+
+  return cart;
+}
+```
+
+You could now include this in the `ChatbotWidget` to send along with the message body.
+
+### 🚜 Deployment Tip
+
+- Deploy via **Vercel** for easy serverless API handling
+- Add `OPENAI_API_KEY` to `.env` file
+- Use dynamic imports or `React.lazy` to lazy-load the widget
+- Consider UI enhancements: avatars, typing indicators, animations
+
+### ✨ Example Usage
+
+Place the widget anywhere in your layout:
+
+```tsx
+// pages/_app.tsx or layout.tsx
+import ChatbotWidget from "@/components/ChatbotWidget";
+
+export default function MyApp({ Component, pageProps }) {
+  return (
+    <>
+      <Component {...pageProps} />
+      <ChatbotWidget />
+    </>
+  );
+}
+```
+
+In the next section, we’ll cover how to **handle sensitive data and authenticated flows** securely, especially when bots access personal orders or profile data.
