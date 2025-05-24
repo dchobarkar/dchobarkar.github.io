@@ -216,7 +216,7 @@ Each metric you log should be:
 - **Owned**: Assigned to a PM/dev
 - **Visible**: Dashboarded for easy tracking
 
-### 🔄 TL;DR
+### 🔄 TL;DR: Metrics Logging
 
 To run production-grade chatbots, you need more than just uptime checks. You need:
 
@@ -226,3 +226,146 @@ To run production-grade chatbots, you need more than just uptime checks. You nee
 - A custom logger that makes analysis seamless
 
 Next, we’ll dive into how to **wire up LangChain or OpenAI pipelines** to emit these metrics natively in real-time.
+
+## Instrumenting Logs in LangChain / OpenAI Pipelines
+
+Once you've defined what to log, the next step is wiring those logs into your **LangChain** or **OpenAI** chatbot pipeline. Logging shouldn’t be a bolted-on afterthought; it should be integrated into the chain execution lifecycle to capture key metrics, user interactions, and errors automatically.
+
+LangChain makes this easier with its **Callback System**, which lets you hook into different events like `on_chain_start`, `on_llm_end`, and `on_tool_error`. Let’s build this out step-by-step.
+
+### 🛠️ Option 1: Using LangChain's `AsyncCallbackHandler`
+
+We'll start by creating a custom callback handler that emits logs to our system (file, Supabase, Logflare, etc).
+
+#### `LangChainLogger.ts`
+
+```ts
+// utils/LangChainLogger.ts
+import { AsyncCallbackHandler } from "langchain/callbacks";
+import { logChatMetric } from "./logMetrics";
+
+export class LangChainLogger extends AsyncCallbackHandler {
+  name = "LangChainLogger";
+
+  async onChainStart(chain, inputs, runId, parentRunId, tags) {
+    await logChatMetric({
+      timestamp: new Date().toISOString(),
+      userId: inputs.metadata?.userId || "unknown",
+      sessionId: inputs.metadata?.sessionId || "unknown",
+      userMessage: inputs.input || "",
+      botResponse: "",
+      source: "website",
+      latencyMs: 0, // we'll update this on end
+      fallbackUsed: false,
+      hallucinated: false,
+      event: "start",
+    });
+  }
+
+  async onLLMEnd(output, runId, parentRunId, tags) {
+    const responseText = output.generations?.[0]?.[0]?.text || "";
+    await logChatMetric({
+      timestamp: new Date().toISOString(),
+      userId: "placeholder", // patch from state if needed
+      sessionId: "placeholder",
+      userMessage: "",
+      botResponse: responseText,
+      source: "website",
+      latencyMs: output.llmOutput?.tokenUsage?.totalTime || 0,
+      fallbackUsed: false,
+      hallucinated: false,
+      event: "turn",
+    });
+  }
+
+  async onChainError(error, runId, parentRunId, tags) {
+    await logChatMetric({
+      timestamp: new Date().toISOString(),
+      userId: "unknown",
+      sessionId: "unknown",
+      userMessage: "",
+      botResponse: "",
+      source: "website",
+      latencyMs: 0,
+      fallbackUsed: true,
+      hallucinated: false,
+      error: error.message,
+      event: "error",
+    });
+  }
+}
+```
+
+This class captures the lifecycle events and emits structured logs you can process.
+
+### 💡 How to Use the Logger in Your Chain
+
+You can now register this logger when constructing your LangChain instance:
+
+```ts
+import { LangChainLogger } from "@/utils/LangChainLogger";
+
+const callbacks = [new LangChainLogger()];
+
+const chain = new LLMChain({
+  llm: new OpenAI({ temperature: 0.7 }),
+  prompt: yourPromptTemplate,
+  callbacks,
+});
+
+const result = await chain.call({
+  input: userMessage,
+  metadata: { userId, sessionId },
+});
+```
+
+By passing `metadata`, you keep user tracking scoped and GDPR-friendly.
+
+### ⚠️ Protecting PII and Sensitive Inputs
+
+Before logging any message:
+
+- **Redact emails, phone numbers, and tokens**
+- **Avoid logging full chat history in plaintext**
+
+You can use regex or libraries like `redact-pii`:
+
+```ts
+import { redact } from "redact-pii";
+
+const safeInput = redact(userInput);
+```
+
+### 📈 Bonus: Tracking Token Usage
+
+OpenAI responses contain token stats. Log these for cost monitoring:
+
+```ts
+output.llmOutput?.tokenUsage => {
+  promptTokens: 42,
+  completionTokens: 108,
+  totalTokens: 150
+}
+```
+
+Add to your `ChatMetric` schema:
+
+```ts
+tokensUsed: {
+  prompt: number;
+  completion: number;
+  total: number;
+}
+```
+
+### 🔄 TL;DR
+
+LangChain’s callback system lets you:
+
+- Intercept LLM execution at runtime
+- Capture inputs, outputs, errors, latency, and more
+- Route logs to custom handlers for long-term analysis
+
+By properly instrumenting your LangChain app, you unlock real-time observability — the foundation for trustworthy, scalable chatbots.
+
+Next, we’ll explore **visualizing these logs using Supabase + Grafana dashboards** ✨
