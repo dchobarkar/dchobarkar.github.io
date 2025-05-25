@@ -358,7 +358,7 @@ tokensUsed: {
 }
 ```
 
-### 🔄 TL;DR
+### 🔄 TL;DR: Visualization Options
 
 LangChain’s callback system lets you:
 
@@ -369,3 +369,164 @@ LangChain’s callback system lets you:
 By properly instrumenting your LangChain app, you unlock real-time observability — the foundation for trustworthy, scalable chatbots.
 
 Next, we’ll explore **visualizing these logs using Supabase + Grafana dashboards** ✨
+
+## Visualizing Logs and Analytics
+
+Capturing logs is just step one. To turn raw data into actionable insights, you need a **visualization layer** — one that supports debugging, metric tracking, stakeholder reporting, and even anomaly detection.
+
+Let’s explore 3 solid options for log visualization, depending on your stack maturity and team size.
+
+### 📈 Option 1: Supabase + Postgres + Grafana (Recommended)
+
+This is ideal for production-grade setups. It’s open source, scalable, and deeply customizable.
+
+#### ✅ Step 1: Store Logs in Supabase
+
+Use the following table schema:
+
+```sql
+create table chat_logs (
+  id uuid primary key default uuid_generate_v4(),
+  timestamp timestamptz default now(),
+  user_id text,
+  session_id text,
+  user_message text,
+  bot_response text,
+  source text,
+  latency_ms integer,
+  fallback_used boolean,
+  hallucinated boolean,
+  error text,
+  rating text,
+  tokens_used jsonb
+);
+```
+
+Insert logs using `@supabase/supabase-js`:
+
+```ts
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+await supabase.from("chat_logs").insert([yourMetricObject]);
+```
+
+#### ✅ Step 2: Connect Supabase to Grafana
+
+1. Spin up Grafana (Docker or Cloud)
+2. Add Supabase's Postgres as a data source
+3. Write SQL queries like:
+
+   ```sql
+   select
+     date_trunc('hour', timestamp) as hour,
+     count(*) as turns,
+     avg(latency_ms) as avg_latency,
+     sum(case when fallback_used then 1 else 0 end) as fallbacks
+   from chat_logs
+   where timestamp > now() - interval '7 days'
+   group by hour
+   order by hour asc;
+   ```
+
+4. Visualize as line graphs, bar charts, heatmaps, etc.
+5. Set alerts for high fallback/error rates.
+
+### 📅 Option 2: Google Sheets + Apps Script (Fast & Simple)
+
+For teams without infra, Google Sheets offers a fast MVP route.
+
+#### Setup
+
+1. Create a new Google Sheet
+2. Go to **Extensions > Apps Script**
+3. Paste this code:
+
+   ```js
+   function doPost(e) {
+     var sheet = SpreadsheetApp.getActiveSheet();
+     var data = JSON.parse(e.postData.contents);
+     sheet.appendRow([
+       new Date(),
+       data.user_id,
+       data.session_id,
+       data.user_message,
+       data.bot_response,
+       data.latency_ms,
+       data.fallback_used,
+       data.rating,
+     ]);
+     return ContentService.createTextOutput("OK");
+   }
+   ```
+
+4. Deploy as Web App > Execute as "Me" > Public
+5. Log from your bot using `fetch`:
+
+```ts
+fetch(SHEET_WEBHOOK_URL, {
+  method: "POST",
+  body: JSON.stringify(metric),
+});
+```
+
+### 📊 Option 3: Minimal Viewer UI in Next.js
+
+For teams that prefer custom UIs with direct DB access.
+
+#### `app/admin/logs/page.tsx`
+
+```tsx
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+
+export default async function LogsPage() {
+  const supabase = createServerComponentClient();
+  const { data: logs } = await supabase
+    .from("chat_logs")
+    .select("*")
+    .order("timestamp", { ascending: false });
+
+  return (
+    <div className="p-6">
+      <h1 className="text-xl font-bold">Chat Logs</h1>
+      <table className="table-auto w-full mt-4">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>User</th>
+            <th>Message</th>
+            <th>Response</th>
+            <th>Latency</th>
+            <th>Rating</th>
+          </tr>
+        </thead>
+        <tbody>
+          {logs?.map((log) => (
+            <tr key={log.id}>
+              <td>{new Date(log.timestamp).toLocaleString()}</td>
+              <td>{log.user_id}</td>
+              <td>{log.user_message}</td>
+              <td>{log.bot_response}</td>
+              <td>{log.latency_ms}ms</td>
+              <td>{log.rating || "-"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+```
+
+> ✅ Protect this route with Supabase Admin RLS or session-based auth.
+
+### 🔄 TL;DR
+
+Good logs are wasted without visibility. You can:
+
+- Use **Grafana + Supabase** for pro-grade analytics
+- Use **Google Sheets** for fast, low-code dashboards
+- Build **custom log viewers** for internal tools
+
+Next up: We’ll explore how to **collect feedback from users and use AI to rate your chatbot's quality** ✨
