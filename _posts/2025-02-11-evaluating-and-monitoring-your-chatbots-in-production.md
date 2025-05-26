@@ -521,7 +521,7 @@ export default async function LogsPage() {
 
 > ✅ Protect this route with Supabase Admin RLS or session-based auth.
 
-### 🔄 TL;DR: Feedback & Evaluation
+### 🔄 TL;DR: Human & AI Feedback Evaluation
 
 Good logs are wasted without visibility. You can:
 
@@ -666,7 +666,7 @@ const embeddings = await Promise.all(
 
 This helps you **automate root cause analysis** and triage issues at scale.
 
-### 🔄 TL;DR
+### 🔄 TL;DR: Feedback & Evaluation
 
 A chatbot isn’t just about correctness. It’s about _perceived helpfulness and trust_. With human thumbs and AI evaluations, you can:
 
@@ -675,3 +675,131 @@ A chatbot isn’t just about correctness. It’s about _perceived helpfulness an
 - Build a pipeline for continuous improvement
 
 Next up, we’ll cover how to **set up alerting and error tracking** for real-time production monitoring ⚡
+
+## Setting Up Alerting and Error Tracking
+
+So far, we've covered how to log and evaluate chatbot interactions. But what happens _in real time_ when something breaks in production?
+
+That’s where **alerting** and **error tracking** come in. You need immediate visibility into issues like:
+
+- API failures
+- LLM timeouts
+- Context window overflows
+- Prompt injection attempts
+- Response latency spikes
+
+Let’s walk through how to:
+
+- Log and classify errors
+- Send alerts via email, Slack, or Discord
+- Integrate Sentry or LogRocket for frontend monitoring
+
+### ❌ Step 1: Capturing Errors in Your LangChain Pipeline
+
+Update your callback handler from earlier to handle error logging.
+
+#### `LangChainLogger.ts` (error-specific logic)
+
+```ts
+async onChainError(error, runId, parentRunId, tags) {
+  await logChatMetric({
+    timestamp: new Date().toISOString(),
+    userId: 'unknown',
+    sessionId: 'unknown',
+    userMessage: '',
+    botResponse: '',
+    source: 'website',
+    latencyMs: 0,
+    fallbackUsed: true,
+    hallucinated: false,
+    error: error.message,
+    event: 'error'
+  });
+  await triggerAlert(error.message);
+}
+```
+
+### 📧 Step 2: Sending Real-Time Alerts
+
+Let’s add a utility to email you or ping a Slack/Discord webhook when a critical error is detected.
+
+#### `triggerAlert.ts`
+
+```ts
+// utils/triggerAlert.ts
+export async function triggerAlert(message: string) {
+  const webhookUrl = process.env.DISCORD_ALERT_WEBHOOK;
+
+  await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content: `⚡ Chatbot Error: ${message}` }),
+  });
+}
+```
+
+You can also integrate with:
+
+- **Email providers** (SendGrid, Resend)
+- **Opsgenie/PagerDuty** for escalation
+- **Slack API** using `chat.postMessage`
+
+### 🔍 Step 3: Logging Frontend Failures
+
+Use Sentry to track UI issues like:
+
+- Component crashes
+- Uncaught fetch errors
+- Chat input bugs
+
+#### Install and init Sentry (Next.js)
+
+```bash
+npm install @sentry/nextjs
+```
+
+```ts
+// sentry.client.config.ts
+import * as Sentry from "@sentry/nextjs";
+Sentry.init({ dsn: process.env.SENTRY_DSN });
+```
+
+Add to `_app.tsx`:
+
+```ts
+import "@/sentry.client.config";
+```
+
+Now all uncaught errors will be tracked and shown in your Sentry dashboard.
+
+### ⚖️ Step 4: Defining Alert Thresholds
+
+You don’t want to be flooded with alerts for minor issues. Set thresholds:
+
+- More than 5 fallbacks in 10 mins → alert
+- Error rate > 5% in past hour → alert
+- Latency > 3000ms on 10%+ of requests → alert
+
+#### Supabase SQL Alert Query (Grafana trigger)
+
+```sql
+select count(*) > 5
+from chat_logs
+where event = 'error'
+  and timestamp > now() - interval '10 minutes';
+```
+
+Trigger a Grafana alert rule or call webhook on match.
+
+### 🔄 TL;DR
+
+Don’t wait for a user to DM you about a broken bot.
+
+- Log all errors clearly
+- Send real-time alerts on critical issues
+- Track UI crashes with Sentry
+- Define thresholds to avoid noise
+
+This ensures your chatbot runs like a resilient, production-grade system — not just a cool demo.
+
+Next: we’ll see how to **use logs and feedback for fine-tuning and iteration** ✨
