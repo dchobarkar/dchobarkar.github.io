@@ -334,3 +334,165 @@ railway run npm run dev
 ```
 
 🎉 With this, your chatbot is now production-ready and hosted on a scalable Railway infrastructure. You can now build on this by connecting databases, Redis, or third-party APIs from Railway’s plugin marketplace!
+
+## 🧠 Persistent Vector Store for Shared Memory
+
+One of the key challenges in building intelligent chatbots is **memory** — the ability to retain and recall context across sessions. To achieve this at scale, we can use **vector databases** like Supabase (with pgvector), Pinecone, or Weaviate. In this section, we’ll:
+
+- Integrate **Supabase + pgvector** into our chatbot
+- Store and retrieve memory embeddings
+- Optimize prompts using vector similarity
+
+### 🤔 Why Vector Stores?
+
+Traditional databases are great for exact matches. But for conversational memory, we need **semantic search**:
+
+- Compare user queries with previous interactions
+- Match intent and meaning, not just keywords
+- Enable long-term context recall across sessions
+
+Vector databases allow storing high-dimensional **embeddings** (numerical representations of text) and running **similarity searches** (e.g., cosine distance).
+
+### 🧰 Choosing Supabase + pgvector
+
+We’ll use Supabase because:
+
+- It's easy to set up with pgvector
+- Offers PostgreSQL + API + Auth in one platform
+- Supports full-text + vector hybrid queries
+
+### 🧱 Set Up Supabase with pgvector
+
+1. Create a project at [https://app.supabase.com](https://app.supabase.com)
+2. Enable `pgvector` extension:
+
+   ```sql
+   create extension if not exists vector;
+   ```
+
+3. Create a `memory` table:
+
+```sql
+create table memory (
+  id uuid primary key default gen_random_uuid(),
+  session_id text,
+  role text,
+  content text,
+  embedding vector(1536),
+  created_at timestamp default now()
+);
+```
+
+### 🔌 Install Supabase Client
+
+```bash
+npm install @supabase/supabase-js
+```
+
+Add to `.env`:
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+```
+
+### 🧠 memory.service.ts – Embed, Store, Search
+
+```ts
+// services/memory.service.ts
+import { createClient } from "@supabase/supabase-js";
+import { Configuration, OpenAIApi } from "openai";
+
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_ANON_KEY!
+);
+const openai = new OpenAIApi(
+  new Configuration({ apiKey: process.env.OPENAI_API_KEY })
+);
+
+const embedText = async (text: string) => {
+  const res = await openai.createEmbedding({
+    model: "text-embedding-ada-002",
+    input: text,
+  });
+  return res.data.data[0].embedding;
+};
+
+export const storeMessage = async (
+  sessionId: string,
+  role: string,
+  content: string
+) => {
+  const embedding = await embedText(content);
+  await supabase
+    .from("memory")
+    .insert({ session_id: sessionId, role, content, embedding });
+};
+
+export const fetchSimilarMessages = async (
+  sessionId: string,
+  userInput: string,
+  limit = 5
+) => {
+  const queryEmbedding = await embedText(userInput);
+  const { data, error } = await supabase.rpc("match_memory", {
+    query_embedding: queryEmbedding,
+    match_threshold: 0.78,
+    match_count: limit,
+  });
+  return data || [];
+};
+```
+
+### 🧠 PostgreSQL Function for Similarity – `match_memory`
+
+```sql
+create or replace function match_memory(
+  query_embedding vector,
+  match_threshold float,
+  match_count int
+)
+returns table (
+  id uuid,
+  session_id text,
+  role text,
+  content text,
+  similarity float
+) as $$
+  select id, session_id, role, content,
+         1 - (embedding <=> query_embedding) as similarity
+  from memory
+  where 1 - (embedding <=> query_embedding) > match_threshold
+  order by similarity desc
+  limit match_count;
+$$ language sql;
+```
+
+### 🤖 Using Memory in the Agent
+
+Update `agentManager.service.ts`:
+
+```ts
+import { fetchSimilarMessages, storeMessage } from "./memory.service";
+
+const history = await fetchSimilarMessages(sessionId, userMessage);
+const prompt = [
+  ...agentMap[agentId],
+  ...history.map((h) => ({ role: h.role, content: h.content })),
+  { role: "user", content: userMessage },
+];
+
+const reply = await askOpenAI(prompt);
+await storeMessage(sessionId, "user", userMessage);
+await storeMessage(sessionId, "assistant", reply);
+```
+
+### 💡 Tips for Scalable Vector Memory
+
+- Use batch insert to reduce Supabase calls
+- Trim old memories or cap per session
+- Use hybrid filters: `session_id + similarity`
+- Prefer embedding short chunks (~100-200 tokens)
+
+With this setup, your chatbot now has **long-term memory**, backed by semantic search, and scalable for multi-session use cases across different users and agents 🚀
