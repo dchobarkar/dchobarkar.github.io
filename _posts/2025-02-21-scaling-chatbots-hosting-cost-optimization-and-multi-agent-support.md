@@ -496,3 +496,150 @@ await storeMessage(sessionId, "assistant", reply);
 - Prefer embedding short chunks (~100-200 tokens)
 
 With this setup, your chatbot now has **long-term memory**, backed by semantic search, and scalable for multi-session use cases across different users and agents 🚀
+
+## ⚡ Rate Limiting, Caching, and Token Usage Optimization
+
+When running chatbots in production, managing **API costs** and **response latency** becomes crucial — especially when using models like GPT-4. In this section, we’ll implement:
+
+- Rate limiting per user/session
+- Embedding + response caching with Redis
+- Token usage analysis and optimization techniques
+
+### 🚧 Why This Matters
+
+- OpenAI charges per token — every token counts 📉
+- Without caching, repeated prompts incur redundant costs
+- Spamming or flooding can burn API quota and degrade UX
+
+### 🧱 Dependencies
+
+Install required packages:
+
+```bash
+npm install express-rate-limit ioredis gpt-tokenizer
+```
+
+Add Redis to your Railway project or run it locally:
+
+```env
+REDIS_URL=redis://default:<password>@<host>:<port>
+```
+
+### 🧼 Rate Limiting Middleware
+
+```ts
+// middleware/rateLimiter.ts
+import rateLimit from "express-rate-limit";
+
+export const rateLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // limit each IP to 30 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+```
+
+Apply in `server.ts`:
+
+```ts
+import { rateLimiter } from "./middleware/rateLimiter";
+app.use(rateLimiter);
+```
+
+---
+
+### 🔄 Redis Cache Wrapper
+
+```ts
+// services/cache.service.ts
+import Redis from "ioredis";
+const redis = new Redis(process.env.REDIS_URL!);
+
+const hashKey = (key: string) => `cache:${Buffer.from(key).toString("base64")}`;
+
+export const getCachedResponse = async (key: string) => {
+  return await redis.get(hashKey(key));
+};
+
+export const setCachedResponse = async (
+  key: string,
+  value: string,
+  ttl = 60 * 5
+) => {
+  await redis.set(hashKey(key), value, "EX", ttl);
+};
+```
+
+---
+
+### 🤖 Caching OpenAI Calls
+
+Update `openai.service.ts`:
+
+```ts
+import { getCachedResponse, setCachedResponse } from "./cache.service";
+
+export const askOpenAI = async (messages: ChatCompletionRequestMessage[]) => {
+  const promptKey = JSON.stringify(messages);
+  const cached = await getCachedResponse(promptKey);
+  if (cached) return cached;
+
+  const response = await openai.createChatCompletion({
+    model: "gpt-3.5-turbo",
+    messages,
+  });
+
+  const reply = response.data.choices[0].message?.content || "";
+  await setCachedResponse(promptKey, reply);
+  return reply;
+};
+```
+
+---
+
+### 🔍 Token Counting & Optimization
+
+Use `gpt-tokenizer` to count prompt size:
+
+```ts
+// utils/tokenUtils.ts
+import { encoding_for_model } from "gpt-tokenizer";
+
+const encoder = encoding_for_model("gpt-3.5-turbo");
+
+export const countTokens = (text: string): number => {
+  return encoder.encode(text).length;
+};
+```
+
+In agent logic:
+
+```ts
+const totalTokens = prompt.reduce(
+  (acc, msg) => acc + countTokens(msg.content),
+  0
+);
+if (totalTokens > 3500) {
+  prompt.splice(1, 1); // Trim early history or simplify system prompt
+}
+```
+
+---
+
+### 💡 Optimization Strategies
+
+- **Use GPT-3.5 over GPT-4** unless quality absolutely demands it
+- **Avoid redundant system prompts** for every request
+- **Trim old conversation history** or summarize periodically
+- **Chunk inputs** (e.g. document Q&A) to avoid large token burst
+- **Cache embeddings** for duplicate queries or similar vectors
+
+---
+
+With this setup:
+
+- You're limiting abuse via rate control
+- Saving costs by caching repeated OpenAI calls
+- Monitoring and trimming excessive token usage
+
+All while preserving a responsive and intelligent chatbot experience ✨
