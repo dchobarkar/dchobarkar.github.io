@@ -546,8 +546,6 @@ import { rateLimiter } from "./middleware/rateLimiter";
 app.use(rateLimiter);
 ```
 
----
-
 ### 🔄 Redis Cache Wrapper
 
 ```ts
@@ -569,8 +567,6 @@ export const setCachedResponse = async (
   await redis.set(hashKey(key), value, "EX", ttl);
 };
 ```
-
----
 
 ### 🤖 Caching OpenAI Calls
 
@@ -594,8 +590,6 @@ export const askOpenAI = async (messages: ChatCompletionRequestMessage[]) => {
   return reply;
 };
 ```
-
----
 
 ### 🔍 Token Counting & Optimization
 
@@ -624,8 +618,6 @@ if (totalTokens > 3500) {
 }
 ```
 
----
-
 ### 💡 Optimization Strategies
 
 - **Use GPT-3.5 over GPT-4** unless quality absolutely demands it
@@ -634,8 +626,6 @@ if (totalTokens > 3500) {
 - **Chunk inputs** (e.g. document Q&A) to avoid large token burst
 - **Cache embeddings** for duplicate queries or similar vectors
 
----
-
 With this setup:
 
 - You're limiting abuse via rate control
@@ -643,3 +633,154 @@ With this setup:
 - Monitoring and trimming excessive token usage
 
 All while preserving a responsive and intelligent chatbot experience ✨
+
+## 🧠 Multi-Agent Architecture: Serving Different Bots from Same Server
+
+As your chatbot infrastructure grows, you’ll often need to run **multiple bots** — such as a support agent, a sales agent, and maybe even a developer advocate bot — all from the **same backend**. This section shows how to implement a flexible **multi-agent architecture** that supports modularity, isolation, and easy scaling.
+
+### 🎯 Goals
+
+- Dynamically route requests to the correct agent logic
+- Keep agent behavior encapsulated and modular
+- Enable per-agent prompt strategy, memory, and OpenAI settings
+
+### 📦 Agent Interface Design
+
+Define a common interface for agents:
+
+```ts
+// types/Agent.ts
+import { ChatCompletionRequestMessage } from "openai";
+
+export interface Agent {
+  id: string;
+  label: string;
+  systemPrompt: string;
+  processMessage(userMessage: string, sessionId: string): Promise<string>;
+}
+```
+
+### 🤖 Implement Agents Separately
+
+Each agent implements its own logic, prompt, and tools:
+
+```ts
+// agents/supportAgent.ts
+import { Agent } from "../types/Agent";
+import { askOpenAI } from "../services/openai.service";
+import { storeMessage, fetchSimilarMessages } from "../services/memory.service";
+
+export const supportAgent: Agent = {
+  id: "support",
+  label: "Support Bot",
+  systemPrompt: "You are a helpful support assistant.",
+
+  async processMessage(userMessage, sessionId) {
+    const history = await fetchSimilarMessages(sessionId, userMessage);
+    const messages = [
+      { role: "system", content: this.systemPrompt },
+      ...history.map((h) => ({ role: h.role, content: h.content })),
+      { role: "user", content: userMessage },
+    ];
+    const reply = await askOpenAI(messages);
+    await storeMessage(sessionId, "user", userMessage);
+    await storeMessage(sessionId, "assistant", reply);
+    return reply;
+  },
+};
+```
+
+```ts
+// agents/salesAgent.ts
+import { Agent } from "../types/Agent";
+import { askOpenAI } from "../services/openai.service";
+
+export const salesAgent: Agent = {
+  id: "sales",
+  label: "Sales Assistant",
+  systemPrompt:
+    "You are a persuasive sales assistant who converts leads into customers.",
+
+  async processMessage(userMessage, sessionId) {
+    const messages = [
+      { role: "system", content: this.systemPrompt },
+      { role: "user", content: userMessage },
+    ];
+    return await askOpenAI(messages);
+  },
+};
+```
+
+### 🧠 Agent Manager
+
+Create a dynamic registry of agents:
+
+```ts
+// services/agentRegistry.ts
+import { supportAgent } from "../agents/supportAgent";
+import { salesAgent } from "../agents/salesAgent";
+import { Agent } from "../types/Agent";
+
+const agents: Record<string, Agent> = {
+  [supportAgent.id]: supportAgent,
+  [salesAgent.id]: salesAgent,
+};
+
+export const getAgentById = (id: string): Agent | null => agents[id] || null;
+export const listAgents = (): Agent[] => Object.values(agents);
+```
+
+### 📡 Unified Endpoint
+
+Update your router to support dynamic agents:
+
+```ts
+// routes/chatbot.route.ts
+import { Router } from "express";
+import { getAgentById } from "../services/agentRegistry";
+
+const router = Router();
+
+router.post("/:agentId", async (req, res) => {
+  const { agentId } = req.params;
+  const { message, sessionId } = req.body;
+  const agent = getAgentById(agentId);
+
+  if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+  try {
+    const reply = await agent.processMessage(message, sessionId);
+    res.json({ reply });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to process message" });
+  }
+});
+
+export default router;
+```
+
+### 🧪 Testing the Architecture
+
+Example POST request:
+
+```json
+POST /api/chat/support
+{
+  "message": "How do I reset my password?",
+  "sessionId": "user-123"
+}
+```
+
+You can easily test different agents by changing the endpoint:
+
+- `/api/chat/support`
+- `/api/chat/sales`
+
+### 🧠 Benefits of Multi-Agent Design
+
+- **Modular Logic**: Each agent is a self-contained module
+- **Easy Extension**: Add more agents without modifying core logic
+- **Per-Agent Optimization**: Tune prompts, memory, caching separately
+- **Centralized Control**: Shared infrastructure, separate intelligence
+
+This structure is ideal for teams building **multi-domain bots** — customer support, HR assistants, sales reps — all running from the same backend but tailored to different audiences and tasks ✨
