@@ -784,3 +784,157 @@ You can easily test different agents by changing the endpoint:
 - **Centralized Control**: Shared infrastructure, separate intelligence
 
 This structure is ideal for teams building **multi-domain bots** — customer support, HR assistants, sales reps — all running from the same backend but tailored to different audiences and tasks ✨
+
+## 🕵️‍♂️ Observability: Logs, Metrics, and Alerts
+
+Once your chatbot is live and serving users, observability becomes critical. You need to:
+
+- Monitor uptime and performance
+- Track user interactions and error rates
+- Be alerted when something breaks (before users complain)
+
+In this section, we’ll implement structured logging, basic metrics, and alerts using both built-in tools (like Railway’s dashboard) and external services like Grafana + Prometheus or simple Slack/email notifications.
+
+### 🧾 1. Structured Logging with Winston
+
+Use `winston` for production-ready, formatted logs.
+
+```bash
+npm install winston
+```
+
+```ts
+// utils/logger.ts
+import winston from "winston";
+
+export const logger = winston.createLogger({
+  level: "info",
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [new winston.transports.Console()],
+});
+```
+
+Usage:
+
+```ts
+logger.info("Incoming request", { agentId, sessionId, userMessage });
+logger.error("OpenAI failed", { error });
+```
+
+### 📈 2. Metrics with Prometheus + Express Middleware
+
+Use `prom-client` to expose Prometheus-compatible metrics.
+
+```bash
+npm install prom-client
+```
+
+```ts
+// metrics/prometheus.ts
+import client from "prom-client";
+
+client.collectDefaultMetrics();
+
+export const messageCounter = new client.Counter({
+  name: "chatbot_messages_total",
+  help: "Total number of messages handled",
+});
+
+export const tokenUsageGauge = new client.Gauge({
+  name: "chatbot_tokens_used",
+  help: "Estimated total tokens used",
+});
+
+export const metricsMiddleware = async (_req, res) => {
+  res.set("Content-Type", client.register.contentType);
+  res.end(await client.register.metrics());
+};
+```
+
+Update `server.ts`:
+
+```ts
+import { metricsMiddleware } from "./metrics/prometheus";
+app.get("/metrics", metricsMiddleware);
+```
+
+### 📬 3. Alerting via Slack or Email
+
+Use a simple webhook to alert on errors or high traffic:
+
+```ts
+// utils/alert.ts
+import axios from "axios";
+
+export const sendAlert = async (message: string) => {
+  try {
+    await axios.post(process.env.ALERT_WEBHOOK_URL!, {
+      text: `[Chatbot Alert] ${message}`,
+    });
+  } catch (err) {
+    console.error("Alert failed", err);
+  }
+};
+```
+
+Trigger on critical paths:
+
+```ts
+try {
+  // logic
+} catch (err) {
+  logger.error("Agent processing failed", { error: err });
+  await sendAlert("Agent processing failed: " + err.message);
+}
+```
+
+Use Slack, Discord, or services like Pushover/email gateways for the webhook.
+
+### 🔍 4. Railway Dashboard Tools
+
+Railway’s UI gives you:
+
+- Real-time logs per environment
+- CPU/Memory usage per instance
+- Deployment history
+- Built-in metrics tab (if enabled)
+
+Enable log-based alerts under Railway project settings:
+
+- Add keywords like `error`, `failed`, or `timeout`
+- Set notification targets
+
+### 🚦 5. Health Check Endpoint
+
+```ts
+// routes/health.route.ts
+import { Router } from "express";
+const router = Router();
+
+router.get("/", (_req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+export default router;
+```
+
+Mount it:
+
+```ts
+import healthRoute from "./routes/health.route";
+app.use("/health", healthRoute);
+```
+
+This lets Railway, Render, or uptime monitors ping and validate your bot.
+
+### 🧠 Bonus: Grafana + Railway Logs
+
+You can export logs via a webhook or to a cloud function, and stream them into a custom Grafana dashboard.
+
+- Use Railway’s plugin marketplace or third-party log streaming
+- Or deploy a middleware that ships logs to Loki (Grafana stack)
+
+With these tools in place, your chatbot becomes **observable, debuggable, and resilient** — able to notify you of issues, measure performance, and improve continuously 🔍📊
