@@ -938,3 +938,115 @@ You can export logs via a webhook or to a cloud function, and stream them into a
 - Or deploy a middleware that ships logs to Loki (Grafana stack)
 
 With these tools in place, your chatbot becomes **observable, debuggable, and resilient** — able to notify you of issues, measure performance, and improve continuously 🔍📊
+
+## 📈 Auto-Scaling and Queue Handling with Background Workers
+
+When your chatbot begins handling thousands of messages per hour, processing them in real-time becomes expensive and brittle. To scale efficiently, we:
+
+- **Queue messages** for background processing
+- Use **workers** to process messages asynchronously
+- Auto-scale workers and services based on load
+
+In this section, we’ll use **BullMQ** + **Redis** to implement message queues and background workers.
+
+### 🧰 Install BullMQ + Redis
+
+```bash
+npm install bullmq ioredis
+```
+
+Add to `.env`:
+
+```env
+REDIS_URL=redis://default:<password>@<host>:<port>
+```
+
+### 🏗️ Queue Setup
+
+```ts
+// queue/messageQueue.ts
+import { Queue } from "bullmq";
+import { RedisOptions } from "ioredis";
+
+const connection: RedisOptions = { url: process.env.REDIS_URL! };
+
+export const messageQueue = new Queue("chat-messages", { connection });
+```
+
+### ✉️ Queue Producer
+
+Add to your controller or service:
+
+```ts
+import { messageQueue } from "../queue/messageQueue";
+
+await messageQueue.add("process-message", {
+  agentId,
+  sessionId,
+  userMessage,
+});
+```
+
+### ⚙️ Background Worker
+
+```ts
+// workers/messageWorker.ts
+import { Worker } from "bullmq";
+import { getAgentById } from "../services/agentRegistry";
+import { logger } from "../utils/logger";
+
+const worker = new Worker(
+  "chat-messages",
+  async (job) => {
+    const { agentId, sessionId, userMessage } = job.data;
+    const agent = getAgentById(agentId);
+    if (!agent) throw new Error(`Agent not found: ${agentId}`);
+    await agent.processMessage(userMessage, sessionId);
+  },
+  {
+    connection: { url: process.env.REDIS_URL! },
+    concurrency: 5,
+  }
+);
+
+worker.on("completed", (job) => logger.info(`✅ Job ${job.id} done`));
+worker.on("failed", (job, err) =>
+  logger.error(`❌ Job ${job?.id} failed`, err)
+);
+```
+
+### 🧪 Run the Worker
+
+Create a `workerRunner.ts`:
+
+```ts
+// workerRunner.ts
+import "./workers/messageWorker";
+```
+
+Start it with:
+
+```bash
+npx ts-node workerRunner.ts
+```
+
+You can deploy this separately on Railway or Render as a **background worker service**.
+
+### 🚀 Auto-Scaling on Railway
+
+Railway automatically scales horizontally based on usage. To support this:
+
+- Create a new Railway service from your repo
+- Point it to `workerRunner.ts`
+- Set `auto-start` and enable concurrency limits in Railway UI
+
+You can run multiple worker instances to handle more jobs in parallel.
+
+### 🧠 Best Practices
+
+- **Retry failed jobs**: BullMQ supports exponential backoff and retries
+- **Set TTLs**: Avoid queue bloat by expiring old jobs
+- **Use event hooks**: Log metrics on job duration, success rate
+- **Isolate job types**: Create queues per agent type if needed
+
+With background workers and queues in place, your chatbot becomes highly **scalable**, **resilient to spikes**, and ready for production load 🧵🚀
