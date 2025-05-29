@@ -1050,3 +1050,133 @@ You can run multiple worker instances to handle more jobs in parallel.
 - **Isolate job types**: Create queues per agent type if needed
 
 With background workers and queues in place, your chatbot becomes highly **scalable**, **resilient to spikes**, and ready for production load 🧵🚀
+
+## 💸 Cost Monitoring and Forecasting
+
+Once your chatbot scales, so does your bill. Whether it’s OpenAI tokens, Supabase vector storage, or hosting infra, keeping track of **usage vs cost** is crucial. In this section, we’ll:
+
+- Track OpenAI API usage with their dashboard and API
+- Use Railway + Supabase usage limits
+- Build a basic cost dashboard
+- Implement cost-saving strategies and adaptive logic
+
+### 📊 1. OpenAI Cost Monitoring
+
+#### ✅ OpenAI Dashboard
+
+Log in to [https://platform.openai.com/account/usage](https://platform.openai.com/account/usage) to:
+
+- Track daily/monthly token usage
+- Set **soft** and **hard** usage limits
+- Export reports
+
+#### 📡 Programmatic Usage Tracking
+
+OpenAI doesn’t have public usage APIs yet. But you can log token usage per request:
+
+```ts
+// utils/tokenTracker.ts
+import { encoding_for_model } from "gpt-tokenizer";
+const encoder = encoding_for_model("gpt-3.5-turbo");
+
+export const trackTokenUsage = (messages: { content: string }[]) => {
+  return messages.reduce(
+    (sum, msg) => sum + encoder.encode(msg.content).length,
+    0
+  );
+};
+```
+
+In `openai.service.ts`:
+
+```ts
+const tokenCount = trackTokenUsage(messages);
+logger.info("Token Usage", { sessionId, agentId, tokenCount });
+```
+
+You can persist this in Redis, Supabase, or a local JSON log for audits.
+
+### 🛠️ 2. Railway & Supabase Usage
+
+#### Railway
+
+- Go to **Project → Settings → Usage**
+- Track bandwidth, build time, instance time
+- Set team limits via plan quotas
+
+#### Supabase
+
+- Go to **Project Settings → Billing → Usage**
+- Track storage, API requests, row count, and vector function execution
+
+Supabase doesn’t throttle, but will lock write access if limits are breached.
+
+### 📈 3. Build a Basic Cost Dashboard
+
+You can create a simple page or CLI tool:
+
+```ts
+// scripts/usageReport.ts
+import fs from "fs";
+
+const logs = JSON.parse(fs.readFileSync("./token-logs.json", "utf-8"));
+
+const dailyTotal = logs.reduce((acc, log) => {
+  const date = new Date(log.timestamp).toISOString().split("T")[0];
+  acc[date] = (acc[date] || 0) + log.tokens;
+  return acc;
+}, {});
+
+console.table(dailyTotal);
+```
+
+Persist `token-logs.json` with:
+
+```ts
+fs.appendFileSync(
+  "./token-logs.json",
+  JSON.stringify({ timestamp: Date.now(), tokens: tokenCount }) + "\n"
+);
+```
+
+### 📉 4. Cost Optimization Strategies
+
+#### a) Use GPT-3.5 wherever possible
+
+```ts
+const model = useGpt4 ? "gpt-4" : "gpt-3.5-turbo";
+```
+
+#### b) Trim Prompt History
+
+Use summarization or sliding window logic
+
+#### c) Batch Vector Embeddings
+
+```ts
+const embeddings = await openai.createEmbedding({
+  model: "text-embedding-ada-002",
+  input: [input1, input2, input3],
+});
+```
+
+#### d) Caching + Deduplication
+
+- Redis cache prompts and embeddings
+- Avoid redundant messages
+
+### 🤖 5. Adaptive Logic: Smart Cost Control
+
+```ts
+// services/openaiAdaptive.ts
+export const askAdaptiveModel = async (messages, preferQuality = false) => {
+  const tokenEstimate = trackTokenUsage(messages);
+  const model =
+    tokenEstimate > 3500 && !preferQuality ? "gpt-3.5-turbo" : "gpt-4";
+  return await openai.createChatCompletion({ model, messages });
+};
+```
+
+You can also degrade responses if budget is near limit (e.g., fallback to a template-based reply).
+
+With logging, dashboards, and smart fallback strategies, your chatbot infra becomes **cost-aware**, helping you scale **sustainably** without bill shock 🔢💰
