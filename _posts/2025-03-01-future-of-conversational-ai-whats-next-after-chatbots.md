@@ -199,3 +199,170 @@ A next-gen assistant:
 We’re building not just chat interfaces, but digital colleagues that _see, hear, understand, act,_ and _improve over time._
 
 In the next section, we'll begin our hands-on journey to build such an assistant from scratch — starting with setting up the tech stack. Let's go 🚀
+
+## ⚙️ Project Setup: Building a Multi-Modal AI Agent
+
+Before we dive into building the multi-modal assistant, let's get our foundation solid. This section will walk you through the full stack setup — folder structure, tools, packages, API keys, and configurations — so you're ready to build.
+
+We'll be building a **Next.js 14 app** powered by:
+
+- **GPT-4o** for multi-modal reasoning
+- **Whisper API** for speech-to-text
+- **LangChain** for agentic execution
+- **Vercel** for deployment
+- **TailwindCSS** for frontend styling
+
+### 🔧 GitHub Repo Name Suggestion
+
+```txt
+multi-modal-ai-agent-nextjs
+```
+
+You can organize it as a mono-repo if needed, but a single Next.js app will suffice.
+
+### 📂 Suggested Folder Structure
+
+```bash
+multi-modal-ai-agent-nextjs/
+├── app/                     # Next.js pages + routing
+├── components/             # React UI components
+├── lib/                    # Core logic: OpenAI, LangChain, Whisper
+├── public/                 # Static files (icons, loaders)
+├── styles/                 # Tailwind configs
+├── .env.local              # Environment variables
+├── package.json
+├── next.config.js
+└── README.md
+```
+
+### 📃 Required Environment Variables
+
+Create a `.env.local` file at the root:
+
+```env
+OPENAI_API_KEY=sk-xxxx
+NEXT_PUBLIC_OPENAI_MODEL=gpt-4o
+WHISPER_API_KEY=sk-xxxx
+```
+
+Later, you can add vector DB keys (like Supabase or Pinecone) for memory.
+
+### 📚 Install Dependencies
+
+Use `pnpm` or `npm`, your choice:
+
+```bash
+pnpm init next-app multi-modal-ai-agent-nextjs --ts
+cd multi-modal-ai-agent-nextjs
+pnpm add openai langchain axios react-icons formik
+pnpm add -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+```
+
+Also install OpenAI SDK:
+
+```bash
+pnpm add openai@latest
+```
+
+If you're using Whisper or ElevenLabs for voice, add:
+
+```bash
+pnpm add form-data multer
+```
+
+### 🔍 Tailwind Configuration
+
+In `tailwind.config.js`:
+
+```js
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ["./app/**/*.{js,ts,jsx,tsx}", "./components/**/*.{js,ts,jsx,tsx}"],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+};
+```
+
+In `styles/globals.css`:
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+### 🔒 OpenAI Initialization
+
+Create `lib/openai.ts`:
+
+```ts
+import OpenAI from "openai";
+
+export const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || "",
+});
+```
+
+Same for LangChain:
+
+```ts
+import { ChatOpenAI } from "langchain/chat_models/openai";
+
+export const chatModel = new ChatOpenAI({
+  temperature: 0.7,
+  modelName: process.env.NEXT_PUBLIC_OPENAI_MODEL,
+});
+```
+
+### 📼 Optional: Whisper API Proxy
+
+If you want to record voice and transcribe via Whisper, you'll need a server route:
+
+In `app/api/transcribe/route.ts`:
+
+```ts
+import { NextRequest, NextResponse } from "next/server";
+import formidable from "formidable";
+import fs from "fs";
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+export async function POST(req: NextRequest) {
+  const form = formidable({ multiples: false });
+  const [fields, files] = await new Promise((resolve, reject) => {
+    form.parse(req, (err, fields, files) => {
+      if (err) reject(err);
+      else resolve([fields, files]);
+    });
+  });
+
+  const file = fs.createReadStream(files.audio.filepath);
+  const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.WHISPER_API_KEY}`,
+    },
+    body: file,
+  });
+
+  const data = await res.json();
+  return NextResponse.json(data);
+}
+```
+
+### 🚀 You’re Ready to Build
+
+At this point, you should have:
+
+- A fully bootstrapped Next.js + Tailwind + OpenAI project
+- Basic scaffolding for LangChain and Whisper
+- API keys set up in your `.env`
+
+In the next section, we'll begin with the **text chat interface** using GPT-4o and LangChain memory — and gradually build toward full multi-modality. Let's go ✨
