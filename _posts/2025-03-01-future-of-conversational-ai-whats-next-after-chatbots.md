@@ -366,3 +366,149 @@ At this point, you should have:
 - API keys set up in your `.env`
 
 In the next section, we'll begin with the **text chat interface** using GPT-4o and LangChain memory — and gradually build toward full multi-modality. Let's go ✨
+
+## 💬 Step 1: Text Chat Interface (GPT-4o / gpt-4-turbo)
+
+Let’s begin our multi-modal assistant by building the **core text chat interface** — the foundation for everything else. We’ll use:
+
+- **GPT-4o** (or `gpt-4-turbo`) as the backend model
+- **LangChain** for memory and message formatting
+- **Next.js API Routes** for server logic
+- **TailwindCSS** for UI
+
+### 🌐 Frontend Chat UI (React + Tailwind)
+
+In `components/ChatBox.tsx`:
+
+```tsx
+"use client";
+import { useState } from "react";
+
+export default function ChatBox() {
+  const [messages, setMessages] = useState<{ role: string; content: string }[]>(
+    []
+  );
+  const [input, setInput] = useState("");
+
+  async function sendMessage() {
+    const userMessage = { role: "user", content: input };
+    setMessages([...messages, userMessage]);
+    setInput("");
+
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: [...messages, userMessage] }),
+    });
+
+    const data = await res.json();
+    setMessages([...messages, userMessage, data.reply]);
+  }
+
+  return (
+    <div className="max-w-xl mx-auto p-4">
+      <div className="space-y-2 mb-4">
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={`p-2 rounded-lg ${
+              msg.role === "user" ? "bg-blue-100" : "bg-gray-100"
+            }`}
+          >
+            <strong>{msg.role}:</strong> {msg.content}
+          </div>
+        ))}
+      </div>
+      <input
+        className="border p-2 w-full mb-2"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="Ask something..."
+      />
+      <button
+        onClick={sendMessage}
+        className="bg-blue-500 text-white px-4 py-2 rounded"
+      >
+        Send
+      </button>
+    </div>
+  );
+}
+```
+
+Then in your app's homepage `app/page.tsx`:
+
+```tsx
+import ChatBox from "@/components/ChatBox";
+export default function Home() {
+  return <ChatBox />;
+}
+```
+
+### 🔧 Backend API Route (LangChain + GPT-4o)
+
+In `app/api/chat/route.ts`:
+
+```ts
+import { ChatOpenAI } from "langchain/chat_models/openai";
+import { BufferMemory } from "langchain/memory";
+import { ConversationChain } from "langchain/chains";
+import { OpenAIStream, StreamingTextResponse } from "ai";
+
+const model = new ChatOpenAI({
+  temperature: 0.7,
+  streaming: true,
+  modelName: process.env.NEXT_PUBLIC_OPENAI_MODEL || "gpt-4o",
+});
+
+const memory = new BufferMemory({
+  returnMessages: true,
+  memoryKey: "chat_history",
+});
+
+const chain = new ConversationChain({ llm: model, memory });
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+  const res = await chain.call({
+    input: messages[messages.length - 1].content,
+  });
+  return Response.json({ reply: { role: "assistant", content: res.response } });
+}
+```
+
+### 🔊 Bonus: Enable Streaming Response
+
+To stream tokens from OpenAI:
+
+1. Use OpenAI's `stream: true`
+2. Integrate with `ai` SDK (or custom logic)
+
+Install:
+
+```bash
+pnpm add ai
+```
+
+Update `route.ts` for streaming:
+
+```ts
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+  const response = await model.call({ messages });
+  const stream = OpenAIStream(response);
+  return new StreamingTextResponse(stream);
+}
+```
+
+Or handle streaming manually by chunking the response.
+
+### 🚀 You Have a Working Chat Interface
+
+You can now:
+
+- Ask questions
+- Get contextual replies
+- Maintain memory via LangChain
+
+This is the conversational backbone for our assistant. Next, we’ll expand it to handle image input with GPT-4o Vision capabilities. Stay tuned! 🚀
