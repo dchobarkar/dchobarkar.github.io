@@ -677,3 +677,186 @@ You can now:
 This builds a more _observational_ AI system, not just a reactive one.
 
 In the next step, we’ll bring in **voice interaction** — so your assistant can hear and speak too. Let’s go! 🎤
+
+## 🎤 Step 3: Voice Interaction with Whisper + TTS
+
+Now it’s time to bring sound into the picture — literally. In this section, we’ll build a full voice loop:
+
+1. Record user audio in the browser
+2. Transcribe audio to text using OpenAI Whisper API
+3. Process it with GPT-4o (optional)
+4. Convert assistant response to speech using TTS (Text-to-Speech)
+
+We’re building a real voice assistant here — not just a chatbot. Let’s go. 🚀
+
+### 🌐 Frontend: Record + Play + Send Audio
+
+In `components/VoiceChatBox.tsx`:
+
+```tsx
+"use client";
+import { useState, useRef } from "react";
+
+export default function VoiceChatBox() {
+  const [transcript, setTranscript] = useState("");
+  const [reply, setReply] = useState("");
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunks: Blob[] = [];
+
+  const startRecording = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mediaRecorder = new MediaRecorder(stream);
+    mediaRecorderRef.current = mediaRecorder;
+    mediaRecorder.start();
+
+    mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+  };
+
+  const stopRecording = async () => {
+    const mediaRecorder = mediaRecorderRef.current;
+    mediaRecorder?.stop();
+
+    mediaRecorder!.onstop = async () => {
+      const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+      const formData = new FormData();
+      formData.append("audio", audioBlob);
+
+      const res = await fetch("/api/voice", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      setTranscript(data.transcript);
+      setReply(data.reply);
+
+      const audio = new Audio(data.audioUrl);
+      audio.play();
+    };
+  };
+
+  return (
+    <div className="max-w-xl mx-auto p-4">
+      <button
+        onClick={startRecording}
+        className="bg-red-500 text-white px-4 py-2 m-2 rounded"
+      >
+        Record
+      </button>
+      <button
+        onClick={stopRecording}
+        className="bg-green-500 text-white px-4 py-2 m-2 rounded"
+      >
+        Stop
+      </button>
+      <div className="mt-4">
+        <p>
+          <strong>You said:</strong> {transcript}
+        </p>
+        <p>
+          <strong>Assistant:</strong> {reply}
+        </p>
+      </div>
+    </div>
+  );
+}
+```
+
+Use it in a route like:
+
+```tsx
+import VoiceChatBox from "@/components/VoiceChatBox";
+export default function VoicePage() {
+  return <VoiceChatBox />;
+}
+```
+
+### 🔧 Backend: Whisper + TTS
+
+In `app/api/voice/route.ts`:
+
+```ts
+import { NextRequest, NextResponse } from "next/server";
+import formidable from "formidable";
+import fs from "fs";
+import { openai } from "@/lib/openai";
+import path from "path";
+import { writeFile } from "fs/promises";
+
+export const config = {
+  api: { bodyParser: false },
+};
+
+export async function POST(req: NextRequest) {
+  const form = formidable({ multiples: false });
+  const [fields, files] = await new Promise((resolve, reject) => {
+    form.parse(req, (err, fields, files) => {
+      if (err) reject(err);
+      else resolve([fields, files]);
+    });
+  });
+
+  const audio = fs.createReadStream(files.audio.filepath);
+
+  const transcriptRes = await openai.audio.transcriptions.create({
+    file: audio,
+    model: "whisper-1",
+  });
+  const transcript = transcriptRes.text;
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: "You are a helpful assistant." },
+      { role: "user", content: transcript },
+    ],
+  });
+
+  const reply = completion.choices[0].message.content || "";
+
+  // Generate audio via TTS (replace with ElevenLabs or browser TTS)
+  const audioUrl = `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(
+    reply
+  )}`;
+
+  return NextResponse.json({ transcript, reply, audioUrl });
+}
+```
+
+### 🚀 Bonus: TTS with ElevenLabs
+
+To use a more natural-sounding voice:
+
+- Sign up at [https://www.elevenlabs.io/](https://www.elevenlabs.io/)
+- Use their API to convert `reply` to audio
+
+```ts
+const audioRes = await fetch(
+  "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+  {
+    method: "POST",
+    headers: {
+      "xi-api-key": process.env.ELEVENLABS_API_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ text: reply, model_id: "eleven_monolingual_v1" }),
+  }
+);
+```
+
+Save the response and serve it to the frontend.
+
+### 🚀 What You've Built
+
+You now have:
+
+- Real-time voice-to-text transcription (Whisper)
+- AI-powered response (GPT-4o)
+- Text-to-speech reply (TTS)
+
+This unlocks use cases like:
+
+- Voice-first mobile agents
+- Conversational kiosks
+- Assistive tech for accessibility
+
+Next up: we’ll integrate **LangChain tools** to let your assistant _do things_, not just talk — like search, code, and analyze files.
