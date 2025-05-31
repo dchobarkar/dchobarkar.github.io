@@ -512,3 +512,168 @@ You can now:
 - Maintain memory via LangChain
 
 This is the conversational backbone for our assistant. Next, we’ll expand it to handle image input with GPT-4o Vision capabilities. Stay tuned! 🚀
+
+## 🖼️ Step 2: Image Input + Vision Response
+
+Now that we have our chat interface, it’s time to level it up: **let your assistant see**. We'll enable users to upload images or screenshots, and use **GPT-4o** (or GPT-4 with vision) to analyze and respond to them contextually.
+
+This is where multi-modality gets real. Users can:
+
+- Upload receipts or bills for analysis
+- Submit screenshots for debugging
+- Share photos or diagrams for interpretation
+
+### 📁 Update Folder Structure
+
+Add a new folder:
+
+```bash
+components/ImageChatBox.tsx
+```
+
+And optionally a subfolder:
+
+```bash
+public/uploads
+```
+
+### 🌐 Frontend: Image + Text Upload Form
+
+In `components/ImageChatBox.tsx`:
+
+```tsx
+"use client";
+import { useState } from "react";
+
+export default function ImageChatBox() {
+  const [messages, setMessages] = useState<any[]>([]);
+  const [image, setImage] = useState<File | null>(null);
+  const [input, setInput] = useState("");
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) setImage(e.target.files[0]);
+  };
+
+  async function sendMessage() {
+    const formData = new FormData();
+    formData.append("image", image as Blob);
+    formData.append("prompt", input);
+
+    const res = await fetch("/api/vision", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+
+    setMessages([
+      ...messages,
+      { role: "user", content: input },
+      { role: "assistant", content: data.reply },
+    ]);
+    setInput("");
+    setImage(null);
+  }
+
+  return (
+    <div className="max-w-xl mx-auto p-4">
+      <div className="space-y-2 mb-4">
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={`p-2 rounded-lg ${
+              msg.role === "user" ? "bg-blue-100" : "bg-gray-100"
+            }`}
+          >
+            <strong>{msg.role}:</strong> {msg.content}
+          </div>
+        ))}
+      </div>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleImageChange}
+        className="mb-2"
+      />
+      <input
+        className="border p-2 w-full mb-2"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="Ask something about the image..."
+      />
+      <button
+        onClick={sendMessage}
+        className="bg-green-500 text-white px-4 py-2 rounded"
+      >
+        Submit
+      </button>
+    </div>
+  );
+}
+```
+
+Use it in a route/page like:
+
+```tsx
+import ImageChatBox from "@/components/ImageChatBox";
+export default function VisionPage() {
+  return <ImageChatBox />;
+}
+```
+
+### 🔧 Backend: Vision Analysis via GPT-4o
+
+In `app/api/vision/route.ts`:
+
+```ts
+import { NextRequest, NextResponse } from "next/server";
+import { openai } from "@/lib/openai";
+import { writeFile } from "fs/promises";
+import path from "path";
+import { randomUUID } from "crypto";
+
+export async function POST(req: NextRequest) {
+  const formData = await req.formData();
+  const prompt = formData.get("prompt") as string;
+  const file = formData.get("image") as File;
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const filename = `${randomUUID()}.png`;
+  const filepath = path.join(process.cwd(), "public/uploads", filename);
+
+  await writeFile(filepath, buffer);
+  const url = `${req.nextUrl.origin}/uploads/${filename}`;
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a helpful assistant that can analyze images and screenshots.",
+      },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: prompt },
+          { type: "image_url", image_url: { url } },
+        ],
+      },
+    ],
+  });
+
+  const reply = response.choices[0].message.content;
+  return NextResponse.json({ reply });
+}
+```
+
+### 🚀 Use Cases & Examples
+
+You can now:
+
+- Upload a UI bug screenshot and ask: _"What's the likely issue?"_
+- Share a chart and ask: _"Summarize key insights"_
+- Upload a photo of handwritten notes and ask: _"Convert this to a list"_
+
+This builds a more _observational_ AI system, not just a reactive one.
+
+In the next step, we’ll bring in **voice interaction** — so your assistant can hear and speak too. Let’s go! 🎤
