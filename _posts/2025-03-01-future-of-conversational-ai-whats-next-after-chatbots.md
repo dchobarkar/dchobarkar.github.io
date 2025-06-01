@@ -989,3 +989,132 @@ With tools in place, your assistant can now:
 It’s no longer just reactive — it’s _proactive_ and _task-capable_.
 
 In the next step, we'll walk through **testing the agent in real-world scenarios** and ensuring robustness. Stay tuned! 📊
+
+## 🧪 Step 5: Testing the Agent – Real-World Scenarios
+
+Now that our assistant can handle multi-modal input and use tools, it’s crucial to **validate its behavior in the wild**. This step focuses on practical testing, edge-case handling, debugging tools, and observability.
+
+Our goal? Build an assistant that’s not only smart, but also _reliable, explainable, and robust_.
+
+### 🔢 Key Testing Scenarios
+
+Start by validating the assistant in realistic, mixed-input tasks. Here are a few to simulate:
+
+#### 1. 💡 Complex Task Decomposition
+
+```text
+"Check today’s weather in Paris, summarize this PDF I uploaded, and read this receipt image."
+```
+
+- ✅ Should use SerpAPI for weather
+- ✅ Use LangChain tool for PDF
+- ✅ GPT-4o vision for image analysis
+
+#### 2. 🎤 Voice to Tool Chain
+
+```text
+(voice) "What is the capital of Brazil and how many letters does it have?"
+```
+
+- ✅ Whisper transcribes
+- ✅ Agent uses internal logic
+
+#### 3. 🌍 Location + Image
+
+```text
+"Here’s a map screenshot. Which station is closest to the Eiffel Tower?"
+```
+
+- ✅ Vision API should analyze image content
+
+#### 4. 🔬 Math & File Combo
+
+```text
+"Calculate the average from this Excel file and then plot it."
+```
+
+- ✅ Tool reads CSV or Excel
+- ✅ Uses chart library or returns summary
+
+### 🤓 Prompt Logging (Highly Recommended)
+
+To debug LLM behavior, **log every message and response**.
+
+In your `api/chat` and `api/agent` handlers:
+
+```ts
+console.log("USER PROMPT:", input);
+console.log("MODEL RESPONSE:", result);
+```
+
+You can optionally save logs in a Firestore or Supabase table.
+
+### 📃 Response Time Benchmarking
+
+Wrap your executor call with time measurement:
+
+```ts
+const start = Date.now();
+const result = await runAgent(input);
+const end = Date.now();
+console.log(`⏱️ Agent took ${end - start}ms`);
+```
+
+This helps catch latency regressions when adding more tools.
+
+### 🌐 Frontend UX Tips for Testing
+
+Add feedback components:
+
+- ⏳ Loading spinners
+- ✉ Transcribed voice bubble
+- ℹ Agent explanation popup ("I used SerpAPI and Calculator")
+
+Also add retry buttons if a response fails.
+
+### 🧰 Handling Failures Gracefully
+
+Agents can fail or hallucinate. You can mitigate that:
+
+#### Fallback Messages
+
+```ts
+if (!result) {
+  return NextResponse.json({
+    result: "Sorry, I couldn't complete that request.",
+  });
+}
+```
+
+#### Timeout Guards
+
+```ts
+const timeoutPromise = new Promise((_, reject) =>
+  setTimeout(() => reject("Timed out"), 8000)
+);
+
+const result = await Promise.race([runAgent(input), timeoutPromise]);
+```
+
+#### Input Filtering
+
+Reject unsupported inputs early:
+
+```ts
+if (!input && !file) {
+  return NextResponse.json({ error: "Empty input" });
+}
+```
+
+### 📊 Summary Table: Test Plan
+
+| Scenario              | Features Tested             | Expected Output                      |
+| --------------------- | --------------------------- | ------------------------------------ |
+| Weather + PDF + Image | Tool chaining + multi-modal | Text + visual summary                |
+| Voice Question        | Whisper + GPT               | TTS output                           |
+| Image Map + Query     | Vision understanding        | Closest landmark or captioned info   |
+| Excel Analysis        | File reader + math tool     | Avg, stats, visual or tabular result |
+
+### 🚀 You’re Almost There
+
+These real-world test cases will help you fine-tune and build confidence in your assistant’s abilities. Next, we’ll walk through **deploying your AI assistant to Vercel**, including rate-limit handling, performance tuning, and edge functions. ✨
