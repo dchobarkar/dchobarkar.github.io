@@ -860,3 +860,132 @@ This unlocks use cases like:
 - Assistive tech for accessibility
 
 Next up: we’ll integrate **LangChain tools** to let your assistant _do things_, not just talk — like search, code, and analyze files.
+
+## 🛠️ Step 4: Tool-Enabled Reasoning (LangChain Agents)
+
+Now that your assistant can chat, see, and listen, it’s time to make it **act**. This section introduces **LangChain agents** and tools, enabling your assistant to:
+
+- Search the web 🔍
+- Run calculations ✖️
+- Read files 📄
+- Execute code 💻
+
+Let’s give your assistant the power to reason and decide _how_ to respond.
+
+### 🤖 What Is an Agent?
+
+In LangChain, an **agent** is a wrapper around an LLM that can:
+
+- Dynamically choose from a list of tools
+- Parse user intent
+- Decide on intermediate actions
+- Execute those actions, and respond
+
+Think of it like an AI brain with arms.
+
+### 🔊 Installing LangChain Tools
+
+Make sure you have:
+
+```bash
+pnpm add langchain@latest
+pnpm add @langchain/core
+```
+
+### 📊 Step-by-Step: Setup Agent with Tools
+
+In `lib/agent.ts`:
+
+```ts
+import { ChatOpenAI } from "langchain/chat_models/openai";
+import { Calculator } from "langchain/tools/calculator";
+import { SerpAPI } from "langchain/tools";
+import { initializeAgentExecutorWithOptions } from "langchain/agents";
+
+const llm = new ChatOpenAI({
+  modelName: "gpt-4o",
+  temperature: 0.7,
+});
+
+const tools = [new Calculator(), new SerpAPI(process.env.SERP_API_KEY!)];
+
+export async function runAgent(input: string) {
+  const executor = await initializeAgentExecutorWithOptions(tools, llm, {
+    agentType: "openai-functions",
+  });
+  const result = await executor.run(input);
+  return result;
+}
+```
+
+### 🔧 Create API Route to Call Agent
+
+In `app/api/agent/route.ts`:
+
+```ts
+import { runAgent } from "@/lib/agent";
+import { NextRequest, NextResponse } from "next/server";
+
+export async function POST(req: NextRequest) {
+  const { input } = await req.json();
+  const result = await runAgent(input);
+  return NextResponse.json({ result });
+}
+```
+
+### 🔍 Test Your Agent
+
+In the browser or Postman:
+
+```json
+POST /api/agent
+{
+  "input": "What's the weather in London and what is 23 * 17?"
+}
+```
+
+The agent should:
+
+- Use SerpAPI to fetch weather
+- Use Calculator to compute 23 \* 17
+- Return a coherent response
+
+### 🚀 Add to Chat Frontend (Optional)
+
+In your chat component, add an `agentMode` toggle:
+
+```ts
+const useAgent = true;
+const url = useAgent ? "/api/agent" : "/api/chat";
+```
+
+### 🔮 Add Custom Tools
+
+You can define your own tools too. Example: reading a PDF file.
+
+```ts
+import { Tool } from "langchain/tools";
+
+const fileReaderTool = new Tool({
+  name: "read_file",
+  description: "Reads uploaded files and extracts key content",
+  func: async (text) => {
+    // parse local file or buffer
+    return "Parsed content...";
+  },
+});
+```
+
+Add it to your `tools` array and the agent will decide when to use it.
+
+### 🚀 Agent Use Cases
+
+With tools in place, your assistant can now:
+
+- Look up flight prices
+- Analyze uploaded data
+- Automate workflows (e.g., calendar booking, API calls)
+
+It’s no longer just reactive — it’s _proactive_ and _task-capable_.
+
+In the next step, we'll walk through **testing the agent in real-world scenarios** and ensuring robustness. Stay tuned! 📊
