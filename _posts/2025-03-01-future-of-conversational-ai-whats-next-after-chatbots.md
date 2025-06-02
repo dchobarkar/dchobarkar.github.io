@@ -1118,3 +1118,108 @@ if (!input && !file) {
 ### 🚀 You’re Almost There
 
 These real-world test cases will help you fine-tune and build confidence in your assistant’s abilities. Next, we’ll walk through **deploying your AI assistant to Vercel**, including rate-limit handling, performance tuning, and edge functions. ✨
+
+## 🚀 Step 6: Deployment – Vercel + Serverless Functions
+
+You've built a powerful multi-modal AI assistant. Now it's time to **deploy it to production** with zero-downtime and scalability. In this section, we'll use **Vercel** to deploy the full stack:
+
+- Frontend (Next.js)
+- Serverless API routes (LangChain, Whisper, GPT)
+- Static assets (image uploads, TTS audio)
+
+Let’s go live. 🚀
+
+### 🛌 Prerequisites
+
+- GitHub account (for repo deployment)
+- Vercel account (free tier is enough)
+- Verified OpenAI API key + optional SerpAPI/Whisper/ElevenLabs
+
+### 📦 Step-by-Step: Deploy to Vercel
+
+#### 1. Push Your Code to GitHub
+
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git remote add origin https://github.com/your-user/multi-modal-ai-agent-nextjs.git
+git push -u origin main
+```
+
+#### 2. Import Repo into Vercel
+
+- Go to [https://vercel.com/import](https://vercel.com/import)
+- Choose your GitHub repo
+- Select **Next.js** as the framework
+
+#### 3. Add Environment Variables
+
+- `OPENAI_API_KEY`
+- `NEXT_PUBLIC_OPENAI_MODEL=gpt-4o`
+- `WHISPER_API_KEY`
+- `SERP_API_KEY`
+- `ELEVENLABS_API_KEY` (optional)
+
+These can be added via the **Vercel Dashboard > Settings > Environment Variables**
+
+### 🔄 Serverless API Optimization Tips
+
+All your `/api` routes are deployed as Vercel **Edge Functions** or **Serverless Functions**. Here's how to optimize:
+
+#### Use Streaming for Responsiveness
+
+```ts
+import { OpenAIStream, StreamingTextResponse } from "ai";
+const stream = OpenAIStream(response);
+return new StreamingTextResponse(stream);
+```
+
+#### Limit Memory Growth
+
+Use stateless design or external memory (e.g. Supabase vector store) to prevent cold-start memory issues.
+
+#### Avoid Large Uploads in Serverless
+
+Offload files to Cloudinary, S3, or Vercel Blob if needed.
+
+### 📶 Static Assets (Uploads + Audio)
+
+To serve uploaded images or audio:
+
+- Save them in `/public/uploads/`
+- Use relative URLs like `/uploads/file.png`
+- These are automatically deployed as static assets
+
+Example:
+
+```ts
+const url = `${req.nextUrl.origin}/uploads/${filename}`;
+```
+
+### ⚠️ Handling Rate Limits & Quotas
+
+OpenAI, ElevenLabs, and others have usage limits. To prevent hard fails:
+
+```ts
+if (response.status === 429) {
+  return NextResponse.json({ error: "Rate limit hit. Please try again." });
+}
+```
+
+You can also track usage with:
+
+- OpenAI Usage API
+- Logs in Supabase or Firestore
+
+### 🎉 You’re Live
+
+Once deployed, you get a Vercel URL like:
+
+```bash
+https://multi-modal-ai-agent.vercel.app/
+```
+
+Share it, test it, and build on top.
+
+Next up: the final chapter — _what comes after assistants?_ We'll explore autonomous agents, multi-agent collaboration, and where this is all headed 🌟
